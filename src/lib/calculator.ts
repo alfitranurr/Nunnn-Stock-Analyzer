@@ -1,5 +1,6 @@
 export interface AvgDownInput {
   ticker: string;
+  companyName?: string;
   lotAwal: number;
   avgPriceAwal: number;
   currentPrice: number;

@@ -9,9 +9,10 @@ import confetti from 'canvas-confetti';
 interface ResultsDisplayProps {
   result: AvgDownResult | null;
   ticker: string;
+  companyName?: string;
 }
 
-export function ResultsDisplay({ result, ticker }: ResultsDisplayProps) {
+export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayProps) {
   const [hasConfettiFired, setHasConfettiFired] = React.useState(false);
 
   // Format ke Rupiah
@@ -62,12 +63,36 @@ export function ResultsDisplay({ result, ticker }: ResultsDisplayProps) {
   const isProfitTotal = result.floatingPLTotal >= 0;
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-6 w-full animate-fadeIn">
+      {/* Ticker & Nama Perusahaan Header Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="glass-card p-5 border-brand-purple/20 bg-slate-900/45 dark:bg-black/35 flex justify-between items-center relative overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-32 h-32 bg-brand-purple/5 rounded-full blur-3xl pointer-events-none" />
+        <div>
+          <span className="text-[10px] font-black text-brand-purple uppercase tracking-widest">Saham BEI Aktif</span>
+          <h2 className="text-4xl font-extrabold text-white tracking-widest mt-1">
+            {ticker}
+          </h2>
+        </div>
+        {companyName && (
+          <div className="text-right">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nama Emiten</span>
+            <h3 className="text-base font-extrabold text-brand-indigo dark:text-violet-300 mt-1 max-w-[250px] md:max-w-[400px] truncate">
+              {companyName}
+            </h3>
+          </div>
+        )}
+      </motion.div>
+
       {/* Rencana Pembelian Baru / Capital Required Banner */}
       <motion.div 
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
         className="glass-card p-5.5 bg-gradient-to-r from-brand-indigo/10 to-brand-purple/10 border-brand-purple/35 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/10 rounded-full blur-2xl pointer-events-none" />

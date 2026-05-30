@@ -117,7 +117,7 @@ export default function Dashboard() {
 
     const newPlanData = {
       ticker: calculatorInput.ticker,
-      company_name: calculatorInput.ticker === 'ANTM' ? 'Aneka Tambang Tbk' : (calculatorInput.ticker === 'GOTO' ? 'GoTo Gojek Tokopedia Tbk' : 'Emiten BEI'),
+      company_name: calculatorInput.companyName || 'Emiten BEI',
       lot_awal: calculatorInput.lotAwal,
       avg_price_awal: calculatorInput.avgPriceAwal,
       current_price: calculatorInput.currentPrice,
@@ -282,26 +282,21 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Content Area Grid (Form + Output) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Input Form Column */}
-            <div className="lg:col-span-5 w-full">
-              <CalculatorForm 
-                onCalculate={handleCalculate}
-                onSavePlan={handleSavePlan}
-                isSaving={isSaving}
-                user={user}
-                initialValues={activePlanToLoad}
-              />
-            </div>
+          {/* Content Area Stack (Form on top, Results on bottom) */}
+          <div className="flex flex-col gap-6 w-full">
+            <CalculatorForm 
+              onCalculate={handleCalculate}
+              onSavePlan={handleSavePlan}
+              isSaving={isSaving}
+              user={user}
+              initialValues={activePlanToLoad}
+            />
 
-            {/* Results Column */}
-            <div className="lg:col-span-7 w-full h-full">
-              <ResultsDisplay 
-                result={calculatorResult} 
-                ticker={calculatorInput?.ticker || 'ANTM'} 
-              />
-            </div>
+            <ResultsDisplay 
+              result={calculatorResult} 
+              ticker={calculatorInput?.ticker || 'ANTM'} 
+              companyName={calculatorInput?.companyName}
+            />
           </div>
 
           {/* History List */}
