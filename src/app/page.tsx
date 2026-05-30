@@ -236,7 +236,7 @@ export default function Dashboard() {
               Kalkulator Average Down
               <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 w-full">
               Alat bantu hitung rencana average down (pembelian bertahap) untuk meminimalkan kerugian floating loss secara presisi, terintegrasi dengan pajak transaksi bursa Indonesia.
             </p>
           </div>

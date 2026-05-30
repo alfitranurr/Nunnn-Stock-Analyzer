@@ -122,6 +122,25 @@ const TICKER_DATABASE: Record<string, string> = {
   'TMAS': 'Temas Tbk',
 };
 
+// Helper functions for parsing and formatting numbers typed by the user
+const parseFormattedNumber = (val: string | number): number => {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  const clean = val.replace(/,/g, '');
+  const parsed = parseFloat(clean);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+const formatNumberForInput = (num: number | string | undefined | null): string => {
+  if (num === undefined || num === null || num === '') return '';
+  const parsed = typeof num === 'number' ? num : parseFloat(num.toString().replace(/,/g, ''));
+  if (isNaN(parsed)) return '';
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  }).format(parsed);
+};
+
 const BROKER_PRESETS = [
   { id: 'stockbit', name: 'Stockbit', buy: 0.15, sell: 0.25 },
   { id: 'ajaib', name: 'Ajaib', buy: 0.15, sell: 0.25 },
@@ -132,12 +151,12 @@ const BROKER_PRESETS = [
 export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user, initialValues }: CalculatorFormProps) {
   const [ticker, setTicker] = React.useState('ANTM');
   const [companyName, setCompanyName] = React.useState('Aneka Tambang Tbk');
-  const [lotAwal, setLotAwal] = React.useState<number | ''>(10);
-  const [avgPriceAwal, setAvgPriceAwal] = React.useState<number | ''>(1500);
-  const [currentPrice, setCurrentPrice] = React.useState<number | ''>(1350);
+  const [lotAwal, setLotAwal] = React.useState<string>('10');
+  const [avgPriceAwal, setAvgPriceAwal] = React.useState<string>('3,200');
+  const [currentPrice, setCurrentPrice] = React.useState<string>('2,900');
   
-  const [lotBaru, setLotBaru] = React.useState<number | ''>(15);
-  const [hargaBeliBaru, setHargaBeliBaru] = React.useState<number | ''>(1250);
+  const [lotBaru, setLotBaru] = React.useState<string>('15');
+  const [hargaBeliBaru, setHargaBeliBaru] = React.useState<string>('2,800');
   
   const [brokerPreset, setBrokerPreset] = React.useState('stockbit');
   const [feeBeli, setFeeBeli] = React.useState(0.15);
@@ -150,11 +169,11 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     if (initialValues) {
       setTicker(initialValues.ticker);
       setCompanyName(initialValues.company_name || TICKER_DATABASE[initialValues.ticker] || '');
-      setLotAwal(initialValues.lot_awal);
-      setAvgPriceAwal(initialValues.avg_price_awal);
-      setCurrentPrice(initialValues.current_price);
-      setLotBaru(initialValues.lot_baru);
-      setHargaBeliBaru(initialValues.harga_beli_baru);
+      setLotAwal(formatNumberForInput(initialValues.lot_awal));
+      setAvgPriceAwal(formatNumberForInput(initialValues.avg_price_awal));
+      setCurrentPrice(formatNumberForInput(initialValues.current_price));
+      setLotBaru(formatNumberForInput(initialValues.lot_baru));
+      setHargaBeliBaru(formatNumberForInput(initialValues.harga_beli_baru));
       setFeeBeli(initialValues.fee_beli);
       setFeeJual(initialValues.fee_jual);
       setIncludeFees(initialValues.fee_beli > 0 || initialValues.fee_jual > 0);
@@ -170,30 +189,34 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     }
   }, [initialValues]);
 
-  // Mengambil nama emiten secara real-time dari internet (Yahoo Finance) atau database lokal
+  // Mengambil nama emiten & harga secara real-time dari internet (Yahoo Finance) atau database lokal
   React.useEffect(() => {
     const val = ticker.toUpperCase().trim();
     if (val.length >= 4) {
       if (TICKER_DATABASE[val]) {
         setCompanyName(TICKER_DATABASE[val]);
-      } else {
-        const fetchRemoteTicker = async () => {
-          try {
-            const res = await fetch(`/api/ticker?symbol=${val}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.name) {
-                setCompanyName(data.name);
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching remote ticker:', err);
-          }
-        };
-        fetchRemoteTicker();
       }
+      
+      const fetchRemoteTicker = async () => {
+        try {
+          const res = await fetch(`/api/ticker?symbol=${val}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.name) {
+              setCompanyName(data.name);
+            }
+            if (data.price !== undefined && data.price !== null) {
+              setCurrentPrice(formatNumberForInput(data.price));
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching remote ticker data:', err);
+        }
+      };
+      fetchRemoteTicker();
     } else {
       setCompanyName('');
+      setCurrentPrice('');
     }
   }, [ticker]);
 
@@ -202,11 +225,11 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     const calculationInput: AvgDownInput = {
       ticker: ticker || 'IDX',
       companyName: companyName,
-      lotAwal: Number(lotAwal) || 0,
-      avgPriceAwal: Number(avgPriceAwal) || 0,
-      currentPrice: Number(currentPrice) || 0,
-      lotBaru: Number(lotBaru) || 0,
-      hargaBeliBaru: Number(hargaBeliBaru) || 0,
+      lotAwal: parseFormattedNumber(lotAwal),
+      avgPriceAwal: parseFormattedNumber(avgPriceAwal),
+      currentPrice: parseFormattedNumber(currentPrice),
+      lotBaru: parseFormattedNumber(lotBaru),
+      hargaBeliBaru: parseFormattedNumber(hargaBeliBaru),
       feeBeli: includeFees ? Number(feeBeli) : 0,
       feeJual: includeFees ? Number(feeJual) : 0,
       includeFees
@@ -233,6 +256,11 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         setFeeJual(selected.sell);
       }
     }
+  };
+
+  const handleBlur = (val: string, setter: (val: string) => void) => {
+    if (!val) return;
+    setter(formatNumberForInput(val));
   };
 
   const handleSaveClick = (e: React.FormEvent) => {
@@ -271,7 +299,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   setTicker(e.target.value.toUpperCase());
                 }}
                 placeholder="ANTM"
-                className="w-full text-center font-extrabold tracking-wider glass-input px-3.5 py-2.5 text-xs uppercase"
+                className="w-full text-center font-extrabold tracking-wider glass-input px-3.5 py-2.5 text-base md:text-xs uppercase"
                 required
               />
             </div>
@@ -283,7 +311,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Nama Perusahaan"
-                className="w-full glass-input px-3.5 py-2.5 text-xs font-semibold placeholder:text-slate-500/50"
+                className="w-full glass-input px-3.5 py-2.5 text-base md:text-xs font-semibold placeholder:text-slate-500/50"
               />
             </div>
           </div>
@@ -295,36 +323,35 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           <div className="grid grid-cols-3 gap-2">
             <div>
               <input
-                type="number"
-                min="1"
+                type="text"
                 value={lotAwal}
-                onChange={(e) => setLotAwal(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
+                onChange={(e) => setLotAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onBlur={() => handleBlur(lotAwal, setLotAwal)}
                 placeholder="Lot Awal"
-                className="w-full glass-input px-2.5 py-2.5 text-xs text-center font-bold"
+                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold"
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Lot Awal</span>
             </div>
             <div>
               <input
-                type="number"
-                min="1"
+                type="text"
                 value={avgPriceAwal}
-                onChange={(e) => setAvgPriceAwal(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
+                onChange={(e) => setAvgPriceAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onBlur={() => handleBlur(avgPriceAwal, setAvgPriceAwal)}
                 placeholder="Avg Price"
-                className="w-full glass-input px-2.5 py-2.5 text-xs text-center font-bold"
+                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold"
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Avg Price (Rp)</span>
             </div>
             <div>
               <input
-                type="number"
-                min="1"
+                type="text"
                 value={currentPrice}
-                onChange={(e) => setCurrentPrice(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
                 placeholder="Harga Sekarang"
-                className="w-full glass-input px-2.5 py-2.5 text-xs text-center font-bold"
+                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold bg-slate-100/10 dark:bg-black/15 cursor-not-allowed opacity-75"
+                readOnly
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Current Price (Rp)</span>
@@ -338,24 +365,24 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           <div className="grid grid-cols-2 gap-2">
             <div>
               <input
-                type="number"
-                min="1"
+                type="text"
                 value={lotBaru}
-                onChange={(e) => setLotBaru(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
+                onChange={(e) => setLotBaru(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onBlur={() => handleBlur(lotBaru, setLotBaru)}
                 placeholder="Lot Baru"
-                className="w-full glass-input px-2.5 py-2.5 text-xs text-center font-bold border-brand-purple/20 focus:border-brand-purple"
+                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold border-brand-purple/20 focus:border-brand-purple"
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Lot Baru</span>
             </div>
             <div>
               <input
-                type="number"
-                min="1"
+                type="text"
                 value={hargaBeliBaru}
-                onChange={(e) => setHargaBeliBaru(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
+                onChange={(e) => setHargaBeliBaru(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onBlur={() => handleBlur(hargaBeliBaru, setHargaBeliBaru)}
                 placeholder="Harga Baru"
-                className="w-full glass-input px-2.5 py-2.5 text-xs text-center font-bold border-brand-purple/20 focus:border-brand-purple"
+                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold border-brand-purple/20 focus:border-brand-purple"
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Harga Beli (Rp)</span>
@@ -369,7 +396,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           <select
             value={brokerPreset}
             onChange={(e) => handlePresetChange(e.target.value)}
-            className="w-full glass-input px-3 py-2.5 text-xs font-bold cursor-pointer text-foreground bg-background"
+            className="w-full glass-input px-3 py-2.5 text-base md:text-xs font-bold cursor-pointer text-foreground bg-background"
           >
             <option value="stockbit">Stockbit (Buy 0.15% / Sell 0.25%)</option>
             <option value="ajaib">Ajaib (Buy 0.15% / Sell 0.25%)</option>
@@ -385,7 +412,13 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         {/* Submit Action */}
         <button
           type="submit"
-          disabled={isSaving || !lotAwal || !avgPriceAwal || !lotBaru || !hargaBeliBaru}
+          disabled={
+            isSaving ||
+            parseFormattedNumber(lotAwal) <= 0 ||
+            parseFormattedNumber(avgPriceAwal) <= 0 ||
+            parseFormattedNumber(lotBaru) <= 0 ||
+            parseFormattedNumber(hargaBeliBaru) <= 0
+          }
           className="py-3 px-5.5 rounded-xl bg-gradient-to-r from-brand-indigo to-brand-purple hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-10.5 xl:mb-4.5"
         >
           {isSaving ? (

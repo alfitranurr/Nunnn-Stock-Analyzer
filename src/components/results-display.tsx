@@ -17,12 +17,11 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
 
   // Format ke Rupiah
   const formatIDR = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    const formatted = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
-    }).format(value);
+    }).format(Math.abs(value));
+    return value < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
   };
 
   // Reset confetti status jika ticker atau input berubah secara mendasar
@@ -88,28 +87,38 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         )}
       </motion.div>
 
-      {/* Rencana Pembelian Baru / Capital Required Banner */}
+      {/* Rencana Pembelian Baru & Total Lot Banner */}
       <motion.div 
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.05 }}
-        className="glass-card p-5.5 bg-gradient-to-r from-brand-indigo/10 to-brand-purple/10 border-brand-purple/35 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden"
+        className="grid grid-cols-1 md:grid-cols-3 gap-5.5 w-full"
       >
-        <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/10 rounded-full blur-2xl pointer-events-none" />
-        <div>
-          <span className="text-[10px] font-bold text-brand-purple uppercase tracking-widest">Modal Baru yang Dibutuhkan</span>
-          <h3 className="text-2xl font-black tracking-tight text-brand-indigo dark:text-violet-300 mt-1">
-            {formatIDR(result.capitalRequired)}
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Membeli <strong className="text-slate-800 dark:text-white">{result.sharesBaru.toLocaleString()}</strong> lembar ({result.sharesBaru / 100} Lot) baru.
-          </p>
-        </div>
-        <div className="px-4 py-2 rounded-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/5 flex flex-col items-end shrink-0">
-          <span className="text-[9px] font-bold text-slate-400 uppercase">Total Lot Akhir</span>
-          <span className="text-lg font-black text-slate-800 dark:text-white">
-            {result.lotTotal} Lot <span className="text-xs font-normal text-slate-400">({result.sharesTotal.toLocaleString()} lbr)</span>
+        {/* Card 1: Modal Baru yang Dibutuhkan */}
+        <div className="md:col-span-2 glass-card p-5.5 bg-gradient-to-r from-brand-indigo/15 to-brand-purple/15 border-brand-purple/35 relative overflow-hidden flex flex-col justify-center min-h-[110px]">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/10 rounded-full blur-2xl pointer-events-none" />
+          <span className="text-[9px] font-bold text-brand-purple dark:text-violet-400 uppercase tracking-widest block">
+            Modal Baru yang Dibutuhkan
           </span>
+          <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-4 mt-1.5 flex-wrap">
+            <h3 className="text-2xl md:text-3xl font-black tracking-tight text-brand-indigo dark:text-violet-300">
+              {formatIDR(result.capitalRequired)}
+            </h3>
+            <p className="text-sm md:text-base font-medium text-slate-500 dark:text-slate-400">
+              Membeli {result.sharesBaru.toLocaleString('en-US')} lembar (<strong className="font-extrabold text-slate-800 dark:text-white">{(result.sharesBaru / 100).toLocaleString('en-US')} Lot</strong>) baru
+            </p>
+          </div>
+        </div>
+
+        {/* Card 2: Total Lot Akhir */}
+        <div className="glass-card p-5.5 bg-white/5 dark:bg-black/25 border-slate-200 dark:border-white/5 flex flex-col justify-center min-h-[110px]">
+          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+            Total Lot Akhir
+          </span>
+          <h3 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mt-1.5 flex items-baseline gap-1.5 flex-wrap">
+            <span>{result.lotTotal.toLocaleString('en-US')} Lot</span>
+            <span className="text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400">({result.sharesTotal.toLocaleString('en-US')} lembar)</span>
+          </h3>
         </div>
       </motion.div>
 
@@ -222,26 +231,33 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         </motion.div>
       </div>
 
-      {/* Rangkuman Peningkatan Performa */}
+      {/* Rangkuman Perbaikan Posisi */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="glass-card p-6 border-slate-200 dark:border-white/5"
+        className="glass-card p-6 border-slate-200 dark:border-white/5 relative overflow-hidden"
       >
-        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4.5 flex items-center gap-2">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-brand-purple/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-3">
           <ShieldCheck className="h-4.5 w-4.5 text-brand-purple" />
           Rangkuman Perbaikan Posisi ({ticker})
         </h4>
-        
-        <div className="space-y-5">
-          {/* Average Price Reduction Bar */}
-          <div>
-            <div className="flex justify-between text-xs mb-2">
-              <span className="text-slate-500">Harga Rata-Rata Berkurang</span>
-              <span className="font-bold text-brand-purple dark:text-violet-300">-{result.avgPriceReductionPct.toFixed(2)}%</span>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          {/* Penurunan Harga Rata-Rata */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-baseline">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Harga Rata-Rata (Avg Price)</span>
+              <span className="text-lg font-black text-brand-purple dark:text-violet-300">
+                -{result.avgPriceReductionPct.toFixed(2)}%
+              </span>
             </div>
-            <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+            
+            {/* Custom Progress Bar */}
+            <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-full overflow-hidden border border-slate-200/20 dark:border-white/5">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, result.avgPriceReductionPct)}%` }}
@@ -249,43 +265,73 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 className="h-full bg-gradient-to-r from-brand-indigo to-brand-purple rounded-full"
               />
             </div>
-            <span className="text-[10px] text-slate-400 mt-1.5 block">
-              Dari <strong className="text-slate-600 dark:text-slate-300">{formatIDR(result.avgPriceAwal)}</strong> ke <strong className="text-slate-800 dark:text-white">{formatIDR(result.avgPriceBaru)}</strong> per lembar.
-            </span>
+
+            {/* Perbandingan Harga */}
+            <div className="flex items-center gap-3 justify-between bg-white/85 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-300/60 dark:border-white/10 text-xs shadow-md backdrop-blur-md hover:scale-[1.01] transition-transform duration-200">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Harga Awal</span>
+                <span className="font-bold text-slate-600 dark:text-slate-300">{formatIDR(result.avgPriceAwal)}</span>
+              </div>
+              <ArrowRight className="h-4.5 w-4.5 text-brand-purple shrink-0 drop-shadow-[0_0_4px_rgba(139,92,246,0.3)]" />
+              <div className="flex flex-col text-right">
+                <span className="text-[10px] text-brand-purple dark:text-violet-400 uppercase font-bold tracking-wider mb-0.5">Harga Baru</span>
+                <span className="font-extrabold text-slate-800 dark:text-white">{formatIDR(result.avgPriceBaru)}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Loss Shrinking Bar */}
-          {!isProfitAwal && result.lossShrunkPct !== null && (
-            <div>
-              <div className="flex justify-between text-xs mb-2">
-                <span className="text-slate-500">Persentase Floating Loss Menyusut</span>
-                <span className="font-bold text-bullish-green dark:text-bullish-neon">
-                  {result.lossShrunkPct >= 100 ? '100% (Loss Tereliminasi!)' : `${result.lossShrunkPct.toFixed(2)}%`}
-                </span>
-              </div>
-              <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, result.lossShrunkPct)}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-bullish-green to-bullish-neon rounded-full"
-                />
-              </div>
-              <span className="text-[10px] text-slate-400 mt-1.5 block">
-                Floating Loss berkurang dari <strong className="text-bearish-crimson">{result.floatingPLAwalPct.toFixed(2)}%</strong> menjadi <strong className={isProfitTotal ? 'text-bullish-green' : 'text-bearish-crimson'}>{result.floatingPLTotalPct.toFixed(2)}%</strong>.
-              </span>
-            </div>
-          )}
+          {/* Penyusutan Loss atau Pertumbuhan Profit */}
+          <div className="space-y-4">
+            {!isProfitAwal && result.lossShrunkPct !== null ? (
+              <>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Floating Loss Menyusut</span>
+                  <span className="text-lg font-black text-bullish-green dark:text-bullish-neon">
+                    {result.lossShrunkPct >= 100 ? '100% (Sembuh!)' : `-${result.lossShrunkPct.toFixed(2)}%`}
+                  </span>
+                </div>
 
-          {/* Profit Growth info */}
-          {isProfitAwal && (
-            <div className="flex items-center gap-2 text-xs p-3 rounded-lg bg-bullish-green/10 border border-bullish-green/20 text-bullish-green">
-              <CheckCircle2 className="h-4.5 w-4.5 shrink-0" />
-              <span>
-                Posisi awal Anda sudah profit. Rencana ini menambah kepemilikan Anda dengan peningkatan modal sebesar {((result.capitalRequired / result.investedAmountAwal) * 100).toFixed(1)}% dan memproyeksikan profit akhir sebesar {result.floatingPLTotalPct.toFixed(2)}%.
-              </span>
-            </div>
-          )}
+                {/* Custom Progress Bar */}
+                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-full overflow-hidden border border-slate-200/20 dark:border-white/5">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, result.lossShrunkPct)}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-bullish-green to-bullish-neon rounded-full"
+                  />
+                </div>
+
+                {/* Perbandingan Loss */}
+                <div className="flex items-center gap-3 justify-between bg-white/85 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-300/60 dark:border-white/10 text-xs shadow-md backdrop-blur-md hover:scale-[1.01] transition-transform duration-200">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Loss Awal</span>
+                    <span className="font-bold text-bearish-red">{result.floatingPLAwalPct.toFixed(2)}%</span>
+                  </div>
+                  <ArrowRight className="h-4.5 w-4.5 text-bullish-green dark:text-bullish-neon shrink-0 drop-shadow-[0_0_4px_rgba(16,185,129,0.3)]" />
+                  <div className="flex flex-col text-right">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Loss Baru</span>
+                    <span className={`font-extrabold ${isProfitTotal ? 'text-bullish-green' : 'text-bearish-red'}`}>
+                      {isProfitTotal ? '+' : ''}{result.floatingPLTotalPct.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="h-full flex items-center">
+                <div className="flex items-start gap-3 text-xs p-4 rounded-xl bg-bullish-green/5 dark:bg-bullish-green/10 border border-bullish-green/20 text-bullish-green w-full">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-bullish-green mt-0.5" />
+                  <div>
+                    <span className="font-extrabold block mb-1">Posisi Portofolio Sehat</span>
+                    <span>
+                      Posisi awal Anda sudah profit. Pembelian baru ini akan menambah kepemilikan Anda sebesar 
+                      {' '}<strong className="text-slate-800 dark:text-white">{((result.capitalRequired / result.investedAmountAwal) * 100).toFixed(1)}%</strong> dari modal awal, dengan proyeksi profit akhir sebesar <strong>{result.floatingPLTotalPct.toFixed(2)}%</strong>.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </motion.div>
     </div>

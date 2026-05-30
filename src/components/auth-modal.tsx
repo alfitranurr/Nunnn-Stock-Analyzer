@@ -158,7 +158,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"
-                className="w-full glass-input pl-10.5 pr-4 py-2.5 text-sm bg-black/40 border-white/10 text-white placeholder:text-slate-500"
+                className="w-full glass-input pl-10.5 pr-4 py-2.5 text-base md:text-sm bg-black/40 border-white/10 text-white placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -173,7 +173,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full glass-input pl-10.5 pr-4 py-2.5 text-sm bg-black/40 border-white/10 text-white placeholder:text-slate-500"
+                className="w-full glass-input pl-10.5 pr-4 py-2.5 text-base md:text-sm bg-black/40 border-white/10 text-white placeholder:text-slate-500"
               />
             </div>
           </div>

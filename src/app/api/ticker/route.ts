@@ -9,42 +9,40 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Mencari dengan suffix .JK (Jakarta/BEI) di Yahoo Finance search API
+    // Mengambil data chart (termasuk harga real-time dan nama) dari Yahoo Finance
     const response = await fetch(
-      `https://query1.finance.yahoo.com/v1/finance/search?q=${symbol}.JK`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.JK`,
       {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         },
-        next: { revalidate: 86400 } // Cache hasil pencarian di server selama 24 jam untuk kecepatan
+        cache: 'no-store' // Jangan di-cache agar harga selalu real-time
       }
     );
 
     if (!response.ok) {
-      throw new Error('Failed to fetch from Yahoo Finance');
+      return NextResponse.json({ symbol, name: '', price: null });
     }
 
     const data = await response.json();
-    const quote = data.quotes?.[0];
+    const meta = data.chart?.result?.[0]?.meta;
 
-    if (quote) {
-      // Mengambil longname atau shortname dan merapikan teksnya
-      let name = quote.longname || quote.shortname || '';
+    if (meta) {
+      let name = meta.shortName || meta.longName || '';
+      const price = meta.regularMarketPrice || null;
       
-      // Rapikan teks kapitalisasi dari Yahoo (contoh: ANEKA TAMBANG -> Aneka Tambang Tbk)
+      // Rapikan nama perusahaan
       if (name) {
-        // Hapus suffix ".JK" jika terbawa
         name = name.replace(/\.JK/gi, '');
-        // Hapus teks berlebih yang kurang estetik
         name = name.replace(/Persero/gi, '').replace(/  +/g, ' ').trim();
       }
 
-      return NextResponse.json({ symbol, name });
+      return NextResponse.json({ symbol, name, price });
     }
 
-    return NextResponse.json({ symbol, name: '' });
+    return NextResponse.json({ symbol, name: '', price: null });
   } catch (error: any) {
-    console.error('Error fetching ticker name from internet:', error.message);
-    return NextResponse.json({ error: 'Failed to fetch ticker name' }, { status: 500 });
+    console.error('Error fetching ticker data from internet:', error.message);
+    return NextResponse.json({ error: 'Failed to fetch ticker data' }, { status: 500 });
   }
 }

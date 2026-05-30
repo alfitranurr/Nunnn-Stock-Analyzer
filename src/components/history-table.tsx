@@ -27,12 +27,11 @@ interface HistoryTableProps {
 
 export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryTableProps) {
   const formatIDR = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    const formatted = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+      maximumFractionDigits: 2,
+    }).format(Math.abs(value));
+    return value < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
   };
 
   const formatDate = (dateStr: string) => {
@@ -117,7 +116,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                         {/* Posisi Awal */}
                         <td className="px-4 py-4.5 whitespace-nowrap">
                           <div className="flex flex-col text-xs text-slate-600 dark:text-slate-300">
-                            <span className="font-medium">{plan.lot_awal} Lot</span>
+                            <span className="font-medium">{plan.lot_awal.toLocaleString('en-US')} Lot</span>
                             <span className="text-[10px] text-slate-400">@ {formatIDR(plan.avg_price_awal)}</span>
                           </div>
                         </td>
@@ -125,7 +124,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                         {/* Rencana Baru */}
                         <td className="px-4 py-4.5 whitespace-nowrap">
                           <div className="flex flex-col text-xs text-slate-600 dark:text-slate-300">
-                            <span className="font-semibold text-brand-indigo dark:text-indigo-400">+{plan.lot_baru} Lot</span>
+                            <span className="font-semibold text-brand-indigo dark:text-indigo-400">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
                             <span className="text-[10px] text-slate-400">@ {formatIDR(plan.harga_beli_baru)}</span>
                           </div>
                         </td>
