@@ -6,7 +6,6 @@ import { CalculatorForm } from '@/components/calculator-form';
 import { ResultsDisplay } from '@/components/results-display';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { Sparkles, BookOpen, AlertCircle, Info, Database, Heart } from 'lucide-react';
