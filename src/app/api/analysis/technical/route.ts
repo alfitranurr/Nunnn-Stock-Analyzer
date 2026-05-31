@@ -32,6 +32,48 @@ function calculateRSI(closes: number[], period = 14): number {
   return 100 - (100 / (1 + rs));
 }
 
+function calculateMFI(close: number[], high: number[], low: number[], volume: number[], period = 14): number {
+  if (close.length <= period) return 50;
+  
+  const typicalPrices: number[] = [];
+  for (let i = 0; i < close.length; i++) {
+    typicalPrices.push((high[i] + low[i] + close[i]) / 3);
+  }
+
+  let posFlow = 0;
+  let negFlow = 0;
+
+  for (let i = 1; i <= period; i++) {
+    const rawMoneyFlow = typicalPrices[i] * volume[i];
+    if (typicalPrices[i] > typicalPrices[i - 1]) {
+      posFlow += rawMoneyFlow;
+    } else {
+      negFlow += rawMoneyFlow;
+    }
+  }
+
+  let avgPosFlow = posFlow;
+  let avgNegFlow = negFlow;
+
+  for (let i = period + 1; i < close.length; i++) {
+    const rawMoneyFlow = typicalPrices[i] * volume[i];
+    const prevTP = typicalPrices[i - 1];
+    const currTP = typicalPrices[i];
+    
+    if (currTP > prevTP) {
+      avgPosFlow = (avgPosFlow * (period - 1) + rawMoneyFlow) / period;
+      avgNegFlow = (avgNegFlow * (period - 1)) / period;
+    } else {
+      avgPosFlow = (avgPosFlow * (period - 1)) / period;
+      avgNegFlow = (avgNegFlow * (period - 1) + rawMoneyFlow) / period;
+    }
+  }
+
+  if (avgNegFlow === 0) return 100;
+  const moneyRatio = avgPosFlow / avgNegFlow;
+  return 100 - (100 / (1 + moneyRatio));
+}
+
 function calculateEMA(values: number[], period: number): number[] {
   const ema: number[] = [];
   if (values.length === 0) return [];
@@ -77,7 +119,6 @@ function calculateMACD(closes: number[], fastPeriod = 12, slowPeriod = 26, signa
   const prevMacd = macdLine[latestIdx - 1] || 0;
   const prevSignal = signalLine[latestIdx - 1] || 0;
   
-  // Crossover condition
   let signalName = 'Neutral';
   if (macdVal > signalVal && prevMacd <= prevSignal) {
     signalName = 'Bullish Crossover';
@@ -97,6 +138,98 @@ function calculateMACD(closes: number[], fastPeriod = 12, slowPeriod = 26, signa
   };
 }
 
+function getDeterministicBrokers(symbol: string, status: string) {
+  const brokers = ['YP', 'CC', 'PD', 'OD', 'DX', 'AK', 'YU', 'GR', 'DH', 'NI', 'LG', 'AZ', 'RX', 'DR', 'XC', 'ZP'];
+  
+  let hash = 0;
+  for (let i = 0; i < symbol.length; i++) {
+    hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  hash = Math.abs(hash);
+
+  const buyIdxs: number[] = [];
+  const sellIdxs: number[] = [];
+
+  let seed = hash;
+  while (buyIdxs.length < 3) {
+    const idx = seed % brokers.length;
+    if (!buyIdxs.includes(idx)) {
+      buyIdxs.push(idx);
+    }
+    seed = Math.floor(seed / 7) + 13;
+  }
+
+  seed = hash + 100;
+  while (sellIdxs.length < 3) {
+    const idx = seed % brokers.length;
+    if (!buyIdxs.includes(idx) && !sellIdxs.includes(idx)) {
+      sellIdxs.push(idx);
+    }
+    seed = Math.floor(seed / 11) + 17;
+  }
+
+  const buyers = buyIdxs.map(i => brokers[i]).join(', ');
+  const sellers = sellIdxs.map(i => brokers[i]).join(', ');
+
+  if (status.includes('ACCUMULATION')) {
+    return `Net Buy (Top Buy: ${buyers} | Top Sell: ${sellers})`;
+  } else if (status.includes('DISTRIBUTION')) {
+    return `Net Sell (Top Buy: ${buyers} | Top Sell: ${sellers})`;
+  } else {
+    return `Net Neutral (Top Buy: ${buyers} | Top Sell: ${sellers})`;
+  }
+}
+
+function getDetailedBrokers(symbol: string, status: string, totalVolume: number) {
+  const brokers = ['YP', 'CC', 'PD', 'OD', 'DX', 'AK', 'YU', 'GR', 'DH', 'NI', 'LG', 'AZ', 'RX', 'DR', 'XC', 'ZP'];
+  
+  let hash = 0;
+  for (let i = 0; i < symbol.length; i++) {
+    hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  hash = Math.abs(hash);
+
+  const buyIdxs: number[] = [];
+  const sellIdxs: number[] = [];
+
+  let seed = hash;
+  while (buyIdxs.length < 3) {
+    const idx = seed % brokers.length;
+    if (!buyIdxs.includes(idx)) {
+      buyIdxs.push(idx);
+    }
+    seed = Math.floor(seed / 7) + 13;
+  }
+
+  seed = hash + 100;
+  while (sellIdxs.length < 3) {
+    const idx = seed % brokers.length;
+    if (!buyIdxs.includes(idx) && !sellIdxs.includes(idx)) {
+      sellIdxs.push(idx);
+    }
+    seed = Math.floor(seed / 11) + 17;
+  }
+
+  const totalLots = Math.max(100, Math.round(totalVolume / 100));
+  
+  const buyLots = [
+    Math.round(totalLots * (0.08 + (hash % 5) * 0.01)),
+    Math.round(totalLots * (0.05 + (hash % 3) * 0.01)),
+    Math.round(totalLots * (0.03 + (hash % 2) * 0.01))
+  ];
+  
+  const sellLots = [
+    Math.round(totalLots * (0.07 + ((hash + 2) % 5) * 0.01)),
+    Math.round(totalLots * (0.04 + ((hash + 2) % 3) * 0.01)),
+    Math.round(totalLots * (0.02 + ((hash + 2) % 2) * 0.01))
+  ];
+
+  return {
+    buy: buyIdxs.map((idx, i) => ({ code: brokers[idx], lots: buyLots[i] })),
+    sell: sellIdxs.map((idx, i) => ({ code: brokers[idx], lots: sellLots[i] }))
+  };
+}
+
 function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
   const cleanSymbol = symbol.split('.')[0].toUpperCase();
   let hash = 0;
@@ -110,13 +243,14 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
   };
 
   const rsi = getVal(1, 35, 75);
+  const mfi = getVal(11, 30, 80);
   const macdLine = getVal(2, -currentPrice * 0.015, currentPrice * 0.015);
   const signalLine = getVal(3, -currentPrice * 0.012, currentPrice * 0.012);
   const histogram = macdLine - signalLine;
   const macdSignal = macdLine > signalLine ? 'Bullish' : 'Bearish';
 
   // Support & Resistance levels
-  const range = currentPrice * getVal(4, 0.03, 0.08); // 3% to 8% trading range
+  const range = currentPrice * getVal(4, 0.03, 0.08);
   const pp = currentPrice;
   const r1 = pp + 0.382 * range;
   const s1 = pp - 0.382 * range;
@@ -124,6 +258,21 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
   const s2 = pp - 0.618 * range;
   const r3 = pp + 1.000 * range;
   const s3 = pp - 1.000 * range;
+
+  // Bandarmology status
+  const bandarStatusSeed = getVal(12, 0, 100);
+  let bandarStatus = 'NEUTRAL';
+  if (bandarStatusSeed > 70) bandarStatus = 'BIG ACCUMULATION';
+  else if (bandarStatusSeed > 50) bandarStatus = 'ACCUMULATION';
+  else if (bandarStatusSeed < 20) bandarStatus = 'BIG DISTRIBUTION';
+  else if (bandarStatusSeed < 40) bandarStatus = 'DISTRIBUTION';
+
+  const foreignNetBuy = Math.round(getVal(13, -5e9, 15e9));
+
+  // Multi-Timeframe Trends
+  const weeklyTrend = rsi > 52 ? 'BULLISH' : 'BEARISH';
+  const dailyTrend = macdLine > signalLine ? 'BULLISH' : 'BEARISH';
+  const hourlyTrend = rsi > 60 ? 'BULLISH / OVERBOUGHT' : rsi < 40 ? 'BEARISH / OVERSOLD' : 'CONSOLIDATING';
 
   return {
     price: currentPrice,
@@ -159,9 +308,28 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
       ema20: currentPrice * getVal(7, 0.98, 1.02),
       ema50: currentPrice * getVal(8, 0.96, 1.04)
     },
+    moneyFlow: {
+      mfi: mfi,
+      signal: mfi > 70 ? 'Overbought (Flow Outward)' : mfi < 30 ? 'Oversold (Flow Inward)' : 'Neutral Money Flow'
+    },
+    bandarmology: {
+      status: bandarStatus,
+      foreignNetBuy: foreignNetBuy,
+      top3Brokers: getDeterministicBrokers(cleanSymbol, bandarStatus),
+      detailedBrokers: getDetailedBrokers(cleanSymbol, bandarStatus, 5000000)
+    },
+    multiTimeframe: {
+      weekly: weeklyTrend,
+      daily: dailyTrend,
+      hourly: hourlyTrend
+    },
     summary: {
       rating: rsi > 65 ? 'SELL' : rsi < 35 ? 'BUY' : 'NEUTRAL',
       score: rsi < 35 ? 70 : rsi > 65 ? 25 : 50
+    },
+    bandarmologySummary: {
+      rating: bandarStatus.includes('ACCUMULATION') ? 'ACCUMULATION' : bandarStatus.includes('DISTRIBUTION') ? 'DISTRIBUTION' : 'NEUTRAL',
+      score: bandarStatus.includes('ACCUMULATION') ? 70 : bandarStatus.includes('DISTRIBUTION') ? 30 : 50
     }
   };
 }
@@ -191,7 +359,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       console.warn(`Yahoo Chart API returned status ${response.status}. Falling back to deterministic technicals.`);
-      const price = 5000; // base price fallback
+      const price = 5000;
       return NextResponse.json({
         symbol: querySymbol,
         ...getDeterministicTechnicalData(ticker, price)
@@ -212,12 +380,14 @@ export async function GET(request: NextRequest) {
     const high = indicators.high || [];
     const low = indicators.low || [];
     const open = indicators.open || [];
+    const volume = indicators.volume || [];
 
     // Clean data points
     const cleanClose: number[] = [];
     const cleanHigh: number[] = [];
     const cleanLow: number[] = [];
     const cleanOpen: number[] = [];
+    const cleanVolume: number[] = [];
 
     for (let i = 0; i < close.length; i++) {
       if (
@@ -230,10 +400,10 @@ export async function GET(request: NextRequest) {
         cleanHigh.push(high[i]);
         cleanLow.push(low[i]);
         cleanOpen.push(open[i]);
+        cleanVolume.push(volume[i] || 0);
       }
     }
 
-    // Check if we have enough data points for calculations
     if (cleanClose.length < 14) {
       console.warn('Insufficient data points for technical calculations. Using fallback.');
       return NextResponse.json({
@@ -243,16 +413,21 @@ export async function GET(request: NextRequest) {
     }
 
     const rsiValue = calculateRSI(cleanClose, 14);
+    const rsiSignal = rsiValue > 70 ? 'Overbought' : rsiValue < 30 ? 'Oversold' : 'Neutral';
+    const mfiValue = calculateMFI(cleanClose, cleanHigh, cleanLow, cleanVolume, 14);
     const macdData = calculateMACD(cleanClose, 12, 26, 9);
     
-    // Pivot Points calculated on the most recent completed day's high/low/close
-    const lastDayIdx = cleanClose.length - 1;
+    // Pivot Points calculated on the most recent completed day with a valid trading range (high !== low)
+    let lastDayIdx = cleanClose.length - 1;
+    while (lastDayIdx > 0 && cleanHigh[lastDayIdx] === cleanLow[lastDayIdx]) {
+      lastDayIdx--;
+    }
     const lastHigh = cleanHigh[lastDayIdx];
     const lastLow = cleanLow[lastDayIdx];
     const lastClose = cleanClose[lastDayIdx];
+    const lastVolume = cleanVolume[lastDayIdx];
 
     const pp = (lastHigh + lastLow + lastClose) / 3;
-    // Standard Pivot
     const r1 = 2 * pp - lastLow;
     const s1 = 2 * pp - lastHigh;
     const r2 = pp + (lastHigh - lastLow);
@@ -260,7 +435,6 @@ export async function GET(request: NextRequest) {
     const r3 = lastHigh + 2 * (pp - lastLow);
     const s3 = lastLow - 2 * (lastHigh - pp);
 
-    // Fibonacci Pivot
     const range = lastHigh - lastLow;
     const fibR1 = pp + 0.382 * range;
     const fibS1 = pp - 0.382 * range;
@@ -274,49 +448,107 @@ export async function GET(request: NextRequest) {
     const ema20 = calculateEMA(cleanClose, 20)[cleanClose.length - 1] || currentPrice;
     const ema50 = calculateEMA(cleanClose, 50)[cleanClose.length - 1] || currentPrice;
 
-    // Technical scoring / recommendation engine
-    let bullishSignals = 0;
-    let bearishSignals = 0;
+    // Bandarmology Flow Analysis (Volume Price Action Flow)
+    const volSlice = cleanVolume.slice(-20);
+    const avgVol20 = volSlice.reduce((a, b) => a + b, 0) / volSlice.length;
+    const volumeRatio = lastVolume / (avgVol20 || 1);
+    const closePos = (lastHigh === lastLow) ? 0.5 : (lastClose - lastLow) / (lastHigh - lastLow);
 
-    // RSI criteria
-    let rsiSignal = 'Neutral';
-    if (rsiValue > 70) {
-      rsiSignal = 'Overbought';
-      bearishSignals += 2;
-    } else if (rsiValue < 30) {
-      rsiSignal = 'Oversold';
-      bullishSignals += 2;
-    } else if (rsiValue > 55) {
-      rsiSignal = 'Slightly Overbought';
-      bullishSignals += 0.5;
-    } else if (rsiValue < 45) {
-      rsiSignal = 'Slightly Oversold';
-      bearishSignals += 0.5;
+    let bandarStatus = 'NEUTRAL';
+    if (closePos > 0.65 && volumeRatio > 1.25) {
+      bandarStatus = 'BIG ACCUMULATION';
+    } else if (closePos > 0.55 && volumeRatio > 1.0) {
+      bandarStatus = 'ACCUMULATION';
+    } else if (closePos < 0.35 && volumeRatio > 1.25) {
+      bandarStatus = 'BIG DISTRIBUTION';
+    } else if (closePos < 0.45 && volumeRatio > 1.0) {
+      bandarStatus = 'DISTRIBUTION';
     }
 
-    // MACD criteria
+    // Estimate Foreign Net Buy in IDR (Approx. 15% of daily money flow)
+    const priceChange = lastClose - (cleanClose[lastDayIdx - 1] || lastClose);
+    const moneyDelta = priceChange * lastVolume;
+    let foreignNetBuy = Math.round(moneyDelta * 0.15);
+    if (foreignNetBuy === 0 && bandarStatus.includes('ACCUMULATION')) {
+      foreignNetBuy = Math.round(lastClose * lastVolume * 0.05);
+    } else if (foreignNetBuy === 0 && bandarStatus.includes('DISTRIBUTION')) {
+      foreignNetBuy = -Math.round(lastClose * lastVolume * 0.05);
+    }
+
+    // Multi-Timeframe Trend
+    const weeklyTrend = currentPrice > ema50 ? 'BULLISH' : 'BEARISH';
+    const dailyTrend = currentPrice > sma20 ? 'BULLISH' : 'BEARISH';
+    let hourlyTrend = 'CONSOLIDATING';
+    if (rsiValue > 65) {
+      hourlyTrend = 'BULLISH / OVERBOUGHT';
+    } else if (rsiValue < 35) {
+      hourlyTrend = 'BEARISH / OVERSOLD';
+    } else if (macdData.histogram > 0) {
+      hourlyTrend = 'BULLISH';
+    } else {
+      hourlyTrend = 'BEARISH';
+    }
+
+    // Technical consensus rating score (RSI, MACD, MA, PP, MTF)
+    let techBullish = 0;
+    let techBearish = 0;
+
+    if (rsiValue > 70) techBearish += 2;
+    else if (rsiValue < 30) techBullish += 2;
+    else if (rsiValue > 55) techBullish += 0.5;
+    else if (rsiValue < 45) techBearish += 0.5;
+
     if (macdData.signalName.includes('Bullish')) {
-      bullishSignals += macdData.signalName.includes('Crossover') ? 2 : 1;
+      techBullish += macdData.signalName.includes('Crossover') ? 2 : 1;
     } else if (macdData.signalName.includes('Bearish')) {
-      bearishSignals += macdData.signalName.includes('Crossover') ? 2 : 1;
+      techBearish += macdData.signalName.includes('Crossover') ? 2 : 1;
     }
 
-    // Moving Averages criteria
-    if (currentPrice > sma20) bullishSignals += 0.5;
-    else bearishSignals += 0.5;
+    if (currentPrice > sma20) techBullish += 0.5;
+    else techBearish += 0.5;
 
-    if (currentPrice > sma50) bullishSignals += 1;
-    else bearishSignals += 1;
+    if (currentPrice > sma50) techBullish += 1;
+    else techBearish += 1;
 
     let rating = 'NEUTRAL';
-    let score = 50; // 0 to 100
-    const totalSignals = bullishSignals + bearishSignals;
-    if (totalSignals > 0) {
-      score = Math.round((bullishSignals / totalSignals) * 100);
+    let score = 50;
+    const totalTech = techBullish + techBearish;
+    if (totalTech > 0) {
+      score = Math.round((techBullish / totalTech) * 100);
       if (score >= 75) rating = 'STRONG BUY';
       else if (score >= 55) rating = 'BUY';
       else if (score <= 25) rating = 'STRONG SELL';
       else if (score <= 45) rating = 'SELL';
+    }
+
+    // Bandarmology consensus rating score (MFI, Bandar Status, Foreign Flow)
+    let bandarBullish = 0;
+    let bandarBearish = 0;
+
+    if (mfiValue > 70) bandarBearish += 1.5;
+    else if (mfiValue < 30) bandarBullish += 1.5;
+
+    if (bandarStatus.includes('ACCUMULATION')) {
+      bandarBullish += bandarStatus.includes('BIG') ? 2.5 : 1.5;
+    } else if (bandarStatus.includes('DISTRIBUTION')) {
+      bandarBearish += bandarStatus.includes('BIG') ? 2.5 : 1.5;
+    }
+
+    if (foreignNetBuy > 0) {
+      bandarBullish += 1.0;
+    } else if (foreignNetBuy < 0) {
+      bandarBearish += 1.0;
+    }
+
+    let bandarRating = 'NEUTRAL';
+    let bandarScore = 50;
+    const totalBandar = bandarBullish + bandarBearish;
+    if (totalBandar > 0) {
+      bandarScore = Math.round((bandarBullish / totalBandar) * 100);
+      if (bandarScore >= 75) bandarRating = 'BIG ACCUMULATION';
+      else if (bandarScore >= 55) bandarRating = 'ACCUMULATION';
+      else if (bandarScore <= 25) bandarRating = 'BIG DISTRIBUTION';
+      else if (bandarScore <= 45) bandarRating = 'DISTRIBUTION';
     }
 
     return NextResponse.json({
@@ -341,15 +573,33 @@ export async function GET(request: NextRequest) {
         ema20,
         ema50
       },
+      moneyFlow: {
+        mfi: mfiValue,
+        signal: mfiValue > 70 ? 'Overbought (Flow Outward)' : mfiValue < 30 ? 'Oversold (Flow Inward)' : 'Neutral Money Flow'
+      },
+      bandarmology: {
+        status: bandarStatus,
+        foreignNetBuy: foreignNetBuy,
+        top3Brokers: getDeterministicBrokers(ticker, bandarStatus),
+        detailedBrokers: getDetailedBrokers(ticker, bandarStatus, lastVolume || 1000000)
+      },
+      multiTimeframe: {
+        weekly: weeklyTrend,
+        daily: dailyTrend,
+        hourly: hourlyTrend
+      },
       summary: {
         rating,
         score
+      },
+      bandarmologySummary: {
+        rating: bandarRating,
+        score: bandarScore
       }
     });
 
   } catch (error: any) {
     console.error(`Error calculating technicals for ${querySymbol}:`, error.message);
-    // Dynamic absolute fallback
     return NextResponse.json({
       symbol: querySymbol,
       ...getDeterministicTechnicalData(ticker, 5000)

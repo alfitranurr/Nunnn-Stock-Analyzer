@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, DollarSign, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, DollarSign, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 // Popular BEI Tickers for suggestions
@@ -212,6 +212,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   const [pivotMethod, setPivotMethod] = React.useState<'standard' | 'fibonacci'>('standard');
 
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = React.useRef<any>(null);
+
+  // Clear timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
 
   // Handle outside click to close suggestions
   React.useEffect(() => {
@@ -280,20 +288,51 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
     }
   };
 
-  const handleSearchChange = (val: string) => {
+  const handleSearchChange = async (val: string) => {
     setTickerQuery(val);
     if (!val.trim()) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
-    const filtered = POPULAR_TICKERS.filter(
+
+    // 1. Show local matches instantly
+    const localFiltered = POPULAR_TICKERS.filter(
       item =>
         item.symbol.toLowerCase().includes(val.toLowerCase()) ||
         item.name.toLowerCase().includes(val.toLowerCase())
     );
-    setSuggestions(filtered);
+    setSuggestions(localFiltered);
     setShowSuggestions(true);
+
+    // 2. Debounce and fetch more suggestions from BEI/Yahoo search API via our backend
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/ticker?q=${val}`);
+        if (res.ok) {
+          const data = await res.json();
+          const quotes = data.quotes || [];
+          if (quotes.length > 0) {
+            setSuggestions(prev => {
+              // Merge, avoiding duplicates
+              const merged = [...prev];
+              quotes.forEach((q: any) => {
+                if (!merged.some(m => m.symbol.toUpperCase() === q.symbol.toUpperCase())) {
+                  merged.push(q);
+                }
+              });
+              return merged;
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch ticker search results:', err);
+      }
+    }, 300);
   };
 
   const handleSelectSuggestion = (symbol: string) => {
@@ -341,13 +380,263 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
     );
   }
 
+  const getAnalysisRecommendations = () => {
+    if (!fundamentals) {
+      return {
+        fundamental: { rating: 'HOLD', score: 50, desc: 'Menunggu data fundamental...' },
+        technical: { rating: 'HOLD', score: 50, desc: 'Menunggu data teknikal...' },
+        bandarmology: { rating: 'NEUTRAL', score: 50, desc: 'Menunggu data bandarmology...' },
+        narrative: { rating: 'HOLD', score: 50, desc: 'Menunggu sentimen berita...' },
+        unified: { rating: 'HOLD', score: 50, desc: 'Menunggu analisa...' },
+        pros: [],
+        cons: []
+      };
+    }
+
+    // 1. FUNDAMENTAL EVALUATION
+    let fundPoints = 0;
+    let fundMaxPoints = 0;
+    const reasons: string[] = [];
+
+    const pe = fundamentals.peRatio;
+    if (pe !== null && pe !== undefined) {
+      fundMaxPoints += 2;
+      if (pe < 0) {
+        fundPoints -= 2;
+        reasons.push('EPS negatif (merugi)');
+      } else if (pe < 12) {
+        fundPoints += 2;
+        reasons.push('P/E rendah (< 12x)');
+      } else if (pe < 22) {
+        fundPoints += 1;
+        reasons.push('P/E wajar (12x - 22x)');
+      } else {
+        fundPoints -= 1;
+        reasons.push('P/E tinggi (> 22x)');
+      }
+    }
+
+    const pb = fundamentals.pbRatio;
+    if (pb !== null && pb !== undefined) {
+      fundMaxPoints += 2;
+      if (pb < 1.2) {
+        fundPoints += 2;
+        reasons.push('PBV sangat murah (< 1.2x)');
+      } else if (pb < 3.0) {
+        fundPoints += 1;
+        reasons.push('PBV wajar (1.2x - 3.0x)');
+      } else {
+        fundPoints -= 1;
+        reasons.push('PBV tinggi (> 3.0x)');
+      }
+    }
+
+    const roe = fundamentals.roe;
+    if (roe !== null && roe !== undefined) {
+      fundMaxPoints += 2;
+      if (roe > 15) {
+        fundPoints += 2;
+        reasons.push('ROE tinggi (> 15%)');
+      } else if (roe > 8) {
+        fundPoints += 1;
+        reasons.push('ROE sehat (8% - 15%)');
+      } else if (roe <= 0) {
+        fundPoints -= 2;
+        reasons.push('ROE negatif');
+      }
+    }
+
+    const der = fundamentals.der;
+    if (der !== null && der !== undefined) {
+      fundMaxPoints += 1;
+      if (der < 80) {
+        fundPoints += 1;
+        reasons.push('DER rendah (< 80%)');
+      } else if (der > 200) {
+        fundPoints -= 1;
+        reasons.push('DER tinggi (> 200%)');
+      }
+    }
+
+    const pm = fundamentals.profitMargin;
+    if (pm !== null && pm !== undefined) {
+      fundMaxPoints += 1;
+      if (pm > 15) {
+        fundPoints += 1;
+        reasons.push('NPM tinggi (> 15%)');
+      } else if (pm < 0) {
+        fundPoints -= 1;
+        reasons.push('NPM negatif');
+      }
+    }
+
+    let fundScore = 50;
+    if (fundMaxPoints > 0) {
+      const minPossible = -5;
+      const maxPossible = fundMaxPoints;
+      const normalized = (fundPoints - minPossible) / (maxPossible - minPossible);
+      fundScore = Math.round(Math.min(100, Math.max(0, normalized * 100)));
+    }
+
+    let fundRating = 'NEUTRAL / HOLD';
+    if (fundScore >= 75) fundRating = 'STRONG BUY';
+    else if (fundScore >= 55) fundRating = 'BUY';
+    else if (fundScore <= 25) fundRating = 'STRONG SELL';
+    else if (fundScore <= 45) fundRating = 'SELL';
+
+    const fundDesc = reasons.length > 0 
+      ? reasons.join(', ')
+      : 'rasio fundamental berada pada level netral';
+
+    // 2. TECHNICAL EVALUATION
+    const techScore = technicals?.summary?.score ?? 50;
+    const techRating = technicals?.summary?.rating ?? 'NEUTRAL';
+    let techDesc = 'kondisi RSI netral dan MA berkonsolidasi';
+    if (technicals) {
+      const rsiVal = technicals.rsi?.value;
+      const rsiSig = technicals.rsi?.signal;
+      const macdSig = technicals.macd?.signalName;
+      techDesc = `RSI di level ${rsiVal?.toFixed(1)} (${rsiSig}), tren MACD ${macdSig || 'Netral'}, serta Moving Averages harian`;
+    }
+
+    // 3. BANDARMOLOGY EVALUATION
+    const bandarScore = technicals?.bandarmologySummary?.score ?? 50;
+    const bandarRating = technicals?.bandarmologySummary?.rating ?? 'NEUTRAL';
+    let bandarDesc = 'aliran dana masuk dan keluar terpantau seimbang';
+    if (technicals) {
+      const bandarStatus = technicals.bandarmology?.status || 'NEUTRAL';
+      const foreignNet = technicals.bandarmology?.foreignNetBuy || 0;
+      const mfiVal = technicals.moneyFlow?.mfi || 50;
+      bandarDesc = `aktivitas Bandarmology berstatus ${bandarStatus}, akumulasi asing bersih sebesar ${formatShort(foreignNet)}, dan Money Flow Index (MFI) di level ${mfiVal.toFixed(1)}`;
+    }
+
+    // 4. NARRATIVE SENTIMENT EVALUATION
+    let narrScore = 50;
+    const sentiment = analysis?.sentiment || 'Netral';
+    if (sentiment === 'Bullish') {
+      narrScore = 80;
+    } else if (sentiment === 'Bearish') {
+      narrScore = 20;
+    }
+
+    let narrRating = 'HOLD';
+    if (sentiment === 'Bullish') narrRating = 'BUY';
+    else if (sentiment === 'Bearish') narrRating = 'SELL';
+
+    const narrDesc = analysis?.summary 
+      ? `sentimen cenderung ${sentiment.toLowerCase()}`
+      : `sentimen pasar terpantau ${sentiment.toLowerCase()}`;
+
+    // 5. UNIFIED CONSENSUS (25% Fundamental, 25% Technical, 25% Bandarmology, 25% Narrative)
+    const unifiedScore = Math.round((fundScore * 0.25) + (techScore * 0.25) + (bandarScore * 0.25) + (narrScore * 0.25));
+    
+    let unifiedRating = 'HOLD';
+    if (unifiedScore >= 75) unifiedRating = 'STRONG BUY';
+    else if (unifiedScore >= 55) unifiedRating = 'BUY';
+    else if (unifiedScore <= 25) unifiedRating = 'STRONG SELL';
+    else if (unifiedScore <= 45) unifiedRating = 'SELL';
+
+    const tickerName = activeTicker.split('.')[0];
+    const unifiedDesc = `Sinyal utama gabungan untuk ${tickerName} merekomendasikan ${unifiedRating} dengan skor akumulasi ${unifiedScore}%. Secara fundamental dinilai ${fundRating} karena ${fundDesc}. Dari sisi teknikal, indikator menunjukkan status ${techRating} berdasarkan ${techDesc}. Di sisi Bandarmology, transaksi berstatus ${bandarRating} dengan ${bandarDesc}. Sedangkan aspek narasi/berita merekomendasikan ${narrRating} dengan sentimen pasar cenderung ${sentiment.toLowerCase()}.`;
+
+    // Pros & Cons calculation
+    const pros: string[] = [];
+    const cons: string[] = [];
+
+    // Fundamental Pros & Cons
+    if (pe !== null && pe !== undefined) {
+      if (pe < 0) cons.push('Laba EPS negatif (perusahaan merugi)');
+      else if (pe < 12) pros.push(`Valuasi P/E murah (${pe.toFixed(1)}x)`);
+      else if (pe < 22) pros.push(`Valuasi P/E wajar (${pe.toFixed(1)}x)`);
+      else cons.push(`Valuasi P/E tinggi/mahal (${pe.toFixed(1)}x)`);
+    }
+    if (pb !== null && pb !== undefined) {
+      if (pb < 1.2) pros.push(`Valuasi PBV sangat murah (${pb.toFixed(1)}x)`);
+      else if (pb < 3.0) pros.push(`Valuasi PBV wajar (${pb.toFixed(1)}x)`);
+      else cons.push(`Valuasi PBV tinggi/mahal (${pb.toFixed(1)}x)`);
+    }
+    if (roe !== null && roe !== undefined) {
+      if (roe > 15) pros.push(`Profitabilitas ROE tinggi (${roe.toFixed(1)}%)`);
+      else if (roe > 8) pros.push(`Profitabilitas ROE sehat (${roe.toFixed(1)}%)`);
+      else if (roe <= 0) cons.push(`Profitabilitas ROE negatif (${roe.toFixed(1)}%)`);
+      else cons.push(`Profitabilitas ROE rendah (${roe.toFixed(1)}%)`);
+    }
+    if (der !== null && der !== undefined) {
+      if (der < 80) pros.push(`Rasio utang DER rendah/aman (${der.toFixed(1)}%)`);
+      else if (der > 200) cons.push(`Rasio utang DER tinggi/berisiko (${der.toFixed(1)}%)`);
+    }
+    if (pm !== null && pm !== undefined) {
+      if (pm > 15) pros.push(`Margin laba bersih NPM tinggi (${pm.toFixed(1)}%)`);
+      else if (pm < 0) cons.push(`Margin laba bersih NPM negatif (${pm.toFixed(1)}%)`);
+    }
+
+    // Technical Pros & Cons
+    if (technicals) {
+      const rsiVal = technicals.rsi?.value;
+      if (rsiVal !== undefined) {
+        if (rsiVal < 30) pros.push(`Momentum RSI Jenuh Jual / Oversold (${rsiVal.toFixed(1)})`);
+        else if (rsiVal > 70) cons.push(`Momentum RSI Jenuh Beli / Overbought (${rsiVal.toFixed(1)})`);
+      }
+      const macdSig = technicals.macd?.signalName;
+      if (macdSig) {
+        if (macdSig.includes('Bullish')) pros.push(`Indikator MACD: ${macdSig}`);
+        else if (macdSig.includes('Bearish')) cons.push(`Indikator MACD: ${macdSig}`);
+      }
+      const curPrice = technicals.price || fundamentals.price || 0;
+      const sma20 = technicals.movingAverages?.sma20;
+      const sma50 = technicals.movingAverages?.sma50;
+      if (curPrice && sma20 && sma50) {
+        if (curPrice > sma20 && curPrice > sma50) pros.push('Moving Averages: Uptrend kuat (di atas SMA 20 & 50)');
+        else if (curPrice < sma20 && curPrice < sma50) cons.push('Moving Averages: Downtrend kuat (di bawah SMA 20 & 50)');
+      }
+      const w = technicals.multiTimeframe?.weekly;
+      const d = technicals.multiTimeframe?.daily;
+      if (w === 'BULLISH') pros.push('Tren Mingguan (Weekly): Bullish');
+      if (w === 'BEARISH') cons.push('Tren Mingguan (Weekly): Bearish');
+      if (d === 'BULLISH') pros.push('Tren Harian (Daily): Bullish');
+      if (d === 'BEARISH') cons.push('Tren Harian (Daily): Bearish');
+    }
+
+    // Bandarmology Pros & Cons
+    if (technicals) {
+      const status = technicals.bandarmology?.status || '';
+      if (status.includes('ACCUMULATION')) pros.push(`Bandarmology: Akumulasi volume (${status})`);
+      else if (status.includes('DISTRIBUTION')) cons.push(`Bandarmology: Distribusi volume (${status})`);
+
+      const foreignNet = technicals.bandarmology?.foreignNetBuy || 0;
+      if (foreignNet > 0) pros.push(`Aliran Asing (Net Foreign Buy): +${formatShort(foreignNet)}`);
+      else if (foreignNet < 0) cons.push(`Aliran Asing (Net Foreign Sell): ${formatShort(foreignNet)}`);
+
+      const mfiVal = technicals.moneyFlow?.mfi;
+      if (mfiVal !== undefined) {
+        if (mfiVal < 30) pros.push(`Aliran Dana (MFI) Jenuh Jual (${mfiVal.toFixed(1)})`);
+        else if (mfiVal > 70) cons.push(`Aliran Dana (MFI) Jenuh Beli (${mfiVal.toFixed(1)})`);
+      }
+    }
+
+    // Sentiment Pros & Cons
+    if (sentiment === 'Bullish') pros.push('Sentimen Media/Berita: Positif/Bullish');
+    else if (sentiment === 'Bearish') cons.push('Sentimen Media/Berita: Negatif/Bearish');
+
+    return {
+      fundamental: { rating: fundRating, score: fundScore, desc: fundDesc },
+      technical: { rating: techRating, score: techScore, desc: techDesc },
+      bandarmology: { rating: bandarRating, score: bandarScore, desc: bandarDesc },
+      narrative: { rating: narrRating, score: narrScore, desc: narrDesc },
+      unified: { rating: unifiedRating, score: unifiedScore, desc: unifiedDesc },
+      pros,
+      cons
+    };
+  };
+
   // TradingView symbol parsing
   const tradingViewSymbol = `IDX:${activeTicker.split('.')[0]}`;
+  const recs = getAnalysisRecommendations();
 
   return (
     <div className="space-y-6">
       {/* Header and Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-brand-purple/10 p-5 rounded-2xl bg-slate-950/40 backdrop-blur-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-brand-purple/10 p-5 rounded-2xl bg-slate-950/40 backdrop-blur-sm relative z-50">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <BarChart2 className="w-5 h-5 text-brand-purple" /> Analisis Saham Pro
@@ -357,36 +646,62 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           </p>
         </div>
 
-        {/* Smart Search Bar */}
-        <div ref={containerRef} className="relative w-full md:w-80">
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Cari kode saham (e.g. BBRI, GOTO)..."
-                value={tickerQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 focus:ring-1 focus:ring-brand-purple/60 transition-all duration-200"
-              />
-              <Search className="absolute left-3.5 top-2.5 w-4.5 h-4.5 text-slate-500" />
-            </div>
-          </form>
-
-          {/* Autocomplete Suggestions */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 mt-2 max-h-60 overflow-y-auto bg-slate-950 border border-slate-800/80 rounded-xl shadow-2xl z-30 divide-y divide-slate-900">
-              {suggestions.map((item) => (
-                <button
-                  key={item.symbol}
-                  onClick={() => handleSelectSuggestion(item.symbol)}
-                  className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center justify-between"
-                >
-                  <span className="font-bold text-white text-sm">{item.symbol}</span>
-                  <span className="text-xs text-slate-400 truncate max-w-[180px]">{item.name}</span>
-                </button>
-              ))}
-            </div>
+        {/* Refresh and Smart Search Bar Container */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          {/* Refresh Button - Left of Search Input */}
+          {hasAnalyzed && (
+            <button
+              onClick={() => fetchAnalysisData(activeTicker)}
+              disabled={loading}
+              className="p-2 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer"
+              title="Refresh Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           )}
+
+          {/* Smart Search Bar */}
+          <div ref={containerRef} className="relative w-full md:w-80">
+            <form onSubmit={handleSearchSubmit}>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari kode saham (e.g. BBRI, GOTO)..."
+                  value={tickerQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 focus:ring-1 focus:ring-brand-purple/60 transition-all duration-200"
+                />
+                <Search className="absolute left-3.5 top-2.5 w-4.5 h-4.5 text-slate-500" />
+              </div>
+            </form>
+
+            {/* Autocomplete Suggestions */}
+            {showSuggestions && (suggestions.length > 0 || tickerQuery.trim().length > 0) && (
+              <div className="absolute left-0 right-0 mt-2 max-h-60 overflow-y-auto bg-slate-950 border border-slate-800/80 rounded-xl shadow-2xl z-[100] divide-y divide-slate-900">
+                {suggestions.map((item) => (
+                  <button
+                    key={item.symbol}
+                    onClick={() => handleSelectSuggestion(item.symbol)}
+                    className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center justify-between"
+                  >
+                    <span className="font-bold text-white text-sm">{item.symbol}</span>
+                    <span className="text-xs text-slate-400 truncate max-w-[180px]">{item.name}</span>
+                  </button>
+                ))}
+                
+                {/* Fallback Option for Custom Query */}
+                {tickerQuery.trim().length > 0 && !suggestions.some(item => item.symbol.toUpperCase() === tickerQuery.toUpperCase().trim()) && (
+                  <button
+                    onClick={() => handleSelectSuggestion(tickerQuery)}
+                    className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center gap-2 text-brand-purple font-medium"
+                  >
+                    <Search className="w-4 h-4 text-brand-purple" />
+                    <span className="text-sm">Analisis Saham "{tickerQuery.toUpperCase().trim()}"</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -424,20 +739,190 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         <>
           {/* Main Content Grid */}
           <div className="flex flex-col gap-6 w-full">
-        
-        {/* Technical Chart Card (Full width) */}
+            
+            {/* Unified Analysis Consensus Overview Card */}
+            {fundamentals && (
+              <div className="relative overflow-hidden border border-brand-purple/20 bg-slate-950/60 backdrop-blur-md rounded-2xl shadow-xl p-6 w-full animate-fadeIn">
+                {/* Top gradient strip */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-400 via-brand-purple to-violet-600" />
+                
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                  {/* Left Side: Summary & Sinyal Utama */}
+                  <div className="flex-1 space-y-4 w-full">
+                    <div className="flex items-center gap-2">
+                      <Compass className="w-5 h-5 text-brand-purple animate-pulse" />
+                      <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Konsensus Analisis Unifikasi</span>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-3">
+                      <span className={`text-2xl sm:text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r ${
+                        recs.unified.rating.includes('STRONG BUY')
+                          ? 'from-emerald-400 to-teal-500'
+                          : recs.unified.rating.includes('BUY')
+                          ? 'from-emerald-400/80 to-teal-500/80'
+                          : recs.unified.rating.includes('SELL')
+                          ? 'from-rose-400 to-pink-500'
+                          : 'from-slate-300 to-slate-400'
+                      }`}>
+                        {recs.unified.rating}
+                      </span>
+                      <span className="text-sm text-slate-400 font-semibold font-mono">
+                        Skor Akumulasi: {recs.unified.score}%
+                      </span>
+                    </div>
+  
+                    <p className="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-3xl border-l-2 border-brand-purple/40 pl-3">
+                      Sinyal utama gabungan untuk <span className="font-bold text-white">{activeTicker.split('.')[0]}</span> menyimpulkan rekomendasi <span className={`font-black uppercase ${recs.unified.rating.includes('BUY') ? 'text-emerald-400' : recs.unified.rating.includes('SELL') ? 'text-rose-400' : 'text-yellow-400'}`}>{recs.unified.rating}</span> (Skor: {recs.unified.score}%).
+                    </p>
+
+                    {/* Visual Pros & Cons Grid for Quick Digest */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 max-w-4xl w-full">
+                      {/* Pros (Kekuatan) */}
+                      <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl space-y-2">
+                        <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-emerald-500/10 pb-1.5">
+                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> Sinyal Positif & Kekuatan
+                        </div>
+                        <ul className="space-y-1.5">
+                          {recs.pros && recs.pros.length > 0 ? (
+                            recs.pros.map((pro, index) => (
+                              <li key={index} className="text-[11px] text-slate-300 flex items-start gap-1.5 leading-normal">
+                                <span className="text-emerald-400 shrink-0 select-none font-bold">✓</span>
+                                <span>{pro}</span>
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-[11px] text-slate-500 italic">Tidak ada sinyal positif yang menonjol.</li>
+                          )}
+                        </ul>
+                      </div>
+
+                      {/* Cons (Risiko) */}
+                      <div className="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl space-y-2">
+                        <div className="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-rose-500/10 pb-1.5">
+                          <TrendingDown className="w-3.5 h-3.5 text-rose-400" /> Sinyal Risiko & Kelemahan
+                        </div>
+                        <ul className="space-y-1.5">
+                          {recs.cons && recs.cons.length > 0 ? (
+                            recs.cons.map((con, index) => (
+                              <li key={index} className="text-[11px] text-slate-300 flex items-start gap-1.5 leading-normal">
+                                <span className="text-rose-400 shrink-0 select-none font-bold">⚠</span>
+                                <span>{con}</span>
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-[11px] text-slate-500 italic">Tidak ada risiko kritis yang terdeteksi.</li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+  
+                    {/* Sub-breakdowns */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2 w-full">
+                      {/* Fundamental */}
+                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Analisa Fundamental</div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className={`text-xs font-bold ${
+                            recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'
+                          }`}>{recs.fundamental.rating}</span>
+                          <span className="text-[10px] font-mono text-slate-500 font-semibold">{recs.fundamental.score}%</span>
+                        </div>
+                      </div>
+  
+                      {/* Teknikal */}
+                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Analisa Teknikal</div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className={`text-xs font-bold ${
+                            recs.technical.rating.includes('BUY') ? 'text-emerald-400' : recs.technical.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'
+                          }`}>{recs.technical.rating}</span>
+                          <span className="text-[10px] font-mono text-slate-500 font-semibold">{recs.technical.score}%</span>
+                        </div>
+                      </div>
+  
+                      {/* Bandarmology */}
+                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Bandarmology</div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className={`text-xs font-bold ${
+                            recs.bandarmology?.rating.includes('ACCUMULATION') ? 'text-emerald-400' : recs.bandarmology?.rating.includes('DISTRIBUTION') ? 'text-rose-400' : 'text-slate-400'
+                          }`}>{recs.bandarmology?.rating || 'NEUTRAL'}</span>
+                          <span className="text-[10px] font-mono text-slate-500 font-semibold">{recs.bandarmology?.score || 50}%</span>
+                        </div>
+                      </div>
+  
+                      {/* Narasi/Sentimen */}
+                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Analisa Narasi</div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className={`text-xs font-bold ${
+                            recs.narrative.rating.includes('BUY') ? 'text-emerald-400' : recs.narrative.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'
+                          }`}>{recs.narrative.rating}</span>
+                          <span className="text-[10px] font-mono text-slate-500 font-semibold">{recs.narrative.score}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+  
+                  {/* Right Side: Speedometer/Gauge bar */}
+                  <div className="w-full lg:w-72 flex flex-col items-center justify-center p-4 bg-slate-900/30 border border-slate-900 rounded-2xl relative overflow-hidden shrink-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-brand-purple/5 to-transparent opacity-30 pointer-events-none" />
+                    
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Sinyal Konsensus Meter</span>
+                    
+                    {/* Horizontal segmented bar visualizer with highlight cursor */}
+                    <div className="w-full space-y-2">
+                       <div className="relative h-4 w-full bg-slate-950 border border-slate-850 rounded-full overflow-hidden flex">
+                        {/* Strong Sell (Red) */}
+                        <div className="h-full w-[20%] bg-gradient-to-r from-red-600 to-rose-500" />
+                        {/* Sell (Orange) */}
+                        <div className="h-full w-[20%] bg-gradient-to-r from-rose-500 to-amber-500" />
+                        {/* Hold (Yellow) */}
+                        <div className="h-full w-[20%] bg-gradient-to-r from-amber-500 to-yellow-400" />
+                        {/* Buy (Light Green) */}
+                        <div className="h-full w-[20%] bg-gradient-to-r from-yellow-400 to-emerald-400" />
+                        {/* Strong Buy (Dark Green) */}
+                        <div className="h-full w-[20%] bg-gradient-to-r from-emerald-400 to-teal-500" />
+                        
+                        {/* Position Cursor pin */}
+                        <div 
+                          style={{ left: `calc(${recs.unified.score}% - 4px)` }}
+                          className="absolute top-0 bottom-0 w-2 bg-white border border-slate-950 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse transition-all duration-1000"
+                        />
+                      </div>
+                      
+                      <div className="flex justify-between text-[8px] font-bold text-slate-500 px-1 font-mono">
+                        <span>STRONG SELL</span>
+                        <span>HOLD</span>
+                        <span>STRONG BUY</span>
+                      </div>
+                    </div>
+  
+                    <div className="mt-4 text-center">
+                      <span className="text-[11px] text-slate-400 font-medium">Verdict: </span>
+                      <span className={`text-xs font-black ${
+                        recs.unified.rating.includes('STRONG BUY')
+                          ? 'text-teal-400'
+                          : recs.unified.rating.includes('BUY')
+                          ? 'text-emerald-400'
+                          : recs.unified.rating.includes('SELL')
+                          ? 'text-rose-400'
+                          : 'text-yellow-400'
+                      }`}>
+                        {recs.unified.rating} ({recs.unified.score}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+         
+         {/* Technical Chart Card (Full width) */}
         <div className="border border-slate-800/60 rounded-2xl overflow-hidden bg-slate-950/40 shadow-lg flex flex-col h-[540px] w-full">
           <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between">
             <span className="text-sm font-semibold text-white flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-400" /> Chart Teknikal Profesional (TradingView)
             </span>
-            <button 
-              onClick={() => fetchAnalysisData(activeTicker)} 
-              disabled={loading}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-900 transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
           </div>
           
           <div className="flex-1 bg-slate-950 relative">
@@ -797,17 +1282,311 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     }
                   })()}
                 </div>
-              </div>
             </div>
 
           </div>
+
+          {/* Column 4: Multi-Timeframe Trend */}
+          <div className="space-y-6">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+              <Activity className="w-3.5 h-3.5 text-cyan-400" /> Analisis Multi-Timeframe (MTF)
+            </h4>
+            
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-4 space-y-4">
+              <div className="space-y-3">
+                {/* Weekly (Long-Term) */}
+                <div className="flex justify-between items-center text-xs border-b border-slate-800/30 pb-2">
+                  <span className="font-semibold text-slate-300 font-sans">Weekly (Jangka Panjang)</span>
+                  <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                    technicals?.multiTimeframe?.weekly === 'BULLISH'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                  }`}>
+                    {loading ? '...' : technicals?.multiTimeframe?.weekly || '-'}
+                  </span>
+                </div>
+
+                {/* Daily (Medium-Term) */}
+                <div className="flex justify-between items-center text-xs border-b border-slate-800/30 pb-2">
+                  <span className="font-semibold text-slate-300 font-sans">Daily (Jangka Menengah)</span>
+                  <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                    technicals?.multiTimeframe?.daily === 'BULLISH'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                  }`}>
+                    {loading ? '...' : technicals?.multiTimeframe?.daily || '-'}
+                  </span>
+                </div>
+
+                {/* Hourly (Jangka Pendek) */}
+                <div className="flex justify-between items-center text-xs pb-1">
+                  <span className="font-semibold text-slate-300 font-sans">Hourly (Jangka Pendek)</span>
+                  <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                    technicals?.multiTimeframe?.hourly?.includes('BULLISH')
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : technicals?.multiTimeframe?.hourly?.includes('BEARISH')
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {loading ? '...' : technicals?.multiTimeframe?.hourly || '-'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-slate-400 bg-slate-950 p-2.5 rounded border border-slate-900/60 leading-relaxed font-medium mt-3">
+                {(() => {
+                  const w = technicals?.multiTimeframe?.weekly || '';
+                  const d = technicals?.multiTimeframe?.daily || '';
+                  const h = technicals?.multiTimeframe?.hourly || '';
+                  
+                  if (w === 'BULLISH' && d === 'BULLISH') {
+                    return 'Tren utama mingguan dan harian selaras dalam kondisi BULLISH. Menawarkan tingkat probabilitas transaksi beli yang paling tinggi.';
+                  } else if (w === 'BEARISH' && d === 'BEARISH') {
+                    return 'Tren utama mingguan dan harian dalam kondisi BEARISH. Sebaiknya hindari pembelian, tren turun jangka menengah masih dominan.';
+                  } else {
+                    return 'Terjadi divergensi timeframe (tren mingguan dan harian tidak sejalan). Kondisi ini biasa menunjukkan konsolidasi besar atau transisi pembalikan tren.';
+                  }
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom narrative for Technical */}
+          <div className="px-5 pb-5">
+            <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
+              <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+                <Activity className="w-3.5 h-3.5" /> Analisis Kesimpulan Teknikal
+              </span>
+              Secara teknikal, indikator menunjukkan status <span className={`font-bold ${recs.technical.rating.includes('BUY') ? 'text-emerald-400' : recs.technical.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.technical.rating}</span> dengan skor kekuatan sinyal sebesar {recs.technical.score}%. Indikator momentum menunjukkan {recs.technical.desc.charAt(0).toLowerCase() + recs.technical.desc.slice(1)}.
+            </div>
+          </div>
+
         </div>
+      </div>
+
+      {/* Bandarmology & Cash Flow Dashboard (Fully Separated Section) */}
+      <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg flex flex-col h-auto w-full">
+        <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
+          <div className="flex items-center gap-2">
+            <Compass className="w-4 h-4 text-brand-purple" />
+            <span className="text-sm font-semibold">Analisis Bandarmology & Arus Kas Transaksi</span>
+          </div>
+          {technicals?.bandarmologySummary && (
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+              technicals.bandarmologySummary.rating.includes('ACCUMULATION') 
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : technicals.bandarmologySummary.rating.includes('DISTRIBUTION')
+                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                : 'bg-slate-800 text-slate-300'
+            }`}>
+              Bandarmology: {technicals.bandarmologySummary.rating} ({technicals.bandarmologySummary.score}%)
+            </span>
+          )}
+        </div>
+
+        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Column 1: Bandarmology & Aliran Asing */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              Aliran Transaksi & Aliran Asing (Foreign Flow)
+            </h4>
+            
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-4 space-y-4">
+              {/* Bandarmology Status & Foreign Flow Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-950 p-3 rounded border border-slate-900 flex flex-col justify-between">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">Bandarmology</span>
+                  <span className={`text-xs font-bold mt-1.5 ${
+                    technicals?.bandarmology?.status?.includes('ACCUMULATION') 
+                      ? 'text-emerald-400' 
+                      : technicals?.bandarmology?.status?.includes('DISTRIBUTION')
+                      ? 'text-rose-400'
+                      : 'text-slate-300'
+                  }`}>
+                    {loading ? '...' : technicals?.bandarmology?.status || 'NEUTRAL'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-950 p-3 rounded border border-slate-900 flex flex-col justify-between">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">Aliran Asing (Net Foreign)</span>
+                  <span className={`text-xs font-bold mt-1.5 ${
+                    (technicals?.bandarmology?.foreignNetBuy || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  }`}>
+                    {loading ? '...' : (technicals?.bandarmology?.foreignNetBuy !== undefined) 
+                      ? `${(technicals.bandarmology.foreignNetBuy >= 0 ? '+' : '')}${formatShort(technicals.bandarmology.foreignNetBuy)}` 
+                      : '-'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Money Flow Index (MFI 14) */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-semibold text-slate-300 font-sans">Money Flow Index (MFI 14)</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                    (technicals?.moneyFlow?.mfi || 50) < 30 
+                      ? 'bg-emerald-500/20 text-emerald-400' 
+                      : (technicals?.moneyFlow?.mfi || 50) > 70 
+                      ? 'bg-rose-500/20 text-rose-400'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {loading ? '...' : technicals?.moneyFlow?.mfi ? technicals.moneyFlow.mfi.toFixed(2) : '-'}
+                  </span>
+                </div>
+                
+                {/* MFI Progress Bar */}
+                <div className="relative pt-1">
+                  <div className="overflow-hidden h-2 text-xs flex rounded bg-slate-950 border border-slate-900 relative">
+                    <div
+                      style={{ width: `${Math.min(100, Math.max(0, technicals?.moneyFlow?.mfi || 50))}%` }}
+                      className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
+                        (technicals?.moneyFlow?.mfi || 50) < 30 
+                          ? 'bg-emerald-500' 
+                          : (technicals?.moneyFlow?.mfi || 50) > 70 
+                          ? 'bg-rose-500' 
+                          : 'bg-indigo-500'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: Order Flow (Top 3 Broker Summary) */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+              Broker Summary Order Flow
+            </h4>
+
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-semibold text-slate-400 font-sans">Order Flow (Top 3 Broker {activeTicker.split('.')[0]})</span>
+                {(() => {
+                  const rawVal = technicals?.bandarmology?.top3Brokers || '';
+                  let statusText = 'Neutral';
+                  let badgeClass = 'bg-slate-800 text-slate-400';
+                  if (rawVal.includes('Buy')) {
+                    statusText = 'NET BUY';
+                    badgeClass = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                  } else if (rawVal.includes('Sell')) {
+                    statusText = 'NET SELL';
+                    badgeClass = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+                  } else if (rawVal.includes('Neutral')) {
+                    statusText = 'NET NEUTRAL';
+                    badgeClass = 'bg-slate-850 text-slate-400 border border-slate-800';
+                  }
+                  return (
+                    <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded tracking-wide border ${badgeClass}`}>
+                      {loading ? '...' : statusText}
+                    </span>
+                  );
+                })()}
+              </div>
+
+              {(() => {
+                const detailedBrokers = technicals?.bandarmology?.detailedBrokers;
+                if (!detailedBrokers) {
+                  const rawVal = technicals?.bandarmology?.top3Brokers || '';
+                  const buyMatch = rawVal.match(/Top Buy:\s*([^|]+)/);
+                  const sellMatch = rawVal.match(/Top Sell:\s*([^)]+)/);
+                  const topBuy = buyMatch ? buyMatch[1].trim() : '-';
+                  const topSell = sellMatch ? sellMatch[1].trim() : '-';
+                  return (
+                    <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
+                      <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-900">
+                        <div className="text-slate-500 font-bold mb-1 uppercase tracking-wider">Top Buy</div>
+                        <div className="font-mono font-bold text-emerald-400 tracking-wider">
+                          {loading ? '...' : topBuy}
+                        </div>
+                      </div>
+                      <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-900">
+                        <div className="text-slate-500 font-bold mb-1 uppercase tracking-wider">Top Sell</div>
+                        <div className="font-mono font-bold text-rose-400 tracking-wider">
+                          {loading ? '...' : topSell}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-2 gap-3 mt-1.5">
+                    {/* Buyers Column */}
+                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 space-y-2">
+                      <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider border-b border-slate-900 pb-1 flex justify-between">
+                        <span>Broker Buy</span>
+                        <span>Estimasi (Lot)</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {detailedBrokers.buy.map((b: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-[10px] font-mono">
+                            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">{b.code}</span>
+                            <span className="text-slate-200 font-bold">+{b.lots.toLocaleString('id-ID')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sellers Column */}
+                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 space-y-2">
+                      <div className="text-[10px] text-rose-400 font-bold uppercase tracking-wider border-b border-slate-900 pb-1 flex justify-between">
+                        <span>Broker Sell</span>
+                        <span>Estimasi (Lot)</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {detailedBrokers.sell.map((s: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-[10px] font-mono">
+                            <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded font-bold">{s.code}</span>
+                            <span className="text-slate-200 font-bold">-{s.lots.toLocaleString('id-ID')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom narrative */}
+        <div className="px-5 pb-5">
+          <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
+            <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+              <Compass className="w-3.5 h-3.5" /> Analisis Kesimpulan Bandarmology
+            </span>
+            Aktivitas Bandarmology terpantau menunjukkan status <span className={`font-bold ${recs.bandarmology?.rating?.includes('ACCUMULATION') ? 'text-emerald-400' : recs.bandarmology?.rating?.includes('DISTRIBUTION') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.bandarmology?.rating || 'NEUTRAL'}</span>. Berdasarkan data aliran transaksi, {recs.bandarmology ? recs.bandarmology.desc.charAt(0).toLowerCase() + recs.bandarmology.desc.slice(1) : ''}. {(() => {
+              const status = technicals?.bandarmology?.status || '';
+              if (status.includes('ACCUMULATION')) {
+                return 'Hal ini mengindikasikan volume beli broker besar (Bandar) mendominasi pasar, menunjukkan potensi harga sedang diakumulasi sebelum kenaikan.';
+              } else if (status.includes('DISTRIBUTION')) {
+                return 'Hal ini mengindikasikan volume jual broker besar (Bandar) mendominasi pasar, menunjukkan risiko aksi distribusi besar oleh institusi.';
+              } else {
+                return 'Arus transaksi bandar terpantau seimbang tanpa dominasi akumulasi atau distribusi agresif.';
+              }
+            })()}
+          </div>
+        </div>
+      </div>
 
         {/* AI Narrative & Realtime Sentiment Card (Full width, 2 columns inner on desktop) */}
         <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg flex flex-col h-auto w-full">
-          <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center gap-2 text-white">
-            <Sparkles className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-semibold">Sentimen & Narasi Terkini</span>
+          <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
+            <span className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-violet-400" /> Sentimen & Narasi Terkini
+            </span>
+            {fundamentals && (
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                recs.narrative.rating.includes('BUY') 
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : recs.narrative.rating.includes('SELL')
+                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                  : 'bg-slate-800 text-slate-300'
+              }`}>
+                Analisis Berita: {recs.narrative.rating} ({recs.narrative.score}%)
+              </span>
+            )}
           </div>
 
           <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -881,14 +1660,38 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               </div>
             </div>
           </div>
+
+          {/* Bottom narrative for Sentiment */}
+          <div className="px-5 pb-5">
+            <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
+              <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+                <Sparkles className="w-3.5 h-3.5" /> Analisis Kesimpulan Sentimen & Narasi
+              </span>
+              Berdasarkan analisis sentimen berita terkini, saham ini memiliki rating sentimen <span className={`font-bold ${recs.narrative.rating.includes('BUY') ? 'text-emerald-400' : recs.narrative.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.narrative.rating}</span>. {recs.narrative.desc.charAt(0).toUpperCase() + recs.narrative.desc.slice(1)}. {analysis?.summary ? 'Analisis sentimen mendeteksi poin-poin utama seperti tercantum dalam rangkuman AI di atas.' : ''}
+            </div>
+          </div>
+
         </div>
       </div>
 
       {/* Fundamental Section */}
       <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg p-6">
-        <h3 className="text-base font-bold text-white mb-6 flex items-center gap-2">
-          <Building className="w-5 h-5 text-teal-400" /> Ringkasan Fundamental & Keuangan
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-900 pb-4">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <Building className="w-5 h-5 text-teal-400" /> Ringkasan Fundamental & Keuangan
+          </h3>
+          {fundamentals && (
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full max-w-fit ${
+              recs.fundamental.rating.includes('BUY') 
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : recs.fundamental.rating.includes('SELL')
+                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                : 'bg-slate-800 text-slate-300'
+            }`}>
+              Analisis Fundamental: {recs.fundamental.rating} ({recs.fundamental.score}%)
+            </span>
+          )}
+        </div>
 
         {/* Vertical Stack: Full-Width metrics grid and then Financial Chart */}
         <div className="flex flex-col gap-8 w-full">
@@ -1039,6 +1842,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 <span>Laba Bersih</span>
               </div>
             </div>
+          </div>
+
+          {/* Bottom narrative for Fundamental */}
+          <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
+            <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+              <Building className="w-3.5 h-3.5" /> Analisis Kesimpulan Fundamental
+            </span>
+            Secara fundamental, kinerja keuangan emiten dinilai berada pada kondisi <span className={`font-bold ${recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.fundamental.rating}</span> dengan skor fundamental sebesar {recs.fundamental.score}%. Hal ini dipengaruhi oleh beberapa faktor rasio utama: {recs.fundamental.desc.charAt(0).toUpperCase() + recs.fundamental.desc.slice(1)}.
           </div>
 
         </div>
