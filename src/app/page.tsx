@@ -53,6 +53,24 @@ export default function Dashboard() {
 
   // Check user session on mount
   React.useEffect(() => {
+    let subscription: any = null;
+
+    const clearSupabaseAuthKeys = () => {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase.auth.token'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        setUser(null);
+      } catch (e) {
+        console.error('Failed to clear invalid supabase session keys:', e);
+      }
+    };
+
     const checkSession = async () => {
       if (!isSupabaseConfigured) {
         // Cek apakah ada mock user di localStorage
@@ -67,26 +85,45 @@ export default function Dashboard() {
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-      }
-
-      // Listen for auth state changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) {
-          setUser(session.user);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn('Supabase session recovery error:', error.message);
+          if (error.message.includes('Refresh Token') || error.message.includes('refresh_token') || error.status === 400 || error.status === 401) {
+            clearSupabaseAuthKeys();
+          }
+        } else if (data?.session) {
+          setUser(data.session.user);
         } else {
           setUser(null);
         }
-      });
+      } catch (err: any) {
+        console.error('Unhandled error during Supabase session recovery:', err);
+        clearSupabaseAuthKeys();
+      }
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      // Listen for auth state changes
+      try {
+        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session) {
+            setUser(session.user);
+          } else {
+            setUser(null);
+          }
+        });
+        subscription = sub;
+      } catch (err) {
+        console.error('Error subscribing to auth state changes:', err);
+      }
     };
 
     checkSession();
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   // Fetch plans when user changes
@@ -266,14 +303,33 @@ export default function Dashboard() {
   };
 
   const executeSignOut = async () => {
-    if (isSupabaseConfigured && user && !user.isMock) {
-      await supabase.auth.signOut();
-    } else {
-      localStorage.removeItem('nunnn_stock_mock_user');
+    try {
+      if (isSupabaseConfigured && user && !user.isMock) {
+        await supabase.auth.signOut();
+      } else {
+        localStorage.removeItem('nunnn_stock_mock_user');
+      }
+    } catch (err) {
+      console.error('Error during signOut:', err);
+      if (typeof window !== 'undefined') {
+        try {
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase.auth.token'))) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(k => localStorage.removeItem(k));
+        } catch (e) {
+          console.error('Failed to clear keys on signOut error:', e);
+        }
+      }
+    } finally {
+      setUser(null);
+      showToast('Anda telah keluar dari akun.');
+      setIsLogoutConfirmOpen(false);
     }
-    setUser(null);
-    showToast('Anda telah keluar dari akun.');
-    setIsLogoutConfirmOpen(false);
   };
 
   return (
