@@ -17,7 +17,7 @@ import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp } from 'luci
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
-  const [currentTab, setCurrentTab] = React.useState('avg-down');
+  const [currentTab, setCurrentTab] = React.useState('news');
   const [user, setUser] = React.useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [plans, setPlans] = React.useState<SavedPlan[]>([]);

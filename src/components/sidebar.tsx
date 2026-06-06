@@ -37,10 +37,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
   const isAdmin = user && user.email && user.email.toLowerCase() === adminEmail;
 
   const menuItems = [
-    { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
-    { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true, isLocked: !user },
-    { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: true, isLocked: !user },
     { id: 'news', label: 'Berita & Sentimen', icon: BookOpen, active: true },
+    { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
+    { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: true, isLocked: !user },
+    { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true, isLocked: !user },
     ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheck, active: true }] : []),
     { id: 'history', label: 'Riwayat Rencana', icon: History, active: false, labelBadge: 'Soon' },
     { id: 'watchlist', label: 'Watchlist Saham', icon: Star, active: false, labelBadge: 'Soon' },

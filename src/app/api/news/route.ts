@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
   } else {
     if (category === 'domestik') {
       query = 'ekonomi indonesia OR inflasi indonesia OR APBN';
+    } else if (category === 'foreign') {
+      query = 'saham global OR Wall Street OR Nasdaq OR NYSE OR saham AS OR bursa AS OR Dow Jones OR S&P 500';
     } else if (category === 'global') {
       query = 'ekonomi global OR global economy OR federal reserve OR bursa saham global';
     } else if (category === 'politik') {

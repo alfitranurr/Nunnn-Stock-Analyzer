@@ -37,7 +37,7 @@ interface AISummary {
 }
 
 export function NewsTab({ user, onSignInClick }: NewsTabProps) {
-  const [category, setCategory] = React.useState<'saham' | 'domestik' | 'global' | 'politik'>('saham');
+  const [category, setCategory] = React.useState<'saham' | 'foreign' | 'domestik' | 'global' | 'politik'>('saham');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [news, setNews] = React.useState<NewsItem[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -49,7 +49,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
   const [summaryLoading, setSummaryLoading] = React.useState<{ [key: string]: boolean }>({});
   const [summaryError, setSummaryError] = React.useState<{ [key: string]: string | null }>({});
 
-  const fetchNews = async (cat: 'saham' | 'domestik' | 'global' | 'politik', queryStr: string = '') => {
+  const fetchNews = async (cat: 'saham' | 'foreign' | 'domestik' | 'global' | 'politik', queryStr: string = '') => {
     setLoading(true);
     setError(null);
     try {
@@ -140,6 +140,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
 
   const categories = [
     { id: 'saham', label: 'Saham Indonesia' },
+    { id: 'foreign', label: 'Saham Foreign' },
     { id: 'domestik', label: 'Ekonomi Domestik' },
     { id: 'global', label: 'Ekonomi Global' },
     { id: 'politik', label: 'Politik Domestik' }
