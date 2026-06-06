@@ -13,7 +13,7 @@ import { AdminPanelTab } from '@/components/admin-panel-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import { Sparkles, BookOpen, AlertCircle, Info, Database } from 'lucide-react';
+import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
@@ -38,6 +38,28 @@ export default function Dashboard() {
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [selectedAnalysisTicker, setSelectedAnalysisTicker] = React.useState<string | null>(null);
 
+  // Scroll to top state & effect
+  const [showScrollTop, setShowScrollTop] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -53,6 +75,8 @@ export default function Dashboard() {
 
   React.useEffect(() => {
     localStorage.setItem('nunnn_stock_active_tab', currentTab);
+    // Scroll ke paling atas secara instan saat berpindah tab/halaman
+    window.scrollTo(0, 0);
   }, [currentTab]);
 
   // Check user session on mount
@@ -557,6 +581,26 @@ export default function Dashboard() {
             <AlertCircle className="h-4.5 w-4.5 shrink-0" />
             <span>{toast.message}</span>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Scroll to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.5, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.5, y: 20 }}
+            whileHover={{ scale: 1.1, y: -2 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={scrollToTop}
+            className={`fixed right-6 md:right-8 z-40 p-3 rounded-full bg-brand-purple hover:bg-brand-purple/95 text-white shadow-lg shadow-brand-purple/20 cursor-pointer transition-all duration-500 border border-white/10 flex items-center justify-center ${
+              toast ? 'bottom-24 md:bottom-26' : 'bottom-6 md:bottom-8'
+            }`}
+            aria-label="Scroll to top"
+          >
+            <ChevronUp className="h-5.5 w-5.5" />
+          </motion.button>
         )}
       </AnimatePresence>
     </div>
