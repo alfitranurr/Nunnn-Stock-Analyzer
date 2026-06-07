@@ -357,10 +357,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   // Shield lock if user is not authenticated
   if (!user) {
     return (
-      <div className="relative overflow-hidden border border-brand-purple/20 p-8 md:p-12 text-center bg-slate-950/70 backdrop-blur-md rounded-2xl max-w-2xl mx-auto my-12 shadow-xl animate-fadeIn">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600" />
+      <div className="relative overflow-hidden border border-border-color p-8 md:p-12 text-center bg-card-bg rounded-2xl max-w-2xl mx-auto my-12 shadow-xl animate-fadeIn">
+        <div className="absolute top-0 left-0 w-full h-1 bg-brand-purple" />
         <div className="flex justify-center mb-6">
-          <div className="p-4 bg-brand-purple/10 border border-brand-purple/30 rounded-full animate-pulse">
+          <div className="p-4 bg-brand-purple/10 border border-brand-purple/20 rounded-full animate-pulse">
             <ShieldAlert className="w-12 h-12 text-brand-purple" />
           </div>
         </div>
@@ -372,7 +372,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         </p>
         <button
           onClick={onSignInClick}
-          className="px-8 py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] shadow-md hover:scale-[1.02]"
+          className="px-8 py-3.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-xl transition-all duration-300 shadow-md hover:scale-[1.02]"
         >
           Masuk ke Akun Anda
         </button>
@@ -636,7 +636,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   return (
     <div className="space-y-6">
       {/* Header and Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-brand-purple/10 p-5 rounded-2xl bg-slate-950/40 backdrop-blur-sm relative z-50">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-border-color p-5 rounded-2xl bg-card-bg relative z-50">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <BarChart2 className="w-5 h-5 text-brand-purple" /> Analisis Saham Pro
@@ -742,9 +742,9 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             
             {/* Unified Analysis Consensus Overview Card */}
             {fundamentals && (
-              <div className="relative overflow-hidden border border-brand-purple/20 bg-slate-950/60 backdrop-blur-md rounded-2xl shadow-xl p-6 w-full animate-fadeIn">
+              <div className="relative overflow-hidden border border-border-color bg-card-bg rounded-2xl p-6 w-full animate-fadeIn">
                 {/* Top gradient strip */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-400 via-brand-purple to-violet-600" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-brand-purple" />
                 
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                   {/* Left Side: Summary & Sinyal Utama */}
@@ -997,7 +997,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                           ? 'bg-emerald-500' 
                           : (technicals?.rsi?.value || 50) > 70 
                           ? 'bg-rose-500' 
-                          : 'bg-indigo-500'
+                          : 'bg-brand-purple'
                       }`}
                     />
                   </div>
@@ -1064,7 +1064,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-indigo-400" /> Support & Resistance
+                  <Layers className="w-3.5 h-3.5 text-brand-purple" /> Support & Resistance
                 </h4>
                 <div className="flex bg-slate-900 p-0.5 rounded border border-slate-800 text-[9px] font-bold">
                   <button
@@ -1444,7 +1444,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                           ? 'bg-emerald-500' 
                           : (technicals?.moneyFlow?.mfi || 50) > 70 
                           ? 'bg-rose-500' 
-                          : 'bg-indigo-500'
+                          : 'bg-brand-purple'
                       }`}
                     />
                   </div>
@@ -1571,10 +1571,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       </div>
 
         {/* AI Narrative & Realtime Sentiment Card (Full width, 2 columns inner on desktop) */}
-        <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg flex flex-col h-auto w-full">
-          <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
+        <div className="border border-border-color rounded-2xl bg-card-bg flex flex-col h-auto w-full">
+          <div className="px-5 py-4 border-b border-border-color bg-card-bg flex items-center justify-between text-white">
             <span className="text-sm font-semibold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-violet-400" /> Sentimen & Narasi Terkini
+              <Sparkles className="w-4 h-4 text-brand-purple" /> Sentimen & Narasi Terkini
             </span>
             {fundamentals && (
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -1608,7 +1608,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
               {/* AI Summary Text */}
               <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-400">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-purple">
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Analisis AI {analysis?.isAI ? '(Gemini/OpenAI)' : '(Sistem Lokal)'}</span>
                 </div>
@@ -1832,9 +1832,9 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             </div>
 
             {/* Chart Legend */}
-            <div className="flex justify-center gap-6 mt-4 text-[10px] font-semibold text-slate-400 border-t border-slate-900 pt-3">
+            <div className="flex justify-center gap-6 mt-4 text-[10px] font-semibold text-slate-400 border-t border-border-color pt-3">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-violet-600 rounded-sm" />
+                <span className="w-3 h-3 bg-brand-purple rounded-sm" />
                 <span>Pendapatan</span>
               </div>
               <div className="flex items-center gap-2">

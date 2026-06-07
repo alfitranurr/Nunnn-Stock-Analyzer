@@ -462,8 +462,8 @@ export default function Dashboard() {
 
               {/* Alert Status Konfigurasi Supabase */}
               {!isSupabaseConfigured && (
-                <div className="p-4.5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border border-brand-indigo/35 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
-                  <Info className="h-5 w-5 text-brand-indigo shrink-0 mt-0.5" />
+                <div className="p-4.5 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
+                  <Info className="h-5 w-5 text-brand-purple shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-slate-800 dark:text-white">Tips Uji Coba Mandiri:</span>
                     <p className="mt-1">

@@ -54,15 +54,15 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
   return (
     <>
       {/* Mobile Header (Fixed Top) */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/50 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 z-40">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border-color flex items-center justify-between px-4 z-40">
         <div className="flex items-center gap-2">
-          <span className="font-extrabold text-xl text-neon-gradient tracking-wider font-sans">
+          <span className="font-extrabold text-xl text-brand-purple tracking-wider font-sans">
             NUNNN STOCK
           </span>
         </div>
         <button 
           onClick={() => setIsMobileOpen(true)}
-          className="p-2 rounded-lg bg-white/5 border border-white/10 text-foreground cursor-pointer"
+          className="p-2 rounded-lg bg-input-bg border border-border-color text-foreground cursor-pointer"
         >
           <Menu className="h-6 w-6" />
         </button>
@@ -86,15 +86,15 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 20 }}
-              className="md:hidden fixed top-0 bottom-0 left-0 w-[280px] bg-slate-900/90 dark:bg-black/95 backdrop-blur-xl border-r border-white/10 z-50 flex flex-col p-6 text-white"
+              className="md:hidden fixed top-0 bottom-0 left-0 w-[280px] bg-sidebar-bg border-r border-border-color z-50 flex flex-col p-6 text-white"
             >
               <div className="flex items-center justify-between mb-8">
-                <span className="font-extrabold text-2xl text-neon-gradient tracking-wider">
+                <span className="font-extrabold text-2xl text-brand-purple tracking-wider">
                   NUNNN STOCK
                 </span>
                 <button 
                   onClick={() => setIsMobileOpen(false)}
-                  className="p-1 rounded-lg hover:bg-white/10 text-white cursor-pointer"
+                  className="p-1 rounded-lg hover:bg-input-bg text-white cursor-pointer"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -114,8 +114,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                     className={cn(
                       "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer",
                       currentTab === item.id && item.active
-                        ? "bg-brand-purple/20 border-brand-purple/40 text-white"
-                        : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-white/5",
+                        ? "bg-brand-purple/10 border-brand-purple/30 text-brand-purple"
+                        : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-input-bg",
                       !item.active && "opacity-50 cursor-not-allowed"
                     )}
                   >
@@ -183,22 +183,22 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         animate={isCollapsed ? "collapsed" : "expanded"}
         variants={sidebarVariants}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-slate-900/60 dark:bg-black/40 backdrop-blur-xl border-r border-slate-200/50 dark:border-white/5 py-6 px-4 z-30 group"
+        className="hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-sidebar-bg border-r border-border-color py-6 px-4 z-30 group"
       >
         {/* Sidebar Header */}
         <div className={cn("flex items-center justify-between mb-8 transition-all duration-300", isCollapsed ? "px-2" : "px-3")}>
           {!isCollapsed ? (
-            <span className="font-extrabold text-xl text-neon-gradient tracking-wider font-sans select-none animate-pulse">
+            <span className="font-extrabold text-xl text-brand-purple tracking-wider font-sans select-none">
               NUNNN STOCK
             </span>
           ) : (
-            <span className="font-black text-2xl text-neon-gradient select-none">
+            <span className="font-black text-2xl text-brand-purple select-none">
               N
             </span>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden group-hover:flex p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-foreground cursor-pointer transition-all duration-200 absolute -right-3.5 top-6 z-40 shadow-md"
+            className="hidden group-hover:flex p-1.5 rounded-lg bg-input-bg hover:bg-glass-border border border-border-color text-foreground cursor-pointer transition-all duration-200 absolute -right-3.5 top-6 z-40 shadow-md"
           >
             {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
@@ -214,8 +214,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 "w-full flex items-center gap-3.5 py-3 rounded-xl transition-all duration-300 border relative group/item cursor-pointer",
                 isCollapsed ? "justify-center px-0" : "justify-between px-4.5",
                 currentTab === item.id && item.active
-                  ? "bg-brand-purple/15 border-brand-purple/30 text-brand-purple dark:text-violet-300 font-semibold shadow-inner"
-                  : "bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/40 dark:hover:bg-white/5",
+                  ? "bg-brand-purple/10 border-brand-purple/20 text-brand-purple dark:text-brand-purple font-semibold"
+                  : "bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-input-bg",
                 !item.active && "opacity-45 cursor-not-allowed"
               )}
               title={isCollapsed ? item.label : undefined}
@@ -237,12 +237,12 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         </nav>
 
         {/* Bottom Section */}
-        <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-white/5 space-y-4">
+        <div className="mt-auto pt-4 border-t border-border-color space-y-4">
           {/* Profile Footer */}
           {user ? (
             <div className={cn("flex items-center justify-between gap-3 overflow-hidden", isCollapsed ? "justify-center" : "px-3")}>
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-10 h-10 rounded-full bg-brand-purple/20 flex items-center justify-center shrink-0 border border-brand-purple/40 shadow-md">
+                <div className="w-10 h-10 rounded-full bg-brand-purple/10 flex items-center justify-center shrink-0 border border-brand-purple/20 shadow-md">
                   <User className="h-5 w-5 text-brand-purple" />
                 </div>
                 {!isCollapsed && (

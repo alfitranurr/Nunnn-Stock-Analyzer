@@ -149,7 +149,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
   return (
     <div className="space-y-6">
       {/* Header Panel */}
-      <div className="border border-brand-purple/10 p-5 rounded-2xl bg-slate-950/40 backdrop-blur-sm relative z-10 animate-fadeIn flex flex-col gap-4">
+      <div className="border border-border-color p-5 rounded-2xl bg-card-bg relative z-10 animate-fadeIn flex flex-col gap-4">
         {/* Row 1: Title and Search/Refresh controls */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -244,8 +244,8 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
           ))}
         </div>
       ) : news.length === 0 ? (
-        <div className="border border-white/5 bg-slate-950/40 backdrop-blur-md rounded-2xl p-12 text-center max-w-2xl mx-auto my-6 shadow-xl flex flex-col items-center justify-center space-y-4">
-          <div className="p-4 bg-brand-purple/10 border border-brand-purple/35 rounded-full text-brand-purple">
+        <div className="border border-border-color bg-card-bg rounded-2xl p-12 text-center max-w-2xl mx-auto my-6 flex flex-col items-center justify-center space-y-4">
+          <div className="p-4 bg-brand-purple/10 border border-brand-purple/20 rounded-full text-brand-purple">
             <BookOpen className="w-8 h-8 animate-pulse" />
           </div>
           <h3 className="text-base font-bold text-white">Tidak ada berita ditemukan</h3>
@@ -273,7 +273,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
             return (
               <div
                 key={idx}
-                className="border border-slate-800/60 bg-slate-950/40 backdrop-blur-sm rounded-2xl hover:border-brand-purple/20 transition-all duration-300 overflow-hidden shadow-md flex flex-col animate-fadeIn"
+                className="border border-border-color bg-card-bg rounded-2xl hover:border-brand-purple/30 transition-all duration-300 overflow-hidden flex flex-col animate-fadeIn"
               >
                 {/* Main Card Body */}
                 <div className="p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -322,8 +322,8 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                       }}
                       className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border transition-all duration-300 select-none ${
                         isExpanded
-                          ? 'bg-brand-purple/20 border-brand-purple/40 text-white'
-                          : 'bg-gradient-to-r from-violet-600/20 to-indigo-600/20 hover:from-violet-600/35 hover:to-indigo-600/35 border-brand-purple/25 text-violet-300 hover:text-white hover:shadow-[0_0_12px_rgba(124,58,237,0.2)]'
+                          ? 'bg-brand-purple/15 border-brand-purple/35 text-brand-purple'
+                          : 'bg-input-bg border-border-color hover:border-brand-purple/25 text-slate-300 hover:text-white'
                       }`}
                       title={!user ? 'Masuk untuk membuka Rangkuman AI' : undefined}
                     >
@@ -353,7 +353,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                         {/* Loading State */}
                         {isSumLoading && (
                           <div className="space-y-4 py-2">
-                            <div className="flex items-center gap-2.5 text-xs font-bold text-violet-400 animate-pulse">
+                            <div className="flex items-center gap-2.5 text-xs font-bold text-brand-purple animate-pulse">
                               <Sparkles className="w-3.5 h-3.5 animate-spin" />
                               <span>AI sedang membaca dan merangkum berita...</span>
                             </div>
@@ -387,7 +387,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                   setExpandedArticles(prev => ({ ...prev, [articleKey]: false }));
                                   setTimeout(() => handleToggleSummary(item), 100);
                                 }}
-                                className="mt-2 text-indigo-400 font-bold hover:underline cursor-pointer"
+                                className="mt-2 text-brand-purple font-bold hover:underline cursor-pointer"
                               >
                                 Coba Lagi
                               </button>
@@ -405,7 +405,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                 <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded tracking-wider uppercase">
                                   AI Summary
                                 </span>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
                                   Beta
                                 </span>
                               </div>

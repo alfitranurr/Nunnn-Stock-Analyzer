@@ -45,7 +45,7 @@ export function ConfirmModal({
       case 'warning':
         return 'bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_12px_rgba(217,119,6,0.2)] hover:shadow-[0_0_16px_rgba(217,119,6,0.4)]';
       default:
-        return 'bg-brand-purple hover:bg-brand-purple/90 text-white shadow-[0_0_12px_rgba(139,92,246,0.2)]';
+        return 'bg-brand-purple hover:bg-brand-purple/90 text-white shadow-[0_0_12px_rgba(0,177,91,0.2)]';
     }
   };
 
@@ -78,7 +78,7 @@ export function ConfirmModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
-          className="relative border border-white/10 p-6 w-full max-w-sm bg-slate-950 dark:bg-black shadow-2xl text-white z-10 rounded-2xl"
+          className="relative border border-border-color p-6 w-full max-w-sm bg-card-bg shadow-2xl text-white z-10 rounded-2xl"
         >
           <div className="flex flex-col items-center text-center">
             {/* Icon Wrapper */}

@@ -106,7 +106,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                         {/* Saham */}
                         <td className="px-4 py-4.5 whitespace-nowrap">
                           <div className="flex flex-col">
-                            <span className="font-extrabold text-sm text-brand-purple dark:text-violet-300 tracking-wider">
+                            <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider">
                               {plan.ticker}
                             </span>
                             <span className="text-[10px] text-slate-400 truncate max-w-[130px]" title={plan.company_name}>
@@ -126,7 +126,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                         {/* Rencana Baru */}
                         <td className="px-4 py-4.5 whitespace-nowrap">
                           <div className="flex flex-col text-xs text-slate-600 dark:text-slate-300">
-                            <span className="font-semibold text-brand-indigo dark:text-indigo-400">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
+                            <span className="font-semibold text-brand-purple dark:text-brand-purple">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
                             <span className="text-[10px] text-slate-400">@ {formatIDR(plan.harga_beli_baru)}</span>
                           </div>
                         </td>
@@ -151,7 +151,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => onLoadPlan(plan)}
-                              className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-violet-300 border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
+                              className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
                               title="Terapkan Parameter"
                             >
                               <ExternalLink className="h-4 w-4" />

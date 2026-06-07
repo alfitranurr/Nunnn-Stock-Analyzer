@@ -175,7 +175,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative border border-brand-purple/20 p-6 md:p-8 w-full max-w-md bg-slate-950 dark:bg-black shadow-2xl text-white animate-scaleIn rounded-2xl">
+      <div className="relative border border-border-color p-6 md:p-8 w-full max-w-md bg-card-bg shadow-2xl text-white animate-scaleIn rounded-2xl">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -186,7 +186,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
 
         {/* Title */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-1.5 text-neon-gradient font-black text-2xl tracking-wider mb-1">
+          <div className="inline-flex items-center gap-1.5 text-brand-purple font-black text-2xl tracking-wider mb-1">
             <Sparkles className="h-5 w-5 text-brand-purple" />
             NUNNN STOCK
           </div>

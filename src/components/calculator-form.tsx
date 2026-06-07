@@ -385,7 +385,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Nama Perusahaan"
                 className={`w-full glass-input px-3.5 py-2.5 text-base md:text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
-                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(139,92,246,0.15)]' : ''
+                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
                 }`}
               />
             </div>
@@ -517,7 +517,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           <button
             type="button"
             onClick={handleAddTranche}
-            className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-dashed border-brand-purple/30 hover:border-brand-purple bg-brand-purple/5 hover:bg-brand-purple/10 text-brand-purple dark:text-violet-300 font-bold text-[9px] transition-all cursor-pointer select-none"
+            className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-dashed border-brand-purple/30 hover:border-brand-purple bg-brand-purple/5 hover:bg-brand-purple/10 text-brand-purple dark:text-brand-purple font-bold text-[9px] transition-all cursor-pointer select-none"
           >
             <Plus className="h-3 w-3" />
             Tambah Tahap Pembelian
@@ -588,7 +588,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             parseFormattedNumber(avgPriceAwal) <= 0 ||
             tranches.some(t => parseFormattedNumber(t.lot) <= 0 || parseFormattedNumber(t.price) <= 0)
           }
-          className="py-3 px-5.5 rounded-xl bg-gradient-to-r from-brand-indigo to-brand-purple hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-10.5 xl:mb-4.5"
+          className="py-3 px-5.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-10.5 xl:mb-4.5"
         >
           {isSaving ? (
             <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />

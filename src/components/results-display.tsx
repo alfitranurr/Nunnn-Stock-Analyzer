@@ -46,7 +46,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#00ff87', '#6366f1', '#8b5cf6', '#a78bfa']
+        colors: ['#00b15b', '#05fa7b', '#008f47', '#ffffff']
       });
       setHasConfettiFired(true);
     }
@@ -78,9 +78,9 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="glass-card p-5 border-brand-purple/20 bg-slate-900/45 dark:bg-black/35 relative overflow-hidden flex flex-col justify-center min-h-[92px]"
+          className="glass-card p-5 border-brand-purple/20 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[92px]"
         >
-          <div className="absolute top-0 left-0 w-32 h-32 bg-brand-purple/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-0 w-32 h-32 bg-brand-purple/2 rounded-full blur-3xl pointer-events-none" />
           <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
             Ticker
           </span>
@@ -94,13 +94,13 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
-          className="glass-card p-5 border-slate-200 dark:border-white/5 bg-slate-900/45 dark:bg-black/35 relative overflow-hidden flex flex-col justify-center min-h-[92px]"
+          className="glass-card p-5 border-slate-200 dark:border-white/5 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[92px]"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl pointer-events-none" />
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
             Nama Emiten
           </span>
-          <h3 className={`${getCompanyFontSize(companyName)} font-bold text-brand-indigo dark:text-violet-300 mt-1 break-words leading-tight`} title={companyName}>
+          <h3 className={`${getCompanyFontSize(companyName)} font-bold text-brand-purple dark:text-brand-purple mt-1 break-words leading-tight`} title={companyName}>
             {companyName || '-'}
           </h3>
         </motion.div>
@@ -114,13 +114,13 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         className="grid grid-cols-1 md:grid-cols-3 gap-5.5 w-full"
       >
         {/* Card 1: Modal Baru yang Dibutuhkan */}
-        <div className="md:col-span-2 glass-card p-5.5 bg-gradient-to-r from-brand-indigo/15 to-brand-purple/15 border-brand-purple/35 relative overflow-hidden flex flex-col justify-center min-h-[110px]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/10 rounded-full blur-2xl pointer-events-none" />
-          <span className="text-[9px] font-bold text-brand-purple dark:text-violet-400 uppercase tracking-widest block">
+        <div className="md:col-span-2 glass-card p-5.5 bg-brand-purple/5 border-brand-purple/20 relative overflow-hidden flex flex-col justify-center min-h-[110px]">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/5 rounded-full blur-2xl pointer-events-none" />
+          <span className="text-[9px] font-bold text-brand-purple dark:text-brand-purple uppercase tracking-widest block">
             Modal Baru yang Dibutuhkan
           </span>
           <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-4 mt-1.5 flex-wrap">
-            <h3 className="text-2xl md:text-3xl font-black tracking-tight text-brand-indigo dark:text-violet-300">
+            <h3 className="text-2xl md:text-3xl font-black tracking-tight text-brand-purple dark:text-brand-purple">
               {formatIDR(result.capitalRequired)}
             </h3>
             <p className="text-sm md:text-base font-medium text-slate-500 dark:text-slate-400">
@@ -205,12 +205,12 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
             <div className="flex justify-between items-center mb-5.5">
               <span className="text-xs font-extrabold uppercase tracking-widest text-brand-purple">SESUDAH AVG DOWN</span>
               {result.turnedIntoProfit ? (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-bullish-green/20 text-bullish-green border border-bullish-green/30 flex items-center gap-1 animate-bounce">
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-bullish-green/10 text-bullish-green border border-bullish-green/20 flex items-center gap-1 animate-bounce">
                   <Sparkles className="h-3 w-3" />
                   Turned Profit!
                 </span>
               ) : (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple/20 text-brand-purple border border-brand-purple/30">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
                   Target Posisi Baru
                 </span>
               )}
@@ -218,8 +218,8 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
 
             <div className="space-y-4">
               <div className="flex justify-between items-baseline">
-                <span className="text-xs text-brand-purple dark:text-violet-300 font-semibold">Harga Rata-Rata Baru</span>
-                <span className="text-lg font-black text-brand-purple dark:text-violet-300">{formatIDR(result.avgPriceBaru)}</span>
+                <span className="text-xs text-brand-purple dark:text-brand-purple font-semibold">Harga Rata-Rata Baru</span>
+                <span className="text-lg font-black text-brand-purple dark:text-brand-purple">{formatIDR(result.avgPriceBaru)}</span>
               </div>
               <div className="flex justify-between items-baseline border-t border-slate-200/50 dark:border-white/5 pt-3">
                 <span className="text-xs text-slate-500">Total Modal Baru (Gross)</span>
@@ -270,7 +270,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           <div className="space-y-4">
             <div className="flex justify-between items-baseline">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Harga Rata-Rata (Avg Price)</span>
-              <span className="text-lg font-black text-brand-purple dark:text-violet-300">
+              <span className="text-lg font-black text-brand-purple dark:text-brand-purple">
                 -{result.avgPriceReductionPct.toFixed(2)}%
               </span>
             </div>
@@ -281,7 +281,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, result.avgPriceReductionPct)}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-brand-indigo to-brand-purple rounded-full"
+                className="h-full bg-brand-purple rounded-full"
               />
             </div>
 
@@ -291,9 +291,9 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider mb-0.5">Harga Awal</span>
                 <span className="font-bold text-slate-600 dark:text-slate-300">{formatIDR(result.avgPriceAwal)}</span>
               </div>
-              <ArrowRight className="h-4.5 w-4.5 text-brand-purple shrink-0 drop-shadow-[0_0_4px_rgba(139,92,246,0.3)]" />
+              <ArrowRight className="h-4.5 w-4.5 text-brand-purple shrink-0 drop-shadow-[0_0_4px_rgba(0,177,91,0.2)]" />
               <div className="flex flex-col text-right">
-                <span className="text-[10px] text-brand-purple dark:text-violet-400 uppercase font-bold tracking-wider mb-0.5">Harga Baru</span>
+                <span className="text-[10px] text-brand-purple dark:text-brand-purple uppercase font-bold tracking-wider mb-0.5">Harga Baru</span>
                 <span className="font-extrabold text-slate-800 dark:text-white">{formatIDR(result.avgPriceBaru)}</span>
               </div>
             </div>
@@ -316,7 +316,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, result.lossShrunkPct)}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
-                    className="h-full bg-gradient-to-r from-bullish-green to-bullish-neon rounded-full"
+                    className="h-full bg-bullish-green rounded-full"
                   />
                 </div>
 

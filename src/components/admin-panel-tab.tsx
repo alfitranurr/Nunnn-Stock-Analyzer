@@ -144,7 +144,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
   return (
     <div className="space-y-6">
       {/* Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-brand-purple/10 p-5 rounded-2xl bg-slate-950/40 backdrop-blur-sm relative z-10 animate-fadeIn">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-border-color p-5 rounded-2xl bg-card-bg relative z-10 animate-fadeIn">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-brand-purple animate-pulse" /> Admin Panel - Persetujuan Registrasi

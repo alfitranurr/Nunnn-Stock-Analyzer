@@ -4,28 +4,28 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   
-  --color-brand-purple: #8b5cf6;
-  --color-brand-indigo: #6366f1;
-  --color-bullish-green: #10b981;
-  --color-bullish-neon: #00ff87;
-  --color-bearish-red: #ef4444;
-  --color-bearish-crimson: #ff3366;
+  --color-brand-purple: #00b15b;
+  --color-brand-indigo: #008f47;
+  --color-bullish-green: #00b15b;
+  --color-bullish-neon: #05fa7b;
+  --color-bearish-red: #ff4545;
+  --color-bearish-crimson: #e13c3c;
 }
 
 :root {
-  --background: #030014;
-  --foreground: #f8fafc;
+  --background: #121518;
+  --foreground: #e1e4e6;
   
-  --glass-bg: rgba(10, 8, 28, 0.4);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --glass-shadow: rgba(0, 0, 0, 0.5);
-  --card-bg: rgba(15, 12, 41, 0.3);
+  --glass-bg: #191c20;
+  --glass-border: #23282d;
+  --glass-shadow: rgba(0, 0, 0, 0.2);
+  --card-bg: #191c20;
   
-  --border-color: rgba(255, 255, 255, 0.08);
-  --input-bg: rgba(10, 8, 28, 0.6);
-  --sidebar-bg: rgba(6, 4, 18, 0.6);
+  --border-color: #23282d;
+  --input-bg: #1e2226;
+  --sidebar-bg: #121518;
   
-  --glow-color: rgba(139, 92, 246, 0.25);
+  --glow-color: rgba(0, 177, 91, 0.08);
 }
 
 body {
@@ -33,39 +33,35 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  transition: background-color 0.5s ease, color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
 }
 
-/* Glassmorphism Styles */
+/* Stockbit Flat Card Styles */
 .glass-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 var(--glass-shadow);
-  border-radius: 1rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px 0 var(--glass-shadow);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease-in-out;
 }
 
 .glass-card:hover {
-  box-shadow: 0 12px 40px 0 var(--glow-color);
-  border-color: rgba(139, 92, 246, 0.2);
+  border-color: rgba(0, 177, 91, 0.3);
+  box-shadow: 0 4px 16px 0 var(--glow-color);
 }
 
 .glass-input {
   background: var(--input-bg);
   border: 1px solid var(--border-color);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
-  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  border-radius: 0.5rem;
 }
 
 .glass-input:focus {
   outline: none;
   border-color: var(--color-brand-purple);
-  box-shadow: 0 0 0 3px var(--glow-color);
+  box-shadow: 0 0 0 2px rgba(0, 177, 91, 0.2);
 }
 
 /* Custom Scrollbar */
@@ -79,15 +75,15 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(0, 177, 91, 0.2);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.6);
+  background: rgba(0, 177, 91, 0.4);
 }
 
-/* Glow Backgrounds */
+/* Clean Flat Backgrounds */
 .mesh-bg {
   position: fixed;
   top: 0;
@@ -96,47 +92,24 @@ body {
   bottom: 0;
   z-index: -10;
   pointer-events: none;
-  overflow: hidden;
+  background-color: var(--background);
 }
 
-.mesh-bg::before {
-  content: "";
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(99, 102, 241, 0.05) 60%, rgba(0,0,0,0) 100%);
-  top: -10%;
-  right: -5%;
-  filter: blur(80px);
-}
-
-.mesh-bg::after {
-  content: "";
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 51, 102, 0.08) 0%, rgba(139, 92, 246, 0.02) 60%, rgba(0,0,0,0) 100%);
-  bottom: 10%;
-  left: -5%;
-  filter: blur(80px);
-}
-
-/* Neon Text Gradient */
+/* Solid Text Styling (Stockbit style) */
 .text-neon-gradient {
-  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 50%, #00ff87 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-brand-purple);
+  background: none;
+  -webkit-text-fill-color: initial;
+  background-clip: initial;
 }
 
 .text-profit-glow {
-  color: var(--color-bullish-neon);
-  text-shadow: 0 0 12px rgba(0, 255, 135, 0.4);
+  color: var(--color-bullish-green);
+  text-shadow: none;
 }
 
 .text-loss-glow {
-  color: var(--color-bearish-crimson);
-  text-shadow: 0 0 12px rgba(255, 51, 102, 0.4);
+  color: var(--color-bearish-red);
+  text-shadow: none;
 }
+

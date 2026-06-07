@@ -400,7 +400,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
       {/* Summary Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
         {/* Card 1: Total Equity */}
-        <div className="glass-card p-5 bg-gradient-to-br from-brand-indigo/10 to-transparent border-white/5 relative overflow-hidden flex flex-col justify-center min-h-[96px]">
+        <div className="glass-card p-5 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[96px]">
           <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
             Total Equity
           </span>
@@ -500,7 +500,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                           {/* Saham */}
                           <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex flex-col">
-                              <span className="font-extrabold text-sm text-brand-purple dark:text-violet-300 tracking-wider">
+                              <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider">
                                 {tickerUpper}
                               </span>
                               <span className="text-[9px] text-slate-400 truncate max-w-[120px]" title={h.company_name}>
@@ -563,7 +563,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                               {/* Avg Down Action */}
                               <button
                                 onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
-                                className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-violet-300 border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
+                                className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
                                 title="Avg Down Saham Ini"
                               >
                                 <Calculator className="h-4.5 w-4.5" />
