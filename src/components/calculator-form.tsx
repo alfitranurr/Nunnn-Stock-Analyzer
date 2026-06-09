@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Sparkles, Info, Plus, Trash2 } from 'lucide-react';
+import { Sparkles, Info, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { AvgDownInput, PurchaseTranche } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -211,6 +211,26 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     }
   }, [initialValues]);
 
+  const fetchRemoteTicker = React.useCallback(async (symbol: string) => {
+    setIsFetchingTicker(true);
+    try {
+      const res = await fetch(`/api/ticker?symbol=${symbol}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.name) {
+          setCompanyName(data.name);
+        }
+        if (data.price !== undefined && data.price !== null) {
+          setCurrentPrice(formatNumberForInput(data.price));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching remote ticker data:', err);
+    } finally {
+      setIsFetchingTicker(false);
+    }
+  }, []);
+
   // Mengambil nama emiten & harga secara real-time dari internet (Yahoo Finance) atau database lokal
   React.useEffect(() => {
     const val = ticker.toUpperCase().trim();
@@ -218,32 +238,19 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       if (TICKER_DATABASE[val]) {
         setCompanyName(TICKER_DATABASE[val]);
       }
-      
-      const fetchRemoteTicker = async () => {
-        setIsFetchingTicker(true);
-        try {
-          const res = await fetch(`/api/ticker?symbol=${val}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.name) {
-              setCompanyName(data.name);
-            }
-            if (data.price !== undefined && data.price !== null) {
-              setCurrentPrice(formatNumberForInput(data.price));
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching remote ticker data:', err);
-        } finally {
-          setIsFetchingTicker(false);
-        }
-      };
-      fetchRemoteTicker();
+      fetchRemoteTicker(val);
     } else {
       setCompanyName('');
       setCurrentPrice('');
     }
-  }, [ticker]);
+  }, [ticker, fetchRemoteTicker]);
+
+  const handleRefreshPrice = React.useCallback(() => {
+    const val = ticker.toUpperCase().trim();
+    if (val.length >= 4) {
+      fetchRemoteTicker(val);
+    }
+  }, [ticker, fetchRemoteTicker]);
 
   // Trigger calculation on input changes
   React.useEffect(() => {
@@ -421,17 +428,28 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
               <span className="text-[9px] text-slate-500 text-center block mt-1">Avg Price (Rp)</span>
             </div>
             <div>
-              <input
-                type="text"
-                value={currentPrice}
-                onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
-                placeholder="Harga Sekarang"
-                className={`w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold transition-all duration-300 ${
-                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40' : ''
-                }`}
-                required
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={currentPrice}
+                  onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
+                  onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
+                  placeholder="Harga Sekarang"
+                  className={`w-full glass-input pl-1 pr-7 py-2.5 text-base md:text-xs text-center font-bold transition-all duration-300 ${
+                    isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(139,92,246,0.15)]' : ''
+                  }`}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={handleRefreshPrice}
+                  disabled={isFetchingTicker || ticker.toUpperCase().trim().length < 4}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-brand-purple hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Refresh Harga Sekarang"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isFetchingTicker ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
               <span className="text-[9px] text-slate-500 text-center block mt-1">Current Price (Rp)</span>
             </div>
           </div>

@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
           const cleanSymbol = quote.symbol.replace(/\.JK$/i, '').toUpperCase();
           let name = quote.longname || quote.shortname || cleanSymbol;
           name = name.replace(/\.JK/gi, '');
+          name = name.replace(/^(PT\.?\s+)/i, ''); // Hapus awalan PT
           name = name.replace(/Persero/gi, '').replace(/  +/g, ' ').trim();
           
           return {
@@ -75,12 +76,13 @@ export async function GET(request: NextRequest) {
     const meta = data.chart?.result?.[0]?.meta;
 
     if (meta) {
-      let name = meta.shortName || meta.longName || '';
+      let name = meta.longName || meta.shortName || '';
       const price = meta.regularMarketPrice || null;
       
       // Rapikan nama perusahaan
       if (name) {
         name = name.replace(/\.JK/gi, '');
+        name = name.replace(/^(PT\.?\s+)/i, ''); // Hapus awalan PT
         name = name.replace(/Persero/gi, '').replace(/  +/g, ' ').trim();
       }
 
