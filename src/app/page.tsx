@@ -18,10 +18,130 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight, Percent, TrendingUp, FileText, Coins } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface TickerConfig {
+  symbol: string;
+  x: string;
+  y: string;
+  pathX: number[];
+  pathY: number[];
+  duration: number;
+  delay: number;
+}
+
+const INITIAL_TICKERS = [
+  { symbol: 'BBRI', x: '5%', y: '15%' },
+  { symbol: 'BBCA', x: '82%', y: '12%' },
+  { symbol: 'GOTO', x: '88%', y: '65%' },
+  { symbol: 'TLKM', x: '8%', y: '72%' },
+  { symbol: 'ASII', x: '78%', y: '45%' },
+  { symbol: 'ANTM', x: '15%', y: '48%' },
+  { symbol: 'BMRI', x: '45%', y: '72%' },
+  { symbol: 'BBNI', x: '42%', y: '10%' },
+  // Barito Group
+  { symbol: 'BREN', x: '75%', y: '70%' },
+  { symbol: 'BRPT', x: '22%', y: '75%' },
+  { symbol: 'TPIA', x: '4%', y: '35%' },
+  { symbol: 'CUAN', x: '52%', y: '25%' },
+  // Happy Hapsoro Group
+  { symbol: 'RAJA', x: '30%', y: '58%' },
+  { symbol: 'PSAB', x: '68%', y: '25%' },
+  // Additional Tickers
+  { symbol: 'ADRO', x: '18%', y: '8%' },
+  { symbol: 'PTBA', x: '28%', y: '22%' },
+  { symbol: 'ITMG', x: '62%', y: '10%' },
+  { symbol: 'UNVR', x: '92%', y: '28%' },
+  { symbol: 'INDF', x: '90%', y: '50%' },
+  { symbol: 'ICBP', x: '70%', y: '55%' },
+  { symbol: 'KLBF', x: '60%', y: '42%' },
+  { symbol: 'AMRT', x: '50%', y: '68%' },
+  { symbol: 'PGAS', x: '35%', y: '45%' },
+  { symbol: 'MEDC', x: '25%', y: '33%' },
+  { symbol: 'MDKA', x: '12%', y: '60%' },
+  { symbol: 'HRUM', x: '16%', y: '28%' },
+  { symbol: 'ARTO', x: '38%', y: '30%' },
+  { symbol: 'BUKA', x: '56%', y: '12%' },
+  { symbol: 'ISAT', x: '72%', y: '8%' },
+  { symbol: 'EXCL', x: '84%', y: '35%' },
+  { symbol: 'JSMR', x: '48%', y: '52%' },
+  { symbol: 'BSDE', x: '38%', y: '78%' },
+  { symbol: 'PWON', x: '10%', y: '80%' },
+  { symbol: 'CTRA', x: '58%', y: '76%' },
+  { symbol: 'TINS', x: '2%', y: '52%' },
+  { symbol: 'BRMS', x: '82%', y: '78%' },
+  { symbol: 'BUMI', x: '94%', y: '72%' },
+  { symbol: 'ACES', x: '66%', y: '74%' },
+  { symbol: 'MAPI', x: '28%', y: '45%' },
+  { symbol: 'MYOR', x: '48%', y: '8%' },
+  { symbol: 'PNLF', x: '34%', y: '18%' },
+  { symbol: 'BBTN', x: '2%', y: '10%' },
+  { symbol: 'BDMN', x: '64%', y: '32%' },
+  { symbol: 'ADHI', x: '22%', y: '65%' },
+  { symbol: 'WIKA', x: '14%', y: '72%' },
+  { symbol: 'PTPP', x: '30%', y: '72%' },
+  { symbol: 'SMGR', x: '44%', y: '40%' },
+  { symbol: 'BELI', x: '74%', y: '48%' },
+];
+
+function EmitenLogo({ symbol }: { symbol: string }) {
+  const [hasError, setHasError] = React.useState(false);
+
+  return (
+    <div className="w-5.5 h-5.5 md:w-7 md:h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+      {!hasError ? (
+        <img
+          src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
+          alt={symbol}
+          className="w-4.5 h-4.5 md:w-5.5 md:h-5.5 object-contain opacity-60 filter brightness-125 saturate-50"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="font-black text-[10px] md:text-[12px] text-[#00b15b]/40">
+          {symbol.slice(0, 2)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [showCover, setShowCover] = React.useState(true);
   const [currentTab, setCurrentTab] = React.useState('news');
   const [user, setUser] = React.useState<any>(null);
+
+  const [tickers, setTickers] = React.useState<TickerConfig[]>([]);
+
+  React.useEffect(() => {
+    // Generate random paths on client load to prevent SSR mismatch
+    const randomized = INITIAL_TICKERS.map((t) => {
+      // Build a 5-point random floating trajectory
+      const pathX = [
+        0,
+        (Math.random() - 0.5) * 350, // random offset up to 175px
+        (Math.random() - 0.5) * 350,
+        (Math.random() - 0.5) * 350,
+        (Math.random() - 0.5) * 350,
+        0
+      ];
+      const pathY = [
+        0,
+        (Math.random() - 0.5) * 250, // random offset up to 125px
+        (Math.random() - 0.5) * 250,
+        (Math.random() - 0.5) * 250,
+        (Math.random() - 0.5) * 250,
+        0
+      ];
+      const duration = 25 + Math.random() * 25; // 25s to 50s duration for slower, smoother drift
+      const delay = Math.random() * 5;
+      return {
+        ...t,
+        pathX,
+        pathY,
+        duration,
+        delay
+      };
+    });
+    setTickers(randomized);
+  }, []);
 
   React.useEffect(() => {
     const entered = sessionStorage.getItem('nunnn_stock_entered_dashboard');
@@ -450,6 +570,33 @@ export default function Dashboard() {
             {/* Ambient Background Glows */}
             <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-[#00b15b]/10 blur-[100px] pointer-events-none" />
             <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] rounded-full bg-[#00b15b]/10 blur-[120px] pointer-events-none" />
+
+            {/* Floating Emiten Tickers (Background Animation) */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              {tickers.map((ticker) => (
+                <motion.div
+                  key={ticker.symbol}
+                  className="absolute px-2.5 py-1.5 md:px-3 md:py-2 rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-[0.5px] shadow-sm flex items-center gap-2 md:gap-2.5 text-[9.5px] md:text-[11.5px] font-bold select-none pointer-events-none z-0"
+                  style={{ left: ticker.x, top: ticker.y }}
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    y: ticker.pathY,
+                    x: ticker.pathX,
+                    opacity: [0, 0.12, 0.32, 0.12, 0]
+                  }}
+                  transition={{
+                    duration: ticker.duration,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: ticker.delay
+                  }}
+                >
+                  {/* Micro Logo Badge */}
+                  <EmitenLogo symbol={ticker.symbol} />
+                  <span className="text-white/25 font-black tracking-wider">{ticker.symbol}</span>
+                </motion.div>
+              ))}
+            </div>
 
             {/* Top Bar Branding */}
             <div className="flex justify-between items-center no-print shrink-0">
