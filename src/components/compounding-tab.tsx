@@ -19,6 +19,7 @@ import {
 import { calculateCompounding, CompoundingInput, CompoundingResult, calculateDailyCompounding, DailyCompoundingInput, DailyCompoundingResult } from '@/lib/compounding';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
 
 interface CompoundingTabProps {
   user: any;
@@ -46,11 +47,11 @@ const formatNumberForInput = (num: number | string | undefined | null): string =
 
 export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
   // Input States
-  const [calcMode, setCalcMode] = React.useState<'standard' | 'daily'>('standard');
+  const [calcMode, setCalcMode] = React.useState<'standard' | 'daily'>('daily');
   const [initialAmountStr, setInitialAmountStr] = React.useState('10,000,000');
-  const [contributionAmountStr, setContributionAmountStr] = React.useState('1,000,000');
+  const [contributionAmountStr, setContributionAmountStr] = React.useState('0');
   const [contributionFrequency, setContributionFrequency] = React.useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
-  const [annualReturnRateStr, setAnnualReturnRateStr] = React.useState('10');
+  const [annualReturnRateStr, setAnnualReturnRateStr] = React.useState('5');
   const [compoundingFrequency, setCompoundingFrequency] = React.useState<'daily' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
   const [durationYearsStr, setDurationYearsStr] = React.useState('10');
   const [durationMonthsStr, setDurationMonthsStr] = React.useState('0');
@@ -410,8 +411,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
     return `${val >= 0 ? '+' : '-'}${formatted}%`;
   };
 
-  // CSV Export
-  const handleExportCSV = () => {
+  // Excel Export
+  const handleExportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    let ws;
+    let fileName = '';
+
     if (isDaily) {
       const headers = [
         "Hari", "Modal Awal Hari (Rp)", "Setoran Harian (Rp)", 
@@ -430,15 +435,9 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         Math.round(d.cumulativeInterest)
       ]);
 
-      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Rencana_Trading_Harian_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      fileName = `Rencana_Trading_Harian_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.utils.book_append_sheet(wb, ws, "Trading Harian");
     } else {
       const headers = [
         "Bulan", "Tahun", "Bulan Ke", "Saldo Awal (Rp)", 
@@ -461,16 +460,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         Math.round(d.cumulativeInterest)
       ]);
 
-      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Simulasi_Compounding_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      fileName = `Simulasi_Compounding_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.utils.book_append_sheet(wb, ws, "Compounding");
     }
+
+    XLSX.writeFile(wb, fileName);
   };
 
   // Print PDF Trigger
@@ -622,6 +617,22 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
           h1, h2, h3, h4, th, td, p, span {
             color: black !important;
           }
+          .overflow-y-auto, .overflow-x-auto {
+            max-height: none !important;
+            overflow: visible !important;
+            height: auto !important;
+          }
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          thead {
+            display: table-header-group !important;
+          }
         }
       `}} />
 
@@ -647,11 +658,11 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             <span>Simpan Rencana</span>
           </button>
           <button 
-            onClick={handleExportCSV}
+            onClick={handleExportExcel}
             className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-input-bg border border-border-color hover:bg-glass-border text-foreground font-bold text-xs transition-all cursor-pointer"
           >
             <Download className="h-4 w-4 text-brand-purple" />
-            <span>Ekspor CSV</span>
+            <span>Ekspor Excel</span>
           </button>
           <button 
             onClick={handlePrint}
