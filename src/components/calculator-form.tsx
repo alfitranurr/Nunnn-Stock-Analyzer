@@ -403,7 +403,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       <form onSubmit={handleSaveClick} className="flex flex-col xl:flex-row xl:items-end justify-between gap-5 w-full">
         
         {/* Ticker & Nama Emiten (2 Kotak Berdampingan) */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-[320px] relative">
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[320px] relative w-full">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Saham & Emiten</label>
           <div className="flex gap-2 items-center">
             
@@ -419,7 +419,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   setTicker(e.target.value.toUpperCase());
                 }}
                 placeholder="ANTM"
-                className="w-full text-center font-extrabold tracking-wider glass-input px-3.5 py-2.5 text-base md:text-xs uppercase"
+                className="w-full text-center font-bold tracking-wider glass-input px-2 py-2 text-xs uppercase"
                 required
               />
             </div>
@@ -431,7 +431,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Nama Perusahaan"
-                className={`w-full glass-input px-3.5 py-2.5 text-base md:text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
+                className={`w-full glass-input px-2.5 py-2 text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
                   isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
                 }`}
               />
@@ -440,7 +440,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         </div>
 
         {/* Posisi Portofolio Awal */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-[280px]">
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[280px] w-full">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Posisi Awal</label>
           <div className="grid grid-cols-3 gap-2">
             <div>
@@ -450,7 +450,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 onChange={(e) => setLotAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
                 onBlur={() => handleBlur(lotAwal, setLotAwal)}
                 placeholder="Lot Awal"
-                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold"
+                className="w-full glass-input px-1 py-2 text-xs text-center font-semibold"
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Lot Awal</span>
@@ -462,7 +462,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 onChange={(e) => setAvgPriceAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
                 onBlur={() => handleBlur(avgPriceAwal, setAvgPriceAwal)}
                 placeholder="Avg Price"
-                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold"
+                className="w-full glass-input px-1 py-2 text-xs text-center font-semibold"
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Avg Price (Rp)</span>
@@ -475,7 +475,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
                   onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
                   placeholder="Harga Sekarang"
-                  className={`w-full glass-input pl-1 pr-7 py-2.5 text-base md:text-xs text-center font-bold transition-all duration-300 ${
+                  className={`w-full glass-input pl-1 pr-6 py-2 text-xs text-center font-semibold transition-all duration-300 ${
                     isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(139,92,246,0.15)]' : ''
                   }`}
                   required
@@ -484,10 +484,10 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   type="button"
                   onClick={handleRefreshPrice}
                   disabled={isFetchingTicker || ticker.toUpperCase().trim().length < 4}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-brand-purple hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-brand-purple hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Refresh Harga Sekarang"
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isFetchingTicker ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-3 w-3 ${isFetchingTicker ? 'animate-spin' : ''}`} />
                 </button>
               </div>
               <span className="text-[9px] text-slate-500 text-center block mt-1">Current Price (Rp)</span>
@@ -515,7 +515,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         </div>
 
         {/* Rencana Pembelian Baru */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-[280px]">
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[280px] w-full">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">3. Rencana Beli Baru</label>
           
           <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1">
@@ -540,7 +540,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
                       onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
                       placeholder="Lot"
-                      className="w-full glass-input px-1 py-2 text-base md:text-xs text-center font-bold border-brand-purple/10 focus:border-brand-purple bg-black/20"
+                      className="w-full glass-input px-1 py-1.5 text-xs text-center font-semibold border-brand-purple/10 focus:border-brand-purple bg-black/20"
                       required
                     />
                   </div>
@@ -552,7 +552,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
                       onBlur={() => handleTrancheBlur(tranche.id, 'price')}
                       placeholder="Harga Beli"
-                      className="w-full glass-input px-1.5 py-2 text-base md:text-xs text-center font-bold border-brand-purple/10 focus:border-brand-purple bg-black/20"
+                      className="w-full glass-input px-1.5 py-1.5 text-xs text-center font-semibold border-brand-purple/10 focus:border-brand-purple bg-black/20"
                       required
                     />
                   </div>
@@ -583,12 +583,12 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         </div>
 
         {/* Broker Fee Settings */}
-        <div className="flex flex-col gap-1.5 shrink-0 min-w-[210px]">
+        <div className="flex flex-col gap-1.5 shrink-0 min-w-0 md:min-w-[210px] w-full">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">4. Broker Fee</label>
           <select
             value={brokerPreset}
             onChange={(e) => handlePresetChange(e.target.value)}
-            className="w-full glass-input px-3 py-2.5 text-base md:text-xs font-bold cursor-pointer text-foreground bg-background"
+            className="w-full glass-input px-2.5 py-2 text-xs font-semibold cursor-pointer text-foreground bg-background"
           >
             <option value="stockbit">Stockbit (Buy 0.15% / Sell 0.25%)</option>
             <option value="ajaib">Ajaib (Buy 0.15% / Sell 0.25%)</option>
@@ -608,7 +608,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     max="10"
                     value={feeBeli}
                     onChange={(e) => setFeeBeli(parseFloat(e.target.value) || 0)}
-                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-bold"
+                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-semibold"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
                 </div>
@@ -623,7 +623,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     max="10"
                     value={feeJual}
                     onChange={(e) => setFeeJual(parseFloat(e.target.value) || 0)}
-                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-bold"
+                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-semibold"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
                 </div>
@@ -646,7 +646,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             parseFormattedNumber(avgPriceAwal) <= 0 ||
             tranches.some(t => parseFormattedNumber(t.lot) <= 0 || parseFormattedNumber(t.price) <= 0)
           }
-          className="py-3 px-5.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-10.5 xl:mb-4.5"
+          className="py-2 px-5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 hover:opacity-90 disabled:opacity-50 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-9 xl:mb-3.5"
         >
           {isSaving ? (
             <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />

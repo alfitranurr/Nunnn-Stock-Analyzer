@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, LogOut, Trash2 } from 'lucide-react';
 
@@ -25,7 +26,11 @@ export function ConfirmModal({
   cancelText = 'Batal',
   type = 'danger'
 }: ConfirmModalProps) {
-  if (!isOpen) return null;
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const getIcon = () => {
     switch (type) {
@@ -60,63 +65,68 @@ export function ConfirmModal({
     }
   };
 
-  return (
+  if (!isMounted) return null;
+
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-        />
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
 
-        {/* Modal Card */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
-          className="relative border border-border-color p-6 w-full max-w-sm bg-card-bg shadow-2xl text-white z-10 rounded-2xl"
-        >
-          <div className="flex flex-col items-center text-center">
-            {/* Icon Wrapper */}
-            <div className={`p-3.5 rounded-2xl mb-4 ${getIconBgClass()}`}>
-              {getIcon()}
+          {/* Modal Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
+            className="relative border border-border-color p-6 w-full max-w-sm bg-card-bg shadow-2xl text-white z-10 rounded-2xl"
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Icon Wrapper */}
+              <div className={`p-3.5 rounded-2xl mb-4 ${getIconBgClass()}`}>
+                {getIcon()}
+              </div>
+
+              {/* Title */}
+              <h3 className="text-base font-bold text-white mb-2">{title}</h3>
+
+              {/* Message */}
+              <p className="text-xs text-slate-400 leading-relaxed mb-6">
+                {message}
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all duration-200 cursor-pointer"
+                >
+                  {cancelText}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onConfirm();
+                    onClose();
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${getButtonClass()}`}
+                >
+                  {confirmText}
+                </button>
+              </div>
             </div>
-
-            {/* Title */}
-            <h3 className="text-base font-bold text-white mb-2">{title}</h3>
-
-            {/* Message */}
-            <p className="text-xs text-slate-400 leading-relaxed mb-6">
-              {message}
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 w-full">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all duration-200 cursor-pointer"
-              >
-                {cancelText}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onConfirm();
-                  onClose();
-                }}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer ${getButtonClass()}`}
-              >
-                {confirmText}
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -308,7 +308,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-900 bg-slate-950/40 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <tr className="border-b border-slate-900 bg-slate-950/40 text-slate-400 font-bold uppercase tracking-wider text-[10px] whitespace-nowrap">
                 <th className="px-5 py-4">Alamat Email</th>
                 <th className="px-5 py-4">Tanggal Daftar</th>
                 <th className="px-5 py-4">Status Akses</th>
@@ -337,7 +337,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                       key={item.id} 
                       className="hover:bg-slate-900/30 transition-colors"
                     >
-                      <td className="px-5 py-4.5 font-medium text-slate-200">
+                      <td className="px-5 py-4.5 font-medium text-slate-200 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <span>{item.email}</span>
                           {isSelf && (
@@ -347,9 +347,9 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-4.5 text-slate-400">
+                      <td className="px-5 py-4.5 text-slate-400 whitespace-nowrap">
                         <span className="flex items-center gap-1.5">
-                          <Clock className="w-3 h-3 text-slate-500" />
+                          <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                           {item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {
                             day: 'numeric',
                             month: 'short',
@@ -359,7 +359,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                           }) : '-'}
                         </span>
                       </td>
-                      <td className="px-5 py-4.5">
+                      <td className="px-5 py-4.5 whitespace-nowrap">
                         {item.approved ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold text-[10px]">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -372,7 +372,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-4.5 text-right">
+                      <td className="px-5 py-4.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2.5">
                           <button
                             onClick={() => handleToggleApproval(item)}

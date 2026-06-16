@@ -16,6 +16,7 @@
   --color-input-bg: var(--input-bg);
   --color-card-bg: var(--card-bg);
   --color-glass-bg: var(--glass-bg);
+  --color-background: var(--background);
 }
 
 :root {

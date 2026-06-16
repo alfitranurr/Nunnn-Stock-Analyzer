@@ -150,9 +150,12 @@ export default function Dashboard() {
     }
   }, []);
 
-  const handleEnterDashboard = () => {
+  const handleEnterDashboard = (tab?: string) => {
     sessionStorage.setItem('nunnn_stock_entered_dashboard', 'true');
     setShowCover(false);
+    if (tab) {
+      setCurrentTab(tab);
+    }
   };
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [plans, setPlans] = React.useState<SavedPlan[]>([]);
@@ -643,7 +646,7 @@ export default function Dashboard() {
               >
                 <motion.button
                   whileHover="hover"
-                  onClick={handleEnterDashboard}
+                  onClick={() => handleEnterDashboard()}
                   className="group relative flex items-center gap-2 md:gap-3 bg-[#00b15b] hover:bg-[#05fa7b] text-white hover:text-black font-extrabold text-[11px] md:text-xs py-2.5 px-5 md:py-3.5 md:px-7 rounded-xl md:rounded-2xl shadow-xl shadow-[#00b15b]/25 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <span>Mulai Analisis Sekarang</span>
@@ -664,52 +667,60 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 25 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 w-full mt-1 md:mt-3"
+                className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 w-full mt-1 md:mt-3"
               >
-                <div className="glass-card p-2 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[75px] sm:min-h-[90px] md:min-h-[120px] transition-colors hover:border-[#00b15b]/30">
+                <div 
+                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
+                >
                   <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
                     <TrendingUp className="h-3 w-3 md:h-4.5 md:w-4.5" />
                   </div>
                   <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[8.5px] md:text-[11px] uppercase tracking-wider text-slate-200">Average Down</h3>
-                    <p className="hidden md:block text-[9.5px] text-slate-400 leading-normal mt-0.5">
-                      Hitung persentase avg down secara bertahap terintegrasi dengan broker fee beli & jual bursa Indonesia secara presisi.
+                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Average Down</h3>
+                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
+                      Hitung avg down bertahap terintegrasi dengan broker fee beli & jual bursa secara presisi.
                     </p>
                   </div>
                 </div>
 
-                <div className="glass-card p-2 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[75px] sm:min-h-[90px] md:min-h-[120px] transition-colors hover:border-[#00b15b]/30">
+                <div 
+                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
+                >
                   <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
                     <Percent className="h-3 w-3 md:h-4.5 md:w-4.5" />
                   </div>
                   <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[8.5px] md:text-[11px] uppercase tracking-wider text-slate-200">Compounding</h3>
-                    <p className="hidden md:block text-[9.5px] text-slate-400 leading-normal mt-0.5">
-                      Proyeksikan pertumbuhan dana investasi jangka panjang atau rencana trading harian yang disesuaikan dengan pajak & inflasi.
+                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Compounding</h3>
+                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
+                      Proyeksikan pertumbuhan dana investasi jangka panjang disesuaikan pajak & inflasi.
                     </p>
                   </div>
                 </div>
 
-                <div className="glass-card p-2 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[75px] sm:min-h-[90px] md:min-h-[120px] transition-colors hover:border-[#00b15b]/30">
+                <div 
+                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
+                >
                   <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
                     <Coins className="h-3 w-3 md:h-4.5 md:w-4.5" />
                   </div>
                   <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[8.5px] md:text-[11px] uppercase tracking-wider text-slate-200">Penjatahan E-IPO</h3>
-                    <p className="hidden md:block text-[9.5px] text-slate-400 leading-normal mt-0.5">
-                      Hitung jatah saham IPO terpusat (pooling) menggunakan regulasi OJK terbaru secara presisi.
+                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Penjatahan E-IPO</h3>
+                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
+                      Hitung jatah saham IPO terpusat (pooling) dengan regulasi OJK terbaru secara presisi.
                     </p>
                   </div>
                 </div>
 
-                <div className="glass-card p-2 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[75px] sm:min-h-[90px] md:min-h-[120px] transition-colors hover:border-[#00b15b]/30">
+                <div 
+                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
+                >
                   <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
                     <FileText className="h-3 w-3 md:h-4.5 md:w-4.5" />
                   </div>
                   <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[8.5px] md:text-[11px] uppercase tracking-wider text-slate-200">Emiten & Berita</h3>
-                    <p className="hidden md:block text-[9.5px] text-slate-400 leading-normal mt-0.5">
-                      Pantau sentimen pasar berdasarkan rangkuman berita terintegrasi untuk emiten BEI.
+                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Emiten & Berita</h3>
+                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
+                      Pantau sentimen pasar berdasarkan rangkuman berita terintegrasi emiten BEI.
                     </p>
                   </div>
                 </div>
@@ -720,8 +731,8 @@ export default function Dashboard() {
             <div className="text-center text-[10px] text-slate-500 py-1.5 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-2">
               <span>© 2026 Al Fitra Nur Ramadhani. All rights reserved.</span>
               <div className="flex gap-4">
-                <span className="hover:text-slate-400 cursor-pointer">Syarat & Ketentuan</span>
-                <span className="hover:text-slate-400 cursor-pointer">Kebijakan Privasi</span>
+                <span>Syarat & Ketentuan</span>
+                <span>Kebijakan Privasi</span>
               </div>
             </div>
           </motion.div>
@@ -746,7 +757,7 @@ export default function Dashboard() {
       />
 
       {/* Main Dashboard Panel */}
-      <main className={`flex-1 min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
+      <main className={`flex-1 min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-20 md:pb-10 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
         <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8">
           
           {/* 1. News & Sentiment Tab */}

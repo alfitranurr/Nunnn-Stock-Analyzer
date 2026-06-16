@@ -11,7 +11,9 @@ import {
   ChevronDown, 
   AlertTriangle, 
   RefreshCw, 
-  ArrowRight
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -49,6 +51,48 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
   const [summaries, setSummaries] = React.useState<{ [key: string]: AISummary }>({});
   const [summaryLoading, setSummaryLoading] = React.useState<{ [key: string]: boolean }>({});
   const [summaryError, setSummaryError] = React.useState<{ [key: string]: string | null }>({});
+
+  const tabsRef = React.useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = React.useState(false);
+  const [showRightArrow, setShowRightArrow] = React.useState(true);
+
+  const checkScroll = () => {
+    if (tabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+      setShowLeftArrow(scrollLeft > 2);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 2);
+    }
+  };
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    if (tabsRef.current) {
+      const scrollAmount = 150;
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    const tabs = tabsRef.current;
+    if (tabs) {
+      tabs.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+      // Run initial check
+      checkScroll();
+    }
+    return () => {
+      if (tabs) {
+        tabs.removeEventListener('scroll', checkScroll);
+      }
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    setTimeout(checkScroll, 100);
+  }, [category, news]);
 
   const fetchNews = async (cat: 'saham' | 'foreign' | 'domestik' | 'global' | 'politik', queryStr: string = '') => {
     setLoading(true);
@@ -197,23 +241,56 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
 
         {/* Row 2: Divider and Category Tabs */}
         <div className="border-t border-slate-900/60 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex bg-slate-900/60 p-1 border border-slate-800/80 rounded-xl text-xs w-full sm:w-auto overflow-x-auto">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setCategory(cat.id);
-                  setSearchQuery(''); 
-                }}
-                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer text-center select-none whitespace-nowrap ${
-                  category === cat.id && !searchQuery
-                    ? 'bg-brand-purple text-white shadow-md font-semibold'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <button 
+              type="button"
+              onClick={() => handleScroll('left')}
+              disabled={!showLeftArrow}
+              className={`p-2 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                showLeftArrow 
+                  ? 'text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer' 
+                  : 'text-slate-600 opacity-40 cursor-not-allowed'
+              }`}
+              title="Scroll Kiri"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div 
+              ref={tabsRef}
+              className="flex-1 flex bg-slate-900/60 p-1 border border-slate-800/80 rounded-xl text-xs overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden"
+            >
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    setCategory(cat.id);
+                    setSearchQuery(''); 
+                  }}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer text-center select-none whitespace-nowrap ${
+                    category === cat.id && !searchQuery
+                      ? 'bg-brand-purple text-white shadow-md font-semibold'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              type="button"
+              onClick={() => handleScroll('right')}
+              disabled={!showRightArrow}
+              className={`p-2 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                showRightArrow 
+                  ? 'text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer' 
+                  : 'text-slate-600 opacity-40 cursor-not-allowed'
+              }`}
+              title="Scroll Kanan"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
           {searchQuery && (

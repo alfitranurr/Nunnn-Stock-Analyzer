@@ -59,7 +59,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
   return (
     <>
       {/* Mobile Header (Fixed Top) */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border-color flex items-center justify-between px-4 z-40">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar-bg border-b border-border-color flex items-center justify-between px-4 z-40">
         <button
           onClick={onLogoClick}
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
@@ -94,9 +94,9 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 20 }}
-              className="md:hidden fixed top-0 bottom-0 left-0 w-[280px] bg-sidebar-bg border-r border-border-color z-50 flex flex-col p-6 text-white"
+              className="md:hidden fixed top-0 bottom-0 left-0 w-[280px] bg-sidebar-bg border-r border-border-color z-50 flex flex-col py-5 px-4 text-white"
             >
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-5 px-2">
                 <button
                   onClick={() => {
                     onLogoClick?.();
@@ -117,7 +117,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               </div>
 
               {/* Menu items */}
-              <nav className="flex-1 space-y-2">
+              <nav className="flex-1 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                 {menuItems.map((item) => (
                   <button
                     key={item.id}
@@ -128,7 +128,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       }
                     }}
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer text-left",
+                      "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer text-left",
                       currentTab === item.id && item.active
                         ? "bg-brand-purple/10 border-brand-purple/30 text-brand-purple"
                         : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-input-bg",

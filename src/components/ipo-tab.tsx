@@ -510,48 +510,48 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-input-bg border-b border-border-color text-slate-800 dark:text-white font-bold text-[10px] uppercase">
-                        <th className="p-3">Golongan Penawaran Umum</th>
-                        <th className="p-3">Batasan Awal Saham</th>
-                        <th className="p-3">Penyesuaian I (2.5x - 10x)</th>
-                        <th className="p-3">Penyesuaian II (10x - 25x)</th>
-                        <th className="p-3">Penyesuaian III (&ge; 25x)</th>
+                        <th className="p-3 whitespace-nowrap">Golongan Penawaran Umum</th>
+                        <th className="p-3 whitespace-nowrap">Batasan Awal Saham</th>
+                        <th className="p-3 whitespace-nowrap">Penyesuaian I (2.5x - 10x)</th>
+                        <th className="p-3 whitespace-nowrap">Penyesuaian II (10x - 25x)</th>
+                        <th className="p-3 whitespace-nowrap">Penyesuaian III (&ge; 25x)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-color">
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white">I (&le; Rp100 Miliar)</td>
-                        <td className="p-3">Min 20% / Rp10 Miliar</td>
-                        <td className="p-3">22,5%</td>
-                        <td className="p-3">25%</td>
-                        <td className="p-3 text-brand-purple font-bold">30%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">I (&le; Rp100 Miliar)</td>
+                        <td className="p-3 whitespace-nowrap">Min 20% / Rp10 Miliar</td>
+                        <td className="p-3 whitespace-nowrap">22,5%</td>
+                        <td className="p-3 whitespace-nowrap">25%</td>
+                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">30%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white">II (&gt; Rp100M - &le; Rp250M)</td>
-                        <td className="p-3">Min 15% / Rp20 Miliar</td>
-                        <td className="p-3">17,5%</td>
-                        <td className="p-3">20%</td>
-                        <td className="p-3 text-brand-purple font-bold">25%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">II (&gt; Rp100M - &le; Rp250M)</td>
+                        <td className="p-3 whitespace-nowrap">Min 15% / Rp20 Miliar</td>
+                        <td className="p-3 whitespace-nowrap">17,5%</td>
+                        <td className="p-3 whitespace-nowrap">20%</td>
+                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">25%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white">III (&gt; Rp250M - &le; Rp500M)</td>
-                        <td className="p-3">Min 10% / Rp37.5 Miliar</td>
-                        <td className="p-3">12,5%</td>
-                        <td className="p-3">15%</td>
-                        <td className="p-3 text-brand-purple font-bold">20%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">III (&gt; Rp250M - &le; Rp500M)</td>
+                        <td className="p-3 whitespace-nowrap">Min 10% / Rp37.5 Miliar</td>
+                        <td className="p-3 whitespace-nowrap">12,5%</td>
+                        <td className="p-3 whitespace-nowrap">15%</td>
+                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">20%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white">IV (&gt; Rp500M - &le; Rp1 Triliun)</td>
-                        <td className="p-3">Min 7,5% / Rp50 Miliar</td>
-                        <td className="p-3">10%</td>
-                        <td className="p-3">12,5%</td>
-                        <td className="p-3 text-brand-purple font-bold">17,5%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">IV (&gt; Rp500M - &le; Rp1 Triliun)</td>
+                        <td className="p-3 whitespace-nowrap">Min 7,5% / Rp50 Miliar</td>
+                        <td className="p-3 whitespace-nowrap">10%</td>
+                        <td className="p-3 whitespace-nowrap">12,5%</td>
+                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">17,5%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white">V (&gt; Rp1 Triliun)</td>
-                        <td className="p-3">Min 2,5% / Rp75 Miliar</td>
-                        <td className="p-3">5%</td>
-                        <td className="p-3">7.5%</td>
-                        <td className="p-3 text-brand-purple font-bold">12,5%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">V (&gt; Rp1 Triliun)</td>
+                        <td className="p-3 whitespace-nowrap">Min 2,5% / Rp75 Miliar</td>
+                        <td className="p-3 whitespace-nowrap">5%</td>
+                        <td className="p-3 whitespace-nowrap">7.5%</td>
+                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">12,5%</td>
                       </tr>
                     </tbody>
                   </table>
@@ -619,7 +619,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 type="text"
                 value={priceStr}
                 onChange={(e) => setPriceStr(e.target.value.replace(/[^0-9]/g, ''))}
-                className={`w-full glass-input pl-8 pr-3 py-2.5 text-xs font-extrabold text-white text-center bg-black/25 focus:bg-background transition-all duration-300 ${
+                className={`w-full glass-input pl-8 pr-3 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background transition-all duration-300 ${
                   isFetchingTicker ? 'animate-pulse text-slate-400 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
                 }`}
               />
@@ -634,7 +634,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               value={totalLotsStr}
               onChange={(e) => setTotalLotsStr(e.target.value.replace(/[^0-9.,]/g, ''))}
               onBlur={() => setTotalLotsStr(formatNumberForInput(totalLotsStr))}
-              className="w-full glass-input px-3 py-2.5 text-xs font-extrabold text-white text-center bg-black/25 focus:bg-background"
+              className="w-full glass-input px-3 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background"
               placeholder="3,500,000"
             />
           </div>
@@ -649,7 +649,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 min="1"
                 value={oversubscriptionStr}
                 onChange={(e) => setOversubscriptionStr(e.target.value)}
-                className="w-full glass-input pl-3 pr-8 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">Kali</span>
             </div>
@@ -664,7 +664,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 value={totalSubscribersStr}
                 onChange={(e) => setTotalSubscribersStr(e.target.value.replace(/[^0-9.,]/g, ''))}
                 onBlur={() => setTotalSubscribersStr(formatNumberForInput(totalSubscribersStr))}
-                className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-extrabold text-white text-center bg-black/25 focus:bg-background"
+                className="w-full glass-input pl-3 pr-14 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background"
               />
               <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">Orang</span>
             </div>
@@ -680,7 +680,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 value={personalOrderAmountStr}
                 onChange={(e) => setPersonalOrderAmountStr(e.target.value.replace(/[^0-9.,]/g, ''))}
                 onBlur={() => setPersonalOrderAmountStr(formatNumberForInput(personalOrderAmountStr))}
-                className="w-full glass-input pl-8 pr-3 py-2.5 text-xs font-extrabold text-white text-center bg-black/25 focus:bg-background"
+                className="w-full glass-input pl-8 pr-3 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background"
                 placeholder="10,000,000"
               />
             </div>
@@ -1006,17 +1006,19 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
         ) : savedPlans.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-500">Belum ada rencana simulasi E-IPO yang disimpan.</div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-border-color">
+          <>
+            {/* Desktop View (Table) */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-border-color">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-input-bg border-b border-border-color text-slate-800 dark:text-white font-bold text-[10px] uppercase">
-                  <th className="p-3">Emiten</th>
-                  <th className="p-3">Harga Saham</th>
-                  <th className="p-3">Lembar Ditawarkan</th>
-                  <th className="p-3 text-center">Oversubscribed</th>
-                  <th className="p-3 text-center">Rasio Ritel</th>
-                  <th className="p-3 text-center">Pemesanan Pribadi</th>
-                  <th className="p-3 text-right">Aksi</th>
+                  <th className="p-3 whitespace-nowrap">Emiten</th>
+                  <th className="p-3 whitespace-nowrap">Harga Saham</th>
+                  <th className="p-3 whitespace-nowrap">Lembar Ditawarkan</th>
+                  <th className="p-3 text-center whitespace-nowrap">Oversubscribed</th>
+                  <th className="p-3 text-center whitespace-nowrap">Rasio Ritel</th>
+                  <th className="p-3 text-center whitespace-nowrap">Pemesanan Pribadi</th>
+                  <th className="p-3 text-right whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-color">
@@ -1062,6 +1064,75 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile View (Cards) */}
+          <div className="block md:hidden space-y-3">
+            {savedPlans.map((plan) => (
+              <div 
+                key={plan.id}
+                className="p-4 rounded-xl border border-border-color bg-black/10 space-y-3"
+              >
+                {/* Logo & Ticker & Company Name */}
+                <div className="flex items-center gap-2.5 border-b border-border-color pb-2">
+                  <IpoEmitenLogo symbol={plan.ticker} />
+                  <div className="flex flex-col">
+                    <span className="font-extrabold text-sm text-brand-purple tracking-wider leading-none">
+                      {plan.ticker}
+                    </span>
+                    <span className="text-[9px] text-slate-400 truncate max-w-[170px] mt-0.5" title={cleanCompanyName(plan.company_name)}>
+                      {cleanCompanyName(plan.company_name) || '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Specs Grid */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Harga Saham</span>
+                    <span className="font-bold text-slate-200">{formatIDR(plan.price)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Lembar Ditawarkan</span>
+                    <span className="font-semibold text-slate-300">{formatRawNumber(plan.total_lots * 100)} Lbr</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Oversubscription</span>
+                    <span className="font-black text-white">{plan.oversubscription}x</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Rasio Ritel</span>
+                    <span className="font-medium text-slate-300">{plan.retail_ratio}%</span>
+                  </div>
+                </div>
+
+                {/* Personal Order & Actions */}
+                <div className="flex items-center justify-between pt-2 border-t border-border-color bg-black/10 -mx-4 -mb-4 p-3 rounded-b-xl">
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase block font-bold leading-none mb-1">Pesanan Pribadi</span>
+                    <span className="font-extrabold text-brand-purple text-xs">
+                      {plan.personal_order_lots > 0 ? `${formatRawNumber(plan.personal_order_lots)} Lot` : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleLoadPlan(plan)}
+                      className="px-3 py-1.5 rounded bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple font-bold text-[10px] cursor-pointer transition-colors border border-brand-purple/25 flex items-center gap-1"
+                    >
+                      Muat
+                    </button>
+                    <button
+                      onClick={() => handleDeletePlan(plan.id, plan.ticker)}
+                      className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 cursor-pointer transition-colors border border-rose-500/25 flex items-center justify-center"
+                      title="Hapus Simulasi"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 

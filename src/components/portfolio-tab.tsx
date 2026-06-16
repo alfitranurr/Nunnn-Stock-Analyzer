@@ -500,135 +500,260 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto -mx-6 md:-mx-0">
-            <div className="inline-block min-w-full align-middle md:px-0">
-              <div className="overflow-hidden border border-white/5 rounded-xl">
-                <table className="min-w-full divide-y divide-white/5">
-                  <thead className="bg-black/45">
-                    <tr>
-                      <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Saham</th>
-                      <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Lot</th>
-                      <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Avg Price</th>
-                      <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Last Price</th>
-                      <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Invested</th>
-                      <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Market Value</th>
-                      <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Floating P&L</th>
-                      <th scope="col" className="px-4 py-3 scope-row text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 bg-transparent">
-                    {holdings.map((h) => {
-                      const tickerUpper = h.ticker.toUpperCase();
-                      const currentPrice = currentPrices[tickerUpper] || h.avg_price;
-                      const investedValue = h.lot * 100 * h.avg_price;
-                      const marketValue = h.lot * 100 * currentPrice;
-                      const plRp = marketValue - investedValue;
-                      const plPct = investedValue > 0 ? (plRp / investedValue) * 100 : 0;
-                      
-                      return (
-                        <tr key={h.id} className="hover:bg-white/3 transition-colors">
-                          {/* Saham */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2.5">
-                              <PortfolioEmitenLogo symbol={h.ticker} />
-                              <div className="flex flex-col">
-                                <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider leading-tight">
-                                  {tickerUpper}
-                                </span>
-                                <span className="text-[9px] text-slate-400 truncate max-w-[120px] leading-tight" title={cleanCompanyName(h.company_name)}>
-                                  {cleanCompanyName(h.company_name) || '-'}
-                                </span>
+          <>
+            {/* Desktop View (Table) */}
+            <div className="hidden md:block overflow-x-auto">
+              <div className="inline-block min-w-full align-middle md:px-0">
+                <div className="overflow-hidden border border-white/5 rounded-xl">
+                  <table className="min-w-full divide-y divide-white/5">
+                    <thead className="bg-black/45">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Saham</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Lot</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Avg Price</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Last Price</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Invested</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Market Value</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Floating P&L</th>
+                        <th scope="col" className="px-4 py-3 scope-row text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 bg-transparent">
+                      {holdings.map((h) => {
+                        const tickerUpper = h.ticker.toUpperCase();
+                        const currentPrice = currentPrices[tickerUpper] || h.avg_price;
+                        const investedValue = h.lot * 100 * h.avg_price;
+                        const marketValue = h.lot * 100 * currentPrice;
+                        const plRp = marketValue - investedValue;
+                        const plPct = investedValue > 0 ? (plRp / investedValue) * 100 : 0;
+                        
+                        return (
+                          <tr key={h.id} className="hover:bg-white/3 transition-colors">
+                            {/* Saham */}
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2.5">
+                                <PortfolioEmitenLogo symbol={h.ticker} />
+                                <div className="flex flex-col">
+                                  <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider leading-tight">
+                                    {tickerUpper}
+                                  </span>
+                                  <span className="text-[9px] text-slate-400 truncate max-w-[120px] leading-tight" title={cleanCompanyName(h.company_name)}>
+                                    {cleanCompanyName(h.company_name) || '-'}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Lot */}
-                          <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-semibold">
-                            {h.lot.toLocaleString('en-US')} Lot
-                            <span className="text-[10px] text-slate-500 font-normal block">({(h.lot * 100).toLocaleString('en-US')} lembar)</span>
-                          </td>
+                            {/* Lot */}
+                            <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-semibold">
+                              {h.lot.toLocaleString('en-US')} Lot
+                              <span className="text-[10px] text-slate-500 font-normal block">({(h.lot * 100).toLocaleString('en-US')} lembar)</span>
+                            </td>
 
-                          {/* Avg Price */}
-                          <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-bold">
-                            {formatIDR(h.avg_price)}
-                          </td>
+                            {/* Avg Price */}
+                            <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-bold">
+                              {formatIDR(h.avg_price)}
+                            </td>
 
-                          {/* Last Price */}
-                          <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-bold">
-                            {formatIDR(currentPrice)}
-                            {currentPrices[tickerUpper] === undefined && (
-                              <span className="text-[8px] text-slate-500 font-normal block leading-none mt-0.5">(Menggunakan Avg)</span>
-                            )}
-                          </td>
+                            {/* Last Price */}
+                            <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-bold">
+                              {formatIDR(currentPrice)}
+                              {currentPrices[tickerUpper] === undefined && (
+                                <span className="text-[8px] text-slate-500 font-normal block leading-none mt-0.5">(Menggunakan Avg)</span>
+                              )}
+                            </td>
 
-                          {/* Invested */}
-                          <td className="px-4 py-4 whitespace-nowrap text-xs font-extrabold text-slate-300">
-                            {formatIDR(investedValue)}
-                          </td>
+                            {/* Invested */}
+                            <td className="px-4 py-4 whitespace-nowrap text-xs font-extrabold text-slate-300">
+                              {formatIDR(investedValue)}
+                            </td>
 
-                          {/* Market Value */}
-                          <td className="px-4 py-4 whitespace-nowrap text-xs font-extrabold text-slate-200">
-                            {formatIDR(marketValue)}
-                          </td>
+                            {/* Market Value */}
+                            <td className="px-4 py-4 whitespace-nowrap text-xs font-extrabold text-slate-200">
+                              {formatIDR(marketValue)}
+                            </td>
 
-                          {/* P&L */}
-                          <td className="px-4 py-4 whitespace-nowrap text-xs">
-                            <span className={`font-bold block ${plRp >= 0 ? 'text-bullish-green' : 'text-bearish-red'}`}>
-                              {formatIDR(plRp)}
-                            </span>
-                            <span className={`text-[9px] font-bold ${plRp >= 0 ? 'text-bullish-green' : 'text-bearish-red'}`}>
-                              {plRp >= 0 ? '+' : ''}{plPct.toFixed(2)}%
-                            </span>
-                          </td>
+                            {/* P&L */}
+                            <td className="px-4 py-4 whitespace-nowrap text-xs">
+                              <span className={`font-bold block ${plRp >= 0 ? 'text-bullish-green' : 'text-bearish-red'}`}>
+                                {formatIDR(plRp)}
+                              </span>
+                              <span className={`text-[9px] font-bold ${plRp >= 0 ? 'text-bullish-green' : 'text-bearish-red'}`}>
+                                {plRp >= 0 ? '+' : ''}{plPct.toFixed(2)}%
+                              </span>
+                            </td>
 
-                          {/* Actions */}
-                          <td className="px-4 py-4 whitespace-nowrap text-right text-xs">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* Analisis Action */}
-                              <button
-                                onClick={() => onAnalyzeClick(h.ticker)}
-                                className="p-2 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-500 dark:text-teal-400 border border-teal-500/20 transition-all cursor-pointer flex items-center justify-center"
-                                title="Analisis Saham Pro"
-                              >
-                                <LineChart className="h-4.5 w-4.5" />
-                              </button>
+                            {/* Actions */}
+                            <td className="px-4 py-4 whitespace-nowrap text-right text-xs">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {/* Analisis Action */}
+                                <button
+                                  onClick={() => onAnalyzeClick(h.ticker)}
+                                  className="p-2 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-500 dark:text-teal-400 border border-teal-500/20 transition-all cursor-pointer flex items-center justify-center"
+                                  title="Analisis Saham Pro"
+                                >
+                                  <LineChart className="h-4.5 w-4.5" />
+                                </button>
 
-                              {/* Avg Down Action */}
-                              <button
-                                onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
-                                className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
-                                title="Avg Down Saham Ini"
-                              >
-                                <Calculator className="h-4.5 w-4.5" />
-                              </button>
+                                {/* Avg Down Action */}
+                                <button
+                                  onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
+                                  className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
+                                  title="Avg Down Saham Ini"
+                                >
+                                  <Calculator className="h-4.5 w-4.5" />
+                                </button>
 
-                              {/* Edit Action */}
-                              <button
-                                onClick={() => openEditModal(h)}
-                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 transition-all cursor-pointer flex items-center justify-center"
-                                title="Ubah Posisi"
-                              >
-                                <Edit3 className="h-4.5 w-4.5" />
-                              </button>
+                                {/* Edit Action */}
+                                <button
+                                  onClick={() => openEditModal(h)}
+                                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 transition-all cursor-pointer flex items-center justify-center"
+                                  title="Ubah Posisi"
+                                >
+                                  <Edit3 className="h-4.5 w-4.5" />
+                                </button>
 
-                              {/* Delete Action */}
-                              <button
-                                onClick={() => setConfirmDeleteId(h.id)}
-                                className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center"
-                                title="Hapus Saham"
-                              >
-                                <Trash2 className="h-4.5 w-4.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                {/* Delete Action */}
+                                <button
+                                  onClick={() => setConfirmDeleteId(h.id)}
+                                  className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center"
+                                  title="Hapus Saham"
+                                >
+                                  <Trash2 className="h-4.5 w-4.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Mobile View (Cards) */}
+            <div className="block md:hidden space-y-3">
+              {holdings.map((h) => {
+                const tickerUpper = h.ticker.toUpperCase();
+                const currentPrice = currentPrices[tickerUpper] || h.avg_price;
+                const investedValue = h.lot * 100 * h.avg_price;
+                const marketValue = h.lot * 100 * currentPrice;
+                const plRp = marketValue - investedValue;
+                const plPct = investedValue > 0 ? (plRp / investedValue) * 100 : 0;
+
+                return (
+                  <div 
+                    key={h.id}
+                    className="p-4 rounded-xl border border-white/5 bg-white/2 dark:bg-black/15 space-y-3"
+                  >
+                    {/* Ticker & Logo & Company Name */}
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                      <div className="flex items-center gap-2">
+                        <PortfolioEmitenLogo symbol={h.ticker} />
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-sm text-brand-purple tracking-wider leading-none">
+                            {tickerUpper}
+                          </span>
+                          <span className="text-[9px] text-slate-400 truncate max-w-[155px] mt-0.5" title={cleanCompanyName(h.company_name)}>
+                            {cleanCompanyName(h.company_name) || '-'}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-extrabold text-slate-200">
+                        {h.lot.toLocaleString('en-US')} Lot
+                        <span className="text-[9px] text-slate-400 font-normal block text-right mt-0.5">
+                          ({(h.lot * 100).toLocaleString('en-US')} lbr)
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* Price Grid */}
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Avg Price</span>
+                        <span className="font-bold text-slate-350">{formatIDR(h.avg_price)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Last Price</span>
+                        <span className="font-bold text-slate-350">{formatIDR(currentPrice)}</span>
+                      </div>
+                    </div>
+
+                    {/* Financial Values Grid */}
+                    <div className="grid grid-cols-2 gap-3 text-xs bg-black/10 -mx-4 px-4 py-2.5">
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Invested</span>
+                        <span className="font-bold text-slate-300">{formatIDR(investedValue)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] block">Market Value</span>
+                        <span className="font-bold text-slate-205">{formatIDR(marketValue)}</span>
+                      </div>
+                    </div>
+
+                    {/* Floating P&L Row */}
+                    <div className="py-1 flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] text-slate-500 uppercase block font-bold leading-none mb-1">Floating P&L</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-black ${plRp >= 0 ? 'text-bullish-green' : 'text-bearish-red'}`}>
+                            {formatIDR(plRp)}
+                          </span>
+                          <span className={`text-[10px] font-extrabold ${plRp >= 0 ? 'text-bullish-green bg-bullish-green/10' : 'text-bearish-red bg-bearish-red/10'} px-1.5 py-0.5 rounded`}>
+                            {plRp >= 0 ? '+' : ''}{plPct.toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons Footer Grid */}
+                    <div className="grid grid-cols-4 gap-2 pt-2.5 border-t border-white/5">
+                      {/* Analisis Action */}
+                      <button
+                        onClick={() => onAnalyzeClick(h.ticker)}
+                        className="py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-500 dark:text-teal-400 border border-teal-500/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
+                        title="Analisis Saham Pro"
+                      >
+                        <LineChart className="h-3 w-3" />
+                        <span className="text-[8px] font-bold tracking-wider uppercase">Analisis</span>
+                      </button>
+
+                      {/* Avg Down Action */}
+                      <button
+                        onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
+                        className="py-1.5 bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
+                        title="Avg Down Saham Ini"
+                      >
+                        <Calculator className="h-3 w-3" />
+                        <span className="text-[8px] font-bold tracking-wider uppercase">Avg Down</span>
+                      </button>
+
+                      {/* Edit Action */}
+                      <button
+                        onClick={() => openEditModal(h)}
+                        className="py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
+                        title="Ubah Posisi"
+                      >
+                        <Edit3 className="h-3 w-3" />
+                        <span className="text-[8px] font-bold tracking-wider uppercase">Ubah</span>
+                      </button>
+
+                      {/* Delete Action */}
+                      <button
+                        onClick={() => setConfirmDeleteId(h.id)}
+                        className="py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
+                        title="Hapus Saham"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        <span className="text-[8px] font-bold tracking-wider uppercase">Hapus</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

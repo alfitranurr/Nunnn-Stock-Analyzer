@@ -107,7 +107,9 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto -mx-6 md:-mx-0">
+        <>
+          {/* Desktop View (Table) */}
+          <div className="hidden md:block overflow-x-auto">
           <div className="inline-block min-w-full align-middle md:px-0">
             <div className="overflow-hidden border border-slate-200/50 dark:border-white/5 rounded-xl">
               <table className="min-w-full divide-y divide-slate-200/50 dark:divide-white/5">
@@ -206,6 +208,87 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
             </div>
           </div>
         </div>
+
+        {/* Mobile View (Cards) */}
+        <div className="block md:hidden space-y-3">
+          {plans.map((plan) => {
+            const modalBaru = plan.lot_baru * 100 * plan.harga_beli_baru * (1 + (plan.fee_beli / 100));
+            const totalLot = plan.lot_awal + plan.lot_baru;
+            const totalShares = totalLot * 100;
+            const investedAwal = plan.lot_awal * 100 * plan.avg_price_awal;
+            const newAvgPrice = (investedAwal + modalBaru) / totalShares;
+            const reductionPct = ((plan.avg_price_awal - newAvgPrice) / plan.avg_price_awal) * 100;
+
+            return (
+              <div 
+                key={plan.id}
+                className="p-4 rounded-xl border border-slate-200/40 dark:border-white/5 bg-white/2 dark:bg-black/15 space-y-3"
+              >
+                {/* Ticker & Logo & Date */}
+                <div className="flex items-center justify-between border-b border-slate-200/30 dark:border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <HistoryEmitenLogo symbol={plan.ticker} />
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-sm text-brand-purple tracking-wider leading-none">
+                        {plan.ticker}
+                      </span>
+                      <span className="text-[9px] text-slate-400 truncate max-w-[150px] mt-0.5">
+                        {cleanCompanyName(plan.company_name) || '-'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[9px] text-slate-500 font-medium">
+                    {formatDate(plan.created_at)}
+                  </span>
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Posisi Awal</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-350">{plan.lot_awal.toLocaleString('en-US')} Lot</span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">@ {formatIDR(plan.avg_price_awal)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Rencana Baru</span>
+                    <span className="font-bold text-brand-purple">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">@ {formatIDR(plan.harga_beli_baru)}</span>
+                  </div>
+                </div>
+
+                {/* Estimate & Actions */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/30 dark:border-white/5 bg-slate-100/10 dark:bg-black/10 -mx-4 -mb-4 p-3 rounded-b-xl">
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase block font-bold leading-none mb-1">Estimasi Avg Baru</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-slate-800 dark:text-white text-xs">{formatIDR(newAvgPrice)}</span>
+                      <span className="text-[9px] text-bullish-green font-extrabold bg-bullish-green/10 px-1 rounded">
+                        -{reductionPct.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onLoadPlan(plan)}
+                      className="py-1.5 px-3 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>Muat</span>
+                    </button>
+                    <button
+                      onClick={() => onDeletePlan(plan.id)}
+                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center"
+                      title="Hapus Rencana"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        </>
       )}
       
       {!user && plans.length > 0 && (

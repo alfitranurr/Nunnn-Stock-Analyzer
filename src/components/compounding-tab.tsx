@@ -754,7 +754,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     max="100"
                     value={annualReturnRateStr}
                     onChange={(e) => setAnnualReturnRateStr(e.target.value)}
-                    className="w-full glass-input pl-3 pr-8 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                    className="w-full glass-input pl-3 pr-10 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
                 </div>
@@ -770,7 +770,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     max="1000"
                     value={durationDaysStr}
                     onChange={(e) => setDurationDaysStr(e.target.value)}
-                    className="w-full glass-input px-3 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                    className="w-full glass-input px-3 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                   />
                 </div>
               </div>
@@ -797,7 +797,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                 <select
                   value={dailyBrokerPreset}
                   onChange={(e) => handleDailyPresetChange(e.target.value)}
-                  className="w-full glass-input px-3 py-2.5 text-xs font-bold cursor-pointer text-foreground bg-background text-center"
+                  className="w-full glass-input px-2.5 py-2.5 text-xs font-bold cursor-pointer text-foreground bg-background text-left"
                 >
                   <option value="stockbit">Stockbit (Buy 0.15% / Sell 0.25%)</option>
                   <option value="ajaib">Ajaib (Buy 0.15% / Sell 0.25%)</option>
@@ -879,7 +879,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     <select
                       value={contributionFrequency}
                       onChange={(e) => setContributionFrequency(e.target.value as any)}
-                      className="w-full glass-input px-1 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-center"
+                      className="w-full glass-input px-2.5 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-left"
                     >
                       <option value="daily">Harian</option>
                       <option value="weekly">Mingguan</option>
@@ -902,7 +902,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       max="100"
                       value={annualReturnRateStr}
                       onChange={(e) => setAnnualReturnRateStr(e.target.value)}
-                      className="w-full glass-input pl-3 pr-8 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                      className="w-full glass-input pl-3 pr-10 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
                   </div>
@@ -910,7 +910,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     <select
                       value={compoundingFrequency}
                       onChange={(e) => setCompoundingFrequency(e.target.value as any)}
-                      className="w-full glass-input px-1.5 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-center"
+                      className="w-full glass-input px-2.5 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-left"
                     >
                       <option value="daily">Harian</option>
                       <option value="monthly">Bulanan</option>
@@ -932,7 +932,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       max="100"
                       value={durationYearsStr}
                       onChange={(e) => setDurationYearsStr(e.target.value)}
-                      className="w-full glass-input pl-3 pr-10 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                      className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-slate-500">Thn</span>
                   </div>
@@ -943,7 +943,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       max="11"
                       value={durationMonthsStr}
                       onChange={(e) => setDurationMonthsStr(e.target.value)}
-                      className="w-full glass-input pl-3 pr-10 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                      className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-slate-500">Bln</span>
                   </div>
@@ -962,7 +962,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       max="50"
                       value={inflationRateStr}
                       onChange={(e) => setInflationRateStr(e.target.value)}
-                      className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                      className="w-full glass-input pl-3 pr-14 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                       placeholder="Inflasi"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">% Inf</span>
@@ -975,7 +975,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       max="100"
                       value={taxRateStr}
                       onChange={(e) => setTaxRateStr(e.target.value)}
-                      className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
+                      className="w-full glass-input pl-3 pr-14 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                       placeholder="Pajak"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">% Paj</span>
@@ -1356,7 +1356,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
         {/* Responsive Table Wrapper */}
         <div className="overflow-x-auto max-h-[400px] overflow-y-auto pr-1">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
             <thead>
               {isDaily ? (
                 <tr className="border-b border-border-color text-slate-500 font-bold uppercase tracking-wider text-[9px]">
@@ -1463,7 +1463,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             {savedPlans.map((plan: any) => (
               <div 
                 key={plan.id}
-                className="flex items-center justify-between p-4 rounded-xl border border-border-color bg-black/10 hover:border-brand-purple/40 hover:bg-black/20 transition-all group"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border-color bg-black/10 hover:border-brand-purple/40 hover:bg-black/20 transition-all group"
               >
                 <div className="space-y-1">
                   <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 group-hover:text-brand-purple transition-colors">
@@ -1477,7 +1477,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
                     onClick={() => handleLoadPlan(plan)}
                     className="py-1.5 px-3 rounded-lg bg-brand-purple/10 border border-brand-purple/20 hover:bg-brand-purple/20 text-brand-purple font-extrabold text-[10px] transition-colors cursor-pointer select-none"
