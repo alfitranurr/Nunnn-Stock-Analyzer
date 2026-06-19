@@ -21,6 +21,7 @@ import { calculateEIpoAllotment, getGolongan, getInitialAllocationConfig, EIpoIn
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
+import { useLanguage } from '@/lib/language-context';
 
 interface IpoTabProps {
   user: any;
@@ -28,19 +29,24 @@ interface IpoTabProps {
 }
 
 // Helpers for parsing and formatting numbers
-const parseFormattedNumber = (val: string | number): number => {
+const parseFormattedNumber = (val: string | number, language = 'id'): number => {
   if (typeof val === 'number') return val;
   if (!val) return 0;
-  const clean = val.replace(/,/g, '');
+  let clean = val.toString();
+  if (language === 'id') {
+    clean = clean.replace(/\./g, '').replace(/,/g, '.');
+  } else {
+    clean = clean.replace(/,/g, '');
+  }
   const parsed = parseFloat(clean);
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const formatNumberForInput = (num: number | string | undefined | null): string => {
+const formatNumberForInput = (num: number | string | undefined | null, language = 'id'): string => {
   if (num === undefined || num === null || num === '') return '';
-  const parsed = typeof num === 'number' ? num : parseFloat(num.toString().replace(/,/g, ''));
+  const parsed = typeof num === 'number' ? num : parseFormattedNumber(num, language);
   if (isNaN(parsed)) return '';
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(parsed);
@@ -177,6 +183,8 @@ function IpoEmitenLogo({ symbol }: { symbol: string }) {
 }
 
 export function IpoTab({ user, onSignInClick }: IpoTabProps) {
+  const { language, t } = useLanguage();
+
   // Input States
   const [ticker, setTicker] = React.useState('JELI');
   const [companyName, setCompanyName] = React.useState('PT Niramas Utama Tbk (INACO)');
@@ -185,7 +193,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   const [oversubscriptionStr, setOversubscriptionStr] = React.useState('25');
   const [totalSubscribersStr, setTotalSubscribersStr] = React.useState('700,000');
   const [retailRatio, setRetailRatio] = React.useState(80); // Slider 0 - 100
-  const [personalOrderAmountStr, setPersonalOrderAmountStr] = React.useState('10,000,000');
+  const [personalOrderAmountStr, setPersonalOrderAmountStr] = React.useState('1,000');
   const [isFetchingTicker, setIsFetchingTicker] = React.useState(false);
 
   // Accordion state for OJK rules
@@ -201,7 +209,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           setCompanyName(cleanCompanyName(data.name));
         }
         if (data.price !== undefined && data.price !== null && data.price > 0) {
-          setPriceStr(formatNumberForInput(data.price));
+          setPriceStr(formatNumberForInput(data.price, language));
         }
       }
     } catch (err) {
@@ -236,17 +244,15 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   };
 
   // Convert inputs to numbers
-  const price = parseFormattedNumber(priceStr);
-  const totalLots = parseFormattedNumber(totalLotsStr);
+  const price = parseFormattedNumber(priceStr, language);
+  const totalLots = parseFormattedNumber(totalLotsStr, language);
   const oversubscription = parseFloat(oversubscriptionStr) || 1;
-  const totalSubscribers = parseFormattedNumber(totalSubscribersStr);
-  const personalOrderAmount = parseFormattedNumber(personalOrderAmountStr);
-
-  // Calculate user's personal lots based on price and rupiah input
+  const totalSubscribers = parseFormattedNumber(totalSubscribersStr, language);
+  const personalOrderLots = parseFormattedNumber(personalOrderAmountStr, language);
   const pricePerLot = price * 100;
-  const personalOrderLots = pricePerLot > 0 ? Math.floor(personalOrderAmount / pricePerLot) : 0;
+  const personalOrderAmount = personalOrderLots * pricePerLot;
 
-  // 1. Calculate Results using Memo
+  // Calculate Results using Memo
   const results = React.useMemo(() => {
     const input: EIpoInput = {
       ticker: ticker.toUpperCase(),
@@ -313,7 +319,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   // Save Plan Action
   const handleSavePlan = async () => {
     if (!ticker.trim()) {
-      showToast('Masukkan ticker saham terlebih dahulu', 'error');
+      showToast(t('ipo.simEnterTicker'), 'error');
       return;
     }
     setIsSaving(true);
@@ -338,7 +344,11 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       const updated = [newPlan, ...savedPlans];
       localStorage.setItem('nunnn_stock_ipo_plans', JSON.stringify(updated));
       setSavedPlans(updated);
-      showToast(`Simulasi E-IPO ${ticker.toUpperCase()} disimpan secara lokal.`);
+      showToast(
+        language === 'id'
+          ? `Simulasi E-IPO ${ticker.toUpperCase()} disimpan secara lokal.`
+          : `E-IPO simulation for ${ticker.toUpperCase()} saved locally.`
+      );
     };
 
     if (isSupabaseConfigured && user && !user.isMock) {
@@ -357,7 +367,11 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           }
           throw error;
         }
-        showToast(`Simulasi E-IPO ${ticker.toUpperCase()} berhasil disimpan ke cloud!`);
+        showToast(
+          language === 'id'
+            ? `Simulasi E-IPO ${ticker.toUpperCase()} berhasil disimpan ke cloud!`
+            : `E-IPO simulation for ${ticker.toUpperCase()} saved to cloud successfully!`
+        );
         fetchSavedPlans();
       } catch (err: any) {
         console.error('Error saving E-IPO plan:', err.message);
@@ -377,7 +391,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       const updated = savedPlans.filter(p => p.id !== id);
       localStorage.setItem('nunnn_stock_ipo_plans', JSON.stringify(updated));
       setSavedPlans(updated);
-      showToast(`Simulasi E-IPO ${planTicker} berhasil dihapus.`);
+      showToast(t('ipo.simDeleteSuccess').replace('{ticker}', planTicker));
     };
 
     if (isSupabaseConfigured && user && !user.isMock) {
@@ -394,7 +408,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           }
           throw error;
         }
-        showToast(`Simulasi E-IPO ${planTicker} berhasil dihapus.`);
+        showToast(t('ipo.simDeleteSuccess').replace('{ticker}', planTicker));
         fetchSavedPlans();
       } catch (err: any) {
         console.error('Error deleting E-IPO plan:', err.message);
@@ -416,15 +430,14 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
     setRetailRatio(plan.retail_ratio);
     
     // Set personal order based on loaded lots
-    const calcOrderRupiah = plan.personal_order_lots * 100 * plan.price;
-    setPersonalOrderAmountStr(formatNumberForInput(calcOrderRupiah));
+    setPersonalOrderAmountStr(formatNumberForInput(plan.personal_order_lots));
 
-    showToast(`Simulasi E-IPO ${plan.ticker} berhasil dimuat.`);
+    showToast(t('ipo.simLoadSuccess').replace('{ticker}', plan.ticker));
   };
 
   // Formatting utility
   const formatIDR = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
@@ -433,13 +446,13 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   };
 
   const formatRawNumber = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
       maximumFractionDigits: 0,
     }).format(value);
   };
 
   const formatDecimal = (value: number, decimals = 2) => {
-    return new Intl.NumberFormat('id-ID', {
+    return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     }).format(value);
@@ -452,11 +465,11 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-            Kalkulator Penjatahan E-IPO
+            {t('ipo.title')}
             <Coins className="h-6 w-6 text-brand-purple animate-bounce shrink-0" />
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Simulasi estimasi jatah pooling allotment bagi investor Ritel vs Non-Ritel secara komparatif berdasarkan regulasi OJK.
+            {t('ipo.desc')}
           </p>
         </div>
 
@@ -467,7 +480,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           className="flex items-center gap-2 py-2.5 px-4.5 rounded-xl bg-brand-purple hover:bg-brand-purple/95 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shrink-0"
         >
           <Save className="h-4 w-4" />
-          <span>{isSaving ? 'Menyimpan...' : 'Simpan Simulasi'}</span>
+          <span>{isSaving ? t('ipo.saving') : t('ipo.saveSim')}</span>
         </button>
       </div>
 
@@ -482,8 +495,8 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               <Info className="h-4 w-4" />
             </div>
             <div>
-              <span className="font-bold text-xs md:text-sm text-slate-800 dark:text-white">Regulasi Clawback OJK (SEOJK 15/2020 & SEOJK 25/2025)</span>
-              <p className="text-[10px] text-slate-500 mt-0.5">Ketuk untuk membaca detail rumus penyesuaian porsi ritel otomatis.</p>
+              <span className="font-bold text-xs md:text-sm text-slate-800 dark:text-white">{t('ipo.ojkRules')}</span>
+              <p className="text-[10px] text-slate-500 mt-0.5">{t('ipo.ojkRulesSub')}</p>
             </div>
           </div>
           {isRulesExpanded ? (
@@ -503,55 +516,55 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             >
               <div className="p-5 bg-black/10 text-xs text-slate-600 dark:text-slate-300 space-y-4">
                 <p>
-                  Dalam mekanisme E-IPO, <strong>Alokasi Awal Penjatahan Terpusat</strong> ditentukan dari nilai emisi saham. Apabila terjadi kelebihan pemesanan (*oversubscribed*), porsi penjatahan terpusat wajib disesuaikan secara otomatis (*clawback*) demi melindungi porsi retail publik:
+                  {t('ipo.ojkRulesDesc')}
                 </p>
 
                 <div className="overflow-x-auto rounded-xl border border-border-color">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-input-bg border-b border-border-color text-slate-800 dark:text-white font-bold text-[10px] uppercase">
-                        <th className="p-3 whitespace-nowrap">Golongan Penawaran Umum</th>
-                        <th className="p-3 whitespace-nowrap">Batasan Awal Saham</th>
-                        <th className="p-3 whitespace-nowrap">Penyesuaian I (2.5x - 10x)</th>
-                        <th className="p-3 whitespace-nowrap">Penyesuaian II (10x - 25x)</th>
-                        <th className="p-3 whitespace-nowrap">Penyesuaian III (&ge; 25x)</th>
+                        <th className="p-3 whitespace-nowrap">{t('ipo.colCategory')}</th>
+                        <th className="p-3 whitespace-nowrap">{t('ipo.colLimit')}</th>
+                        <th className="p-3 whitespace-nowrap">{t('ipo.colAdj1')}</th>
+                        <th className="p-3 whitespace-nowrap">{t('ipo.colAdj2')}</th>
+                        <th className="p-3 whitespace-nowrap">{t('ipo.colAdj3')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-color">
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">I (&le; Rp100 Miliar)</td>
-                        <td className="p-3 whitespace-nowrap">Min 20% / Rp10 Miliar</td>
-                        <td className="p-3 whitespace-nowrap">22,5%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'I (≤ Rp100 Miliar)' : 'I (≤ 100 Billion IDR)'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 20% / Rp10 Miliar' : 'Min 20% / 10 Billion IDR'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? '22,5%' : '22.5%'}</td>
                         <td className="p-3 whitespace-nowrap">25%</td>
                         <td className="p-3 text-brand-purple font-bold whitespace-nowrap">30%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">II (&gt; Rp100M - &le; Rp250M)</td>
-                        <td className="p-3 whitespace-nowrap">Min 15% / Rp20 Miliar</td>
-                        <td className="p-3 whitespace-nowrap">17,5%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'II (> Rp100M - ≤ Rp250M)' : 'II (> 100M - ≤ 250M IDR)'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 15% / Rp20 Miliar' : 'Min 15% / 20 Billion IDR'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? '17,5%' : '17.5%'}</td>
                         <td className="p-3 whitespace-nowrap">20%</td>
                         <td className="p-3 text-brand-purple font-bold whitespace-nowrap">25%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">III (&gt; Rp250M - &le; Rp500M)</td>
-                        <td className="p-3 whitespace-nowrap">Min 10% / Rp37.5 Miliar</td>
-                        <td className="p-3 whitespace-nowrap">12,5%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'III (> Rp250M - ≤ Rp500M)' : 'III (> 250M - ≤ 500M IDR)'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 10% / Rp37.5 Miliar' : 'Min 10% / 37.5 Billion IDR'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
                         <td className="p-3 whitespace-nowrap">15%</td>
                         <td className="p-3 text-brand-purple font-bold whitespace-nowrap">20%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">IV (&gt; Rp500M - &le; Rp1 Triliun)</td>
-                        <td className="p-3 whitespace-nowrap">Min 7,5% / Rp50 Miliar</td>
-                        <td className="p-3 whitespace-nowrap">10%</td>
-                        <td className="p-3 whitespace-nowrap">12,5%</td>
-                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">17,5%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'IV (> Rp500M - ≤ Rp1 Triliun)' : 'IV (> 500M - ≤ 1 Trillion IDR)'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 7,5% / Rp50 Miliar' : 'Min 7.5% / 50 Billion IDR'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? '10%' : '10%'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
+                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">{language === 'id' ? '17,5%' : '17.5%'}</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">V (&gt; Rp1 Triliun)</td>
-                        <td className="p-3 whitespace-nowrap">Min 2,5% / Rp75 Miliar</td>
-                        <td className="p-3 whitespace-nowrap">5%</td>
-                        <td className="p-3 whitespace-nowrap">7.5%</td>
-                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">12,5%</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'V (> Rp1 Triliun)' : 'V (> 1 Trillion IDR)'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 2,5% / Rp75 Miliar' : 'Min 2.5% / 75 Billion IDR'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? '5%' : '5%'}</td>
+                        <td className="p-3 whitespace-nowrap">{language === 'id' ? '7,5%' : '7.5%'}</td>
+                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -559,11 +572,11 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
 
                 <div className="bg-brand-purple/5 p-4 rounded-xl border border-brand-purple/20 space-y-2">
                   <h4 className="font-bold text-slate-800 dark:text-white text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                    <Percent className="h-4.5 w-4.5 text-brand-purple" /> Perbedaan Rasio Ritel vs Non-Ritel
+                    <Percent className="h-4.5 w-4.5 text-brand-purple" /> {t('ipo.diffTitle')}
                   </h4>
                   <ul className="list-disc list-inside space-y-1 mt-1 text-[11px]">
-                    <li><strong>Aturan Lama (SEOJK 15/2020):</strong> Menggunakan Rasio 1:2. Dari total alokasi terpusat (pooling), Ritel mendapatkan 33.3%, sedangkan Non-Ritel (institusi/pemesan &gt; 100jt) menguasai 66.7%.</li>
-                    <li><strong>Aturan Baru (SEOJK 25/2025):</strong> Menggunakan Rasio 1:1. Jatah terpusat dibagi rata 50% untuk Ritel dan 50% untuk Non-Ritel, secara signifikan menaikkan alokasi bagi investor kecil.</li>
+                    <li><strong>{t('ipo.diffOldRule')}</strong></li>
+                    <li><strong>{t('ipo.diffNewRule')}</strong></li>
                   </ul>
                 </div>
               </div>
@@ -576,13 +589,13 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       <div className="glass-card p-5 md:p-6 space-y-5">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-2.5">
           <Calculator className="h-4.5 w-4.5 text-brand-purple" />
-          Input Parameter Emisi & Asumsi Penawaran
+          {t('ipo.inputHeader')}
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Ticker Saham */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">1. Ticker IPO</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelTicker')}</label>
             <div className="flex gap-2 items-center">
               <IpoEmitenLogo symbol={ticker} />
               <input
@@ -598,7 +611,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
 
           {/* Nama Emiten */}
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">2. Nama Perusahaan</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelCompany')}</label>
             <input
               type="text"
               value={companyName}
@@ -612,13 +625,14 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
 
           {/* Harga Saham */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">3. Harga Saham (Rp)</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelPrice')}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">Rp</span>
               <input
                 type="text"
                 value={priceStr}
-                onChange={(e) => setPriceStr(e.target.value.replace(/[^0-9]/g, ''))}
+                onChange={(e) => setPriceStr(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onBlur={() => setPriceStr(formatNumberForInput(priceStr, language))}
                 className={`w-full glass-input pl-8 pr-3 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background transition-all duration-300 ${
                   isFetchingTicker ? 'animate-pulse text-slate-400 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
                 }`}
@@ -628,20 +642,20 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
 
           {/* Jumlah Lot Ditawarkan */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">4. Jumlah Lot Ditawarkan</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelLots')}</label>
             <input
               type="text"
               value={totalLotsStr}
               onChange={(e) => setTotalLotsStr(e.target.value.replace(/[^0-9.,]/g, ''))}
-              onBlur={() => setTotalLotsStr(formatNumberForInput(totalLotsStr))}
+              onBlur={() => setTotalLotsStr(formatNumberForInput(totalLotsStr, language))}
               className="w-full glass-input px-3 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background"
-              placeholder="3,500,000"
+              placeholder={language === 'id' ? '3.500.000' : '3,500,000'}
             />
           </div>
 
           {/* Oversubscription */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">5. Oversubscription (X)</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelOversub')}</label>
             <div className="relative">
               <input
                 type="number"
@@ -651,48 +665,54 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 onChange={(e) => setOversubscriptionStr(e.target.value)}
                 className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">Kali</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">{t('ipo.times')}</span>
             </div>
           </div>
 
           {/* Jumlah Pemesan */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">6. Asumsi Jumlah Pemesan</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelSubscribers')}</label>
             <div className="relative">
               <input
                 type="text"
                 value={totalSubscribersStr}
                 onChange={(e) => setTotalSubscribersStr(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onBlur={() => setTotalSubscribersStr(formatNumberForInput(totalSubscribersStr))}
+                onBlur={() => setTotalSubscribersStr(formatNumberForInput(totalSubscribersStr, language))}
                 className="w-full glass-input pl-3 pr-14 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background"
               />
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">Orang</span>
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">{t('ipo.people')}</span>
             </div>
           </div>
 
           {/* Nominal Pemesanan Pribadi */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">7. Nominal Pesanan Pribadi</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelPersonal')}</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">Rp</span>
               <input
                 type="text"
                 value={personalOrderAmountStr}
                 onChange={(e) => setPersonalOrderAmountStr(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onBlur={() => setPersonalOrderAmountStr(formatNumberForInput(personalOrderAmountStr))}
-                className="w-full glass-input pl-8 pr-3 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background"
-                placeholder="10,000,000"
+                onBlur={() => setPersonalOrderAmountStr(formatNumberForInput(personalOrderAmountStr, language))}
+                className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background"
+                placeholder={language === 'id' ? '1.000' : '1,000'}
               />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">Lot</span>
             </div>
+            {personalOrderAmount > 0 && (
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {language === 'id' ? 'Dana dibutuhkan: ' : 'Required funds: '}
+                <span className="text-brand-purple font-black">{formatIDR(personalOrderAmount)}</span>
+              </span>
+            )}
           </div>
         </div>
 
         {/* Retail Ratio Slider */}
         <div className="p-4 bg-black/15 rounded-xl border border-border-color space-y-3">
           <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            <span>8. Rasio Jumlah Pemesan Ritel vs Non-Ritel</span>
+            <span>{t('ipo.labelRatios')}</span>
             <span className="text-brand-purple text-xs font-extrabold">
-              Ritel {retailRatio}% : Non-Ritel {100 - retailRatio}%
+              {language === 'id' ? `Ritel ${retailRatio}% : Non-Ritel ${100 - retailRatio}%` : `Retail ${retailRatio}% : Non-Retail ${100 - retailRatio}%`}
             </span>
           </div>
           <input 
@@ -704,7 +724,10 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             className="w-full accent-brand-purple h-1 bg-input-bg rounded-lg cursor-pointer"
           />
           <p className="text-[9px] text-slate-500">
-            Mengatur persentase investor dari total pemesan ({formatRawNumber(totalSubscribers)} orang) yang masuk kategori Ritel (order &le; Rp100 juta). Estimasi saat ini: <strong>{formatRawNumber(results.retailSubscribers)} orang ritel</strong> vs <strong>{formatRawNumber(results.nonRetailSubscribers)} orang non-ritel</strong>.
+            {t('ipo.retailEstimateDesc')
+              .replace('{subscribers}', formatRawNumber(totalSubscribers))
+              .replace('{retail}', formatRawNumber(results.retailSubscribers))
+              .replace('{nonRetail}', formatRawNumber(results.nonRetailSubscribers))}
           </p>
         </div>
       </div>
@@ -712,27 +735,27 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       {/* 4. Emission Summary Indicator Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="glass-card p-4.5 space-y-1.5">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Nilai Emisi Penawaran</span>
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('ipo.cardEmission')}</span>
           <p className="text-lg font-black text-white">{formatIDR(results.emissionValue)}</p>
-          <p className="text-[10px] text-slate-400 truncate">Total {formatRawNumber(totalLots * 100)} Lembar</p>
+          <p className="text-[10px] text-slate-400 truncate">{t('ipo.cardTotalShares').replace('{shares}', formatRawNumber(totalLots * 100))}</p>
         </div>
 
         <div className="glass-card p-4.5 space-y-1.5">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Golongan Emisi OJK</span>
-          <p className="text-lg font-black text-white">Golongan {results.golongan}</p>
-          <p className="text-[10px] text-slate-400">Batas awal minimum: {results.initialPercentage.toFixed(1)}%</p>
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('ipo.cardCategory')}</span>
+          <p className="text-lg font-black text-white">{t('ipo.cardCategoryVal').replace('{group}', String(results.golongan))}</p>
+          <p className="text-[10px] text-slate-400">{t('ipo.cardInitialLimit').replace('{percent}', results.initialPercentage.toFixed(1))}</p>
         </div>
 
         <div className="glass-card p-4.5 space-y-1.5">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Alokasi Awal Terpusat</span>
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('ipo.cardInitial')}</span>
           <p className="text-lg font-black text-white">{formatRawNumber(results.initialLots)} Lot</p>
-          <p className="text-[10px] text-slate-400">Persentase: {formatDecimal(results.initialPercentage)}%</p>
+          <p className="text-[10px] text-slate-400">{t('ipo.cardInitialVal').replace('{percent}', formatDecimal(results.initialPercentage))}</p>
         </div>
 
         <div className="glass-card p-4.5 space-y-1.5 border-l-2 border-l-brand-purple">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Alokasi Final (Clawback)</span>
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('ipo.cardFinal')}</span>
           <p className="text-lg font-black text-brand-purple">{formatRawNumber(results.adjustedLots)} Lot</p>
-          <p className="text-[10px] text-slate-400">Persentase Adjusted: {formatDecimal(results.adjustedPercentage)}%</p>
+          <p className="text-[10px] text-slate-400">{t('ipo.cardAdjustedVal').replace('{percent}', formatDecimal(results.adjustedPercentage))}</p>
         </div>
       </div>
 
@@ -743,64 +766,64 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
         <div className="glass-card p-5 space-y-4 border border-white/5 hover:border-white/10 transition-colors">
           <div className="flex justify-between items-center border-b border-border-color pb-3">
             <div>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-500/10 border border-slate-500/20 text-slate-400">Aturan Lama</span>
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-500/10 border border-slate-500/20 text-slate-400">{t('ipo.compOldTitle')}</span>
               <h3 className="text-base font-extrabold text-white mt-1">SEOJK 15/2020</h3>
             </div>
             <div className="text-right">
-              <span className="text-[9px] font-bold text-slate-500 block uppercase tracking-wider">Rasio Pembagian</span>
-              <span className="text-sm font-black text-slate-300">Ritel 1 : 2 Non-Ritel</span>
+              <span className="text-[9px] font-bold text-slate-500 block uppercase tracking-wider">{t('ipo.compRatio')}</span>
+              <span className="text-sm font-black text-slate-300">{t('ipo.compOldRatioVal')}</span>
             </div>
           </div>
 
           <div className="space-y-3 text-xs">
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
-              <span className="text-slate-400">Jatah Pool Terpusat (Lot)</span>
+              <span className="text-slate-400">{t('ipo.compPoolLots')}</span>
               <span className="font-bold text-white">{formatRawNumber(results.oldRule.totalPoolLots)} Lot</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
-              <span className="text-slate-400">Jatah Pool Ritel (33.3%)</span>
+              <span className="text-slate-400">{t('ipo.compRetailLots')} (33.3%)</span>
               <span className="font-bold text-white">{formatRawNumber(results.oldRule.retailPoolLots)} Lot</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
-              <span className="text-slate-400">Jatah Pool Non-Ritel (66.7%)</span>
+              <span className="text-slate-400">{t('ipo.compNonRetailLots')} (66.7%)</span>
               <span className="font-bold text-white">{formatRawNumber(results.oldRule.nonRetailPoolLots)} Lot</span>
             </div>
             
             <div className="pt-2">
-              <h4 className="font-extrabold text-[10px] text-brand-purple uppercase tracking-wider mb-2">Perkiraan Allotment Ritel Rata-Rata:</h4>
+              <h4 className="font-extrabold text-[10px] text-brand-purple uppercase tracking-wider mb-2">{t('ipo.estRetailTitle')}</h4>
               <div className="p-3 bg-black/20 rounded-lg space-y-2 border border-border-color/30">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-[11px]">Jatah Final Rata-Rata</span>
+                  <span className="text-slate-400 text-[11px]">{t('ipo.estAllotmentAvg')}</span>
                   <span className="font-black text-slate-200 text-xs">{formatDecimal(results.oldRule.retailAllotmentPerPerson, 3)} Lot</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-[11px]">Peluang Dapatkan 1 Lot</span>
+                  <span className="text-slate-400 text-[11px]">{t('ipo.estProbability')}</span>
                   <span className={`font-black text-xs ${results.oldRule.retailProbability1Lot >= 100 ? 'text-bullish-green' : 'text-yellow-500'}`}>
-                    {results.oldRule.retailProbability1Lot.toFixed(1)}% Peluang
+                    {t('ipo.estProbabilityVal').replace('{percent}', results.oldRule.retailProbability1Lot.toFixed(1))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-white/5">
-                  <span className="text-slate-300 font-semibold text-[11px]">Dibulatkan ke Atas</span>
+                  <span className="text-slate-300 font-semibold text-[11px]">{t('ipo.estRounded')}</span>
                   <span className="font-black text-brand-purple text-xs">{Math.ceil(results.oldRule.retailAllotmentPerPerson)} Lot</span>
                 </div>
               </div>
             </div>
 
             <div className="pt-1">
-              <h4 className="font-extrabold text-[10px] text-indigo-400 uppercase tracking-wider mb-2">Perkiraan Allotment Non-Ritel Rata-Rata:</h4>
+              <h4 className="font-extrabold text-[10px] text-indigo-400 uppercase tracking-wider mb-2">{t('ipo.estNonRetailTitle')}</h4>
               <div className="p-3 bg-black/20 rounded-lg space-y-2 border border-border-color/30">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-[11px]">Jatah Final Rata-Rata</span>
+                  <span className="text-slate-400 text-[11px]">{t('ipo.estAllotmentAvg')}</span>
                   <span className="font-black text-slate-200 text-xs">{formatDecimal(results.oldRule.nonRetailAllotmentPerPerson, 3)} Lot</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-[11px]">Peluang Dapatkan 1 Lot</span>
+                  <span className="text-slate-400 text-[11px]">{t('ipo.estProbability')}</span>
                   <span className={`font-black text-xs ${results.oldRule.nonRetailProbability1Lot >= 100 ? 'text-bullish-green' : 'text-yellow-500'}`}>
-                    {results.oldRule.nonRetailProbability1Lot.toFixed(1)}% Peluang
+                    {t('ipo.estProbabilityVal').replace('{percent}', results.oldRule.nonRetailProbability1Lot.toFixed(1))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-white/5">
-                  <span className="text-slate-300 font-semibold text-[11px]">Dibulatkan ke Atas</span>
+                  <span className="text-slate-300 font-semibold text-[11px]">{t('ipo.estRounded')}</span>
                   <span className="font-black text-indigo-400 text-xs">{Math.ceil(results.oldRule.nonRetailAllotmentPerPerson)} Lot</span>
                 </div>
               </div>
@@ -811,69 +834,69 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
         {/* NEW RULE CARD (SEOJK 25/2025) */}
         <div className="glass-card p-5 space-y-4 border-2 border-brand-purple relative overflow-hidden shadow-lg shadow-brand-purple/5">
           <div className="absolute top-0 right-0 bg-brand-purple text-white text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-lg">
-            Terbaru
+            {language === 'id' ? 'Terbaru' : 'Latest'}
           </div>
 
           <div className="flex justify-between items-center border-b border-border-color pb-3">
             <div>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-brand-purple/20 border border-brand-purple/30 text-brand-purple">Aturan Baru</span>
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-brand-purple/20 border border-brand-purple/30 text-brand-purple">{t('ipo.compNewTitle')}</span>
               <h3 className="text-base font-extrabold text-white mt-1">SEOJK 25/2025</h3>
             </div>
             <div className="text-right">
-              <span className="text-[9px] font-bold text-slate-500 block uppercase tracking-wider">Rasio Pembagian</span>
-              <span className="text-sm font-black text-brand-purple">Ritel 1 : 1 Non-Ritel</span>
+              <span className="text-[9px] font-bold text-slate-500 block uppercase tracking-wider">{t('ipo.compRatio')}</span>
+              <span className="text-sm font-black text-brand-purple">{t('ipo.compNewRatioVal')}</span>
             </div>
           </div>
 
           <div className="space-y-3 text-xs">
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
-              <span className="text-slate-400">Jatah Pool Terpusat (Lot)</span>
+              <span className="text-slate-400">{t('ipo.compPoolLots')}</span>
               <span className="font-bold text-white">{formatRawNumber(results.newRule.totalPoolLots)} Lot</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
-              <span className="text-slate-400">Jatah Pool Ritel (50.0%)</span>
+              <span className="text-slate-400">{t('ipo.compRetailLots')} (50.0%)</span>
               <span className="font-bold text-brand-purple">{formatRawNumber(results.newRule.retailPoolLots)} Lot</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
-              <span className="text-slate-400">Jatah Pool Non-Ritel (50.0%)</span>
+              <span className="text-slate-400">{t('ipo.compNonRetailLots')} (50.0%)</span>
               <span className="font-bold text-white">{formatRawNumber(results.newRule.nonRetailPoolLots)} Lot</span>
             </div>
             
             <div className="pt-2">
-              <h4 className="font-extrabold text-[10px] text-brand-purple uppercase tracking-wider mb-2">Perkiraan Allotment Ritel Rata-Rata:</h4>
+              <h4 className="font-extrabold text-[10px] text-brand-purple uppercase tracking-wider mb-2">{t('ipo.estRetailTitle')}</h4>
               <div className="p-3 bg-brand-purple/5 rounded-lg space-y-2 border border-brand-purple/20">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-300 text-[11px]">Jatah Final Rata-Rata</span>
+                  <span className="text-slate-200 text-[11px]">{t('ipo.estAllotmentAvg')}</span>
                   <span className="font-black text-white text-xs">{formatDecimal(results.newRule.retailAllotmentPerPerson, 3)} Lot</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-300 text-[11px]">Peluang Dapatkan 1 Lot</span>
+                  <span className="text-slate-200 text-[11px]">{t('ipo.estProbability')}</span>
                   <span className={`font-black text-xs ${results.newRule.retailProbability1Lot >= 100 ? 'text-bullish-green' : 'text-yellow-500'}`}>
-                    {results.newRule.retailProbability1Lot.toFixed(1)}% Peluang
+                    {t('ipo.estProbabilityVal').replace('{percent}', results.newRule.retailProbability1Lot.toFixed(1))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-brand-purple/10">
-                  <span className="text-slate-200 font-semibold text-[11px]">Dibulatkan ke Atas</span>
+                  <span className="text-slate-200 font-semibold text-[11px]">{t('ipo.estRounded')}</span>
                   <span className="font-black text-brand-purple text-sm">{Math.ceil(results.newRule.retailAllotmentPerPerson)} Lot</span>
                 </div>
               </div>
             </div>
 
             <div className="pt-1">
-              <h4 className="font-extrabold text-[10px] text-indigo-400 uppercase tracking-wider mb-2">Perkiraan Allotment Non-Ritel Rata-Rata:</h4>
+              <h4 className="font-extrabold text-[10px] text-indigo-400 uppercase tracking-wider mb-2">{t('ipo.estNonRetailTitle')}</h4>
               <div className="p-3 bg-black/20 rounded-lg space-y-2 border border-border-color/30">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-[11px]">Jatah Final Rata-Rata</span>
+                  <span className="text-slate-400 text-[11px]">{t('ipo.estAllotmentAvg')}</span>
                   <span className="font-black text-slate-200 text-xs">{formatDecimal(results.newRule.nonRetailAllotmentPerPerson, 3)} Lot</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-[11px]">Peluang Dapatkan 1 Lot</span>
+                  <span className="text-slate-400 text-[11px]">{t('ipo.estProbability')}</span>
                   <span className={`font-black text-xs ${results.newRule.nonRetailProbability1Lot >= 100 ? 'text-bullish-green' : 'text-yellow-500'}`}>
-                    {results.newRule.nonRetailProbability1Lot.toFixed(1)}% Peluang
+                    {t('ipo.estProbabilityVal').replace('{percent}', results.newRule.nonRetailProbability1Lot.toFixed(1))}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-white/5">
-                  <span className="text-slate-300 font-semibold text-[11px]">Dibulatkan ke Atas</span>
+                  <span className="text-slate-300 font-semibold text-[11px]">{t('ipo.estRounded')}</span>
                   <span className="font-black text-indigo-400 text-xs">{Math.ceil(results.newRule.nonRetailAllotmentPerPerson)} Lot</span>
                 </div>
               </div>
@@ -888,14 +911,16 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
         <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/5 pb-2.5">
           <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
             <User className="h-4.5 w-4.5 text-brand-purple" />
-            Simulasi Penjatahan Pesanan Pribadi Anda
+            {t('ipo.personalSimTitle')}
           </h2>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
             personalOrderAmount <= 100_000_000 
               ? 'bg-brand-purple/10 border-brand-purple/20 text-brand-purple' 
               : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
           }`}>
-            Kategori: {personalOrderAmount <= 100_000_000 ? 'Ritel (\le Rp100jt)' : 'Non-Ritel (&gt; Rp100jt)'}
+            {language === 'id' 
+              ? `Kategori: ${personalOrderAmount <= 100_000_000 ? 'Ritel (≤ Rp100jt)' : 'Non-Ritel (> Rp100jt)'}` 
+              : `Category: ${personalOrderAmount <= 100_000_000 ? 'Retail (≤ 100M IDR)' : 'Non-Retail (> 100M IDR)'}`}
           </span>
         </div>
 
@@ -903,18 +928,18 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           
           {/* Summary Order Card */}
           <div className="bg-black/20 p-4.5 rounded-xl border border-border-color space-y-3">
-            <h3 className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">Detail Pemesanan</h3>
+            <h3 className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">{language === 'id' ? 'Detail Pemesanan' : 'Order Details'}</h3>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-500">Nominal Pesanan</span>
+                <span className="text-slate-500">{t('ipo.personalNominal')}</span>
                 <span className="font-bold text-white">{formatIDR(personalOrderAmount)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Jumlah Lot Dipesan</span>
+                <span className="text-slate-500">{t('ipo.personalLotOrdered')}</span>
                 <span className="font-bold text-white">{formatRawNumber(personalOrderLots)} Lot</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Batas Kategori</span>
+                <span className="text-slate-500">{language === 'id' ? 'Batas Kategori' : 'Category Limit'}</span>
                 <span className="font-semibold text-slate-400">Rp100.000.000</span>
               </div>
             </div>
@@ -922,11 +947,13 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
 
           {/* Allotment Estimate Card (Old Rule) */}
           <div className="bg-black/20 p-4.5 rounded-xl border border-border-color space-y-3">
-            <h3 className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">Estimasi Jatah (SEOJK 15/2020)</h3>
+            <h3 className="font-bold text-[11px] text-slate-400 uppercase tracking-wider">
+              {language === 'id' ? 'Estimasi Jatah' : 'Estimated Allocation'} (SEOJK 15/2020)
+            </h3>
             
             <div className="space-y-2 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Jatah Rata-rata</span>
+                <span className="text-slate-500">{language === 'id' ? 'Jatah Rata-rata' : 'Average Allocation'}</span>
                 <span className="font-bold text-slate-200">
                   {personalOrderAmount <= 100_000_000 
                     ? formatDecimal(results.oldRule.retailAllotmentPerPerson, 2) 
@@ -934,17 +961,19 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Jatah Proporsional (1/X)</span>
+                <span className="text-slate-500">{language === 'id' ? 'Jatah Proporsional (1/X)' : 'Proportional Allocation (1/X)'}</span>
                 <span className="font-bold text-slate-200">{formatDecimal(results.oldRule.personalAllotmentProportional, 2)} Lot</span>
               </div>
               <div className="pt-2 border-t border-white/5 space-y-1">
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-300 font-semibold">Estimasi Min Allotment:</span>
+                  <span className="text-slate-300 font-semibold">{language === 'id' ? 'Estimasi Min Allotment:' : 'Estimated Min Allotment:'}</span>
                   <span className="font-black text-brand-purple">{results.oldRule.personalAllotmentGuaranteed} Lot</span>
                 </div>
                 {results.oldRule.personalAllotmentProbabilityExtra > 0 && (
                   <p className="text-[10px] text-yellow-500 text-right font-medium">
-                    +{results.oldRule.personalAllotmentProbabilityExtra.toFixed(1)}% Peluang 1 Lot Tambahan
+                    {language === 'id' 
+                      ? `+${results.oldRule.personalAllotmentProbabilityExtra.toFixed(1)}% Peluang 1 Lot Tambahan`
+                      : `+${results.oldRule.personalAllotmentProbabilityExtra.toFixed(1)}% Chance of 1 Extra Lot`}
                   </p>
                 )}
               </div>
@@ -953,11 +982,13 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
 
           {/* Allotment Estimate Card (New Rule) */}
           <div className="bg-brand-purple/5 p-4.5 rounded-xl border border-brand-purple/20 space-y-3">
-            <h3 className="font-bold text-[11px] text-brand-purple uppercase tracking-wider">Estimasi Jatah (SEOJK 25/2025)</h3>
+            <h3 className="font-bold text-[11px] text-brand-purple uppercase tracking-wider">
+              {language === 'id' ? 'Estimasi Jatah' : 'Estimated Allocation'} (SEOJK 25/2025)
+            </h3>
             
             <div className="space-y-2 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Jatah Rata-rata</span>
+                <span className="text-slate-400">{language === 'id' ? 'Jatah Rata-rata' : 'Average Allocation'}</span>
                 <span className="font-bold text-white">
                   {personalOrderAmount <= 100_000_000 
                     ? formatDecimal(results.newRule.retailAllotmentPerPerson, 2) 
@@ -965,17 +996,19 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Jatah Proporsional (1/X)</span>
+                <span className="text-slate-400">{language === 'id' ? 'Jatah Proporsional (1/X)' : 'Proportional Allocation (1/X)'}</span>
                 <span className="font-bold text-white">{formatDecimal(results.newRule.personalAllotmentProportional, 2)} Lot</span>
               </div>
               <div className="pt-2 border-t border-brand-purple/10 space-y-1">
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-200 font-bold">Estimasi Min Allotment:</span>
+                  <span className="text-slate-200 font-bold">{language === 'id' ? 'Estimasi Min Allotment:' : 'Estimated Min Allotment:'}</span>
                   <span className="font-black text-brand-purple text-sm">{results.newRule.personalAllotmentGuaranteed} Lot</span>
                 </div>
                 {results.newRule.personalAllotmentProbabilityExtra > 0 && (
                   <p className="text-[10px] text-bullish-neon text-right font-bold">
-                    +{results.newRule.personalAllotmentProbabilityExtra.toFixed(1)}% Peluang 1 Lot Tambahan
+                    {language === 'id' 
+                      ? `+${results.newRule.personalAllotmentProbabilityExtra.toFixed(1)}% Peluang 1 Lot Tambahan`
+                      : `+${results.newRule.personalAllotmentProbabilityExtra.toFixed(1)}% Chance of 1 Extra Lot`}
                   </p>
                 )}
               </div>
@@ -987,9 +1020,19 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
         <div className="p-3.5 rounded-lg bg-input-bg border border-border-color text-[10px] text-slate-500 flex gap-2.5">
           <Info className="h-4.5 w-4.5 text-slate-400 shrink-0 mt-0.5" />
           <p>
-            <strong>Catatan Kalkulasi Simulasi:</strong> Estimasi jatah dihitung berdasarkan dua model pemodelan: 
-            (1) <em>Model Proporsional</em> (membagi lot pesanan Anda dengan rasio kelebihan permintaan oversubscription), dan 
-            (2) <em>Model Pooling</em> (distribusi merata per investor). Sistem penjatahan ril bursa biasanya mendistribusikan jatah minimal (misal 1 - 10 Lot) terlebih dahulu untuk setiap pemesan sebelum mendistribusikan sisa lot secara proporsional.
+            {language === 'id' ? (
+              <>
+                <strong>Catatan Kalkulasi Simulasi:</strong> Estimasi jatah dihitung berdasarkan dua model pemodelan: 
+                (1) <em>Model Proporsional</em> (membagi lot pesanan Anda dengan rasio kelebihan permintaan oversubscription), dan 
+                (2) <em>Model Pooling</em> (distribusi merata per investor). Sistem penjatahan ril bursa biasanya mendistribusikan jatah minimal (misal 1 - 10 Lot) terlebih dahulu untuk setiap pemesan sebelum mendistribusikan sisa lot secara proporsional.
+              </>
+            ) : (
+              <>
+                <strong>Simulation Calculation Note:</strong> Allocation estimates are calculated using two models: 
+                (1) <em>Proportional Model</em> (dividing your order lots by the oversubscription ratio), and 
+                (2) <em>Pooling Model</em> (equal distribution per investor). The actual exchange allotment system typically distributes a minimum lot size (e.g. 1 - 10 Lots) to every subscriber first before distributing remaining lots proportionally.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -998,13 +1041,13 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       <div className="glass-card p-5 md:p-6 space-y-4">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
           <Calendar className="h-4.5 w-4.5 text-brand-purple" />
-          Daftar Rencana Simulasi IPO Disimpan
+          {t('ipo.simulationHistory')}
         </h2>
 
         {isLoadingPlans ? (
-          <div className="py-8 text-center text-xs text-slate-500 font-bold">Memuat riwayat rencana simulasi...</div>
+          <div className="py-8 text-center text-xs text-slate-500 font-bold">{t('common.loading')}</div>
         ) : savedPlans.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500">Belum ada rencana simulasi E-IPO yang disimpan.</div>
+          <div className="py-8 text-center text-xs text-slate-500">{t('ipo.simEmpty')}</div>
         ) : (
           <>
             {/* Desktop View (Table) */}
@@ -1012,13 +1055,13 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-input-bg border-b border-border-color text-slate-800 dark:text-white font-bold text-[10px] uppercase">
-                  <th className="p-3 whitespace-nowrap">Emiten</th>
-                  <th className="p-3 whitespace-nowrap">Harga Saham</th>
-                  <th className="p-3 whitespace-nowrap">Lembar Ditawarkan</th>
-                  <th className="p-3 text-center whitespace-nowrap">Oversubscribed</th>
-                  <th className="p-3 text-center whitespace-nowrap">Rasio Ritel</th>
-                  <th className="p-3 text-center whitespace-nowrap">Pemesanan Pribadi</th>
-                  <th className="p-3 text-right whitespace-nowrap">Aksi</th>
+                  <th className="p-3 whitespace-nowrap">{language === 'id' ? 'Emiten' : 'Ticker'}</th>
+                  <th className="p-3 whitespace-nowrap">{language === 'id' ? 'Harga Saham' : 'Stock Price'}</th>
+                  <th className="p-3 whitespace-nowrap">{language === 'id' ? 'Lembar Ditawarkan' : 'Shares Offered'}</th>
+                  <th className="p-3 text-center whitespace-nowrap">{language === 'id' ? 'Oversubscribed' : 'Oversubscribed'}</th>
+                  <th className="p-3 text-center whitespace-nowrap">{language === 'id' ? 'Rasio Ritel' : 'Retail Ratio'}</th>
+                  <th className="p-3 text-center whitespace-nowrap">{language === 'id' ? 'Pemesanan Pribadi' : 'Personal Order'}</th>
+                  <th className="p-3 text-right whitespace-nowrap">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-color">
@@ -1036,7 +1079,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                       </div>
                     </td>
                     <td className="p-3 font-semibold text-slate-200">{formatIDR(plan.price)}</td>
-                    <td className="p-3 text-slate-300">{formatRawNumber(plan.total_lots * 100)} Lembar</td>
+                    <td className="p-3 text-slate-300">{formatRawNumber(plan.total_lots * 100)} {language === 'id' ? 'Lembar' : 'Shares'}</td>
                     <td className="p-3 text-center text-white font-bold">{plan.oversubscription}x</td>
                     <td className="p-3 text-center text-slate-300">{plan.retail_ratio}%</td>
                     <td className="p-3 text-center font-bold text-brand-purple">
@@ -1048,12 +1091,12 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                           onClick={() => handleLoadPlan(plan)}
                           className="px-2.5 py-1 rounded bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple font-bold text-[10px] cursor-pointer transition-colors border border-brand-purple/25"
                         >
-                          Muat
+                          {language === 'id' ? 'Muat' : 'Load'}
                         </button>
                         <button
                           onClick={() => handleDeletePlan(plan.id, plan.ticker)}
                           className="p-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 cursor-pointer transition-colors border border-rose-500/25"
-                          title="Hapus Simulasi"
+                          title={language === 'id' ? 'Hapus Simulasi' : 'Delete Simulation'}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -1088,11 +1131,11 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 {/* Specs Grid */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Harga Saham</span>
+                    <span className="text-slate-500 text-[10px] block">{language === 'id' ? 'Harga Saham' : 'Stock Price'}</span>
                     <span className="font-bold text-slate-200">{formatIDR(plan.price)}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Lembar Ditawarkan</span>
+                    <span className="text-slate-500 text-[10px] block">{language === 'id' ? 'Lembar Ditawarkan' : 'Shares Offered'}</span>
                     <span className="font-semibold text-slate-300">{formatRawNumber(plan.total_lots * 100)} Lbr</span>
                   </div>
                   <div>
@@ -1100,7 +1143,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                     <span className="font-black text-white">{plan.oversubscription}x</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Rasio Ritel</span>
+                    <span className="text-slate-500 text-[10px] block">{language === 'id' ? 'Rasio Ritel' : 'Retail Ratio'}</span>
                     <span className="font-medium text-slate-300">{plan.retail_ratio}%</span>
                   </div>
                 </div>
@@ -1108,7 +1151,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 {/* Personal Order & Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-border-color bg-black/10 -mx-4 -mb-4 p-3 rounded-b-xl">
                   <div>
-                    <span className="text-[9px] text-slate-500 uppercase block font-bold leading-none mb-1">Pesanan Pribadi</span>
+                    <span className="text-[9px] text-slate-500 uppercase block font-bold leading-none mb-1">{language === 'id' ? 'Pesanan Pribadi' : 'Personal Order'}</span>
                     <span className="font-extrabold text-brand-purple text-xs">
                       {plan.personal_order_lots > 0 ? `${formatRawNumber(plan.personal_order_lots)} Lot` : '-'}
                     </span>
@@ -1118,12 +1161,12 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                       onClick={() => handleLoadPlan(plan)}
                       className="px-3 py-1.5 rounded bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple font-bold text-[10px] cursor-pointer transition-colors border border-brand-purple/25 flex items-center gap-1"
                     >
-                      Muat
+                      {language === 'id' ? 'Muat' : 'Load'}
                     </button>
                     <button
                       onClick={() => handleDeletePlan(plan.id, plan.ticker)}
                       className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 cursor-pointer transition-colors border border-rose-500/25 flex items-center justify-center"
-                      title="Hapus Simulasi"
+                      title={language === 'id' ? 'Hapus Simulasi' : 'Delete Simulation'}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

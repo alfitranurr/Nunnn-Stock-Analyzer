@@ -17,10 +17,12 @@ import {
   BookOpen,
   ShieldCheck,
   Percent,
-  Coins
+  Coins,
+  Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/language-context';
 
 interface SidebarProps {
   currentTab: string;
@@ -35,20 +37,22 @@ interface SidebarProps {
 
 export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInClick, isCollapsed, setIsCollapsed, onLogoClick }: SidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const { language, setLanguage, t } = useLanguage();
 
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
   const isAdmin = user && user.email && user.email.toLowerCase() === adminEmail;
 
   const menuItems = [
-    { id: 'news', label: 'Berita & Sentimen', icon: BookOpen, active: true },
-    { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
-    { id: 'compounding', label: 'Kalkulator Compounding', icon: Percent, active: true },
-    { id: 'ipo', label: 'Kalkulator E-IPO', icon: Coins, active: true },
-    { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: true, isLocked: !user },
-    { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true, isLocked: !user },
-    ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheck, active: true }] : []),
-    { id: 'history', label: 'Riwayat Rencana', icon: History, active: false, labelBadge: 'Soon' },
-    { id: 'watchlist', label: 'Watchlist Saham', icon: Star, active: false, labelBadge: 'Soon' },
+    { id: 'home', label: t('sidebar.home') || 'Home', icon: Home, active: true },
+    { id: 'news', label: t('sidebar.news'), icon: BookOpen, active: true },
+    { id: 'avg-down', label: t('sidebar.avgDown'), icon: Calculator, active: true },
+    { id: 'compounding', label: t('sidebar.compounding'), icon: Percent, active: true },
+    { id: 'ipo', label: t('sidebar.ipo'), icon: Coins, active: true },
+    { id: 'analysis', label: t('sidebar.analysis'), icon: TrendingUp, active: true, isLocked: !user },
+    { id: 'portfolio', label: t('sidebar.portfolio'), icon: Briefcase, active: true, isLocked: !user },
+    ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true }] : []),
+    { id: 'history', label: t('sidebar.history'), icon: History, active: false, labelBadge: t('common.soon') },
+    { id: 'watchlist', label: t('sidebar.watchlist'), icon: Star, active: false, labelBadge: t('common.soon') },
   ];
 
   const sidebarVariants = {
@@ -153,6 +157,33 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
               {/* Mobile Bottom Section */}
               <div className="mt-auto pt-4 border-t border-white/10 space-y-4">
+                {/* Language Switcher */}
+                <div className="flex flex-col gap-1.5 px-1 pb-1">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
+                  <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[10px] font-extrabold select-none">
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('id')}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
+                        language === 'id' ? "bg-brand-purple text-white shadow" : "text-slate-400 hover:text-white"
+                      )}
+                    >
+                      Indonesia
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('en')}
+                      className={cn(
+                        "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
+                        language === 'en' ? "bg-brand-purple text-white shadow" : "text-slate-400 hover:text-white"
+                      )}
+                    >
+                      English
+                    </button>
+                  </div>
+                </div>
+
                 {/* Profile Footer */}
                 {user ? (
                   <div className="flex items-center justify-between">
@@ -161,7 +192,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                         <User className="h-4 w-4 text-brand-purple" />
                       </div>
                       <div className="overflow-hidden">
-                        <p className="text-xs text-slate-400 truncate">Logged in as</p>
+                        <p className="text-xs text-slate-400 truncate">{t('sidebar.user')}</p>
                         <p className="text-sm font-semibold truncate text-white">{user.email}</p>
                       </div>
                     </div>
@@ -170,7 +201,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                         onSignOut();
                         setIsMobileOpen(false);
                       }} 
-                      className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer"
+                      className="p-2 text-slate-400 hover:text-rose-450 hover:bg-rose-500/10 rounded-lg cursor-pointer"
                     >
                       <LogOut className="h-5 w-5" />
                     </button>
@@ -184,7 +215,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-sm transition-all duration-300 shadow-md"
                   >
                     <User className="h-4 w-4" />
-                    <span>Masuk ke Akun</span>
+                    <span>{t('sidebar.login')}</span>
                   </button>
                 )}
               </div>
@@ -259,6 +290,46 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
         {/* Bottom Section */}
         <div className="mt-auto pt-3 border-t border-border-color space-y-3 shrink-0">
+          {/* Language Switcher */}
+          {!isCollapsed ? (
+            <div className="flex flex-col gap-1.5 px-2.5">
+              <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
+              <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[9.5px] font-extrabold select-none">
+                <button
+                  type="button"
+                  onClick={() => setLanguage('id')}
+                  className={cn(
+                    "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
+                    language === 'id' ? "bg-brand-purple text-white shadow" : "text-slate-450 hover:text-white"
+                  )}
+                >
+                  ID
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage('en')}
+                  className={cn(
+                    "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
+                    language === 'en' ? "bg-brand-purple text-white shadow" : "text-slate-450 hover:text-white"
+                  )}
+                >
+                  EN
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center px-1">
+              <button
+                type="button"
+                onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}
+                className="w-9 h-9 rounded-xl border border-border-color bg-input-bg flex items-center justify-center text-xs font-black text-brand-purple hover:bg-glass-border hover:text-white transition-all cursor-pointer"
+                title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+              >
+                {language.toUpperCase()}
+              </button>
+            </div>
+          )}
+
           {/* Profile Footer */}
           {user ? (
             <div className={cn("flex items-center justify-between gap-2.5 overflow-hidden", isCollapsed ? "justify-center" : "px-2.5")}>
@@ -268,8 +339,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 </div>
                 {!isCollapsed && (
                   <div className="overflow-hidden">
-                    <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">User</p>
-                    <p className="text-xs font-semibold truncate text-slate-700 dark:text-slate-200">{user.email}</p>
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">{t('sidebar.user')}</p>
+                    <p className="text-xs font-semibold truncate text-slate-700 dark:text-slate-205">{user.email}</p>
                   </div>
                 )}
               </div>
@@ -290,10 +361,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 "flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
                 isCollapsed ? "w-9 h-9 px-0" : "w-full px-3.5"
               )}
-              title="Masuk ke Akun"
+              title={t('sidebar.login')}
             >
               <User className="h-4.5 w-4.5" />
-              {!isCollapsed && <span>Masuk</span>}
+              {!isCollapsed && <span>{t('sidebar.login')}</span>}
             </button>
           )}
         </div>

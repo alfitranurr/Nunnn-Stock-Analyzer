@@ -114,11 +114,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         if (error) throw error;
         if (data.user) {
           if (!isCurrentAdmin) {
-            const { data: approvalData, error: dbError } = await supabase
+            const { data: approvalDataArray, error: dbError } = await supabase
               .from('user_approvals')
               .select('approved')
-              .eq('email', cleanEmail)
-              .single();
+              .eq('email', cleanEmail);
+
+            const approvalData = approvalDataArray && approvalDataArray.length > 0 ? approvalDataArray[0] : null;
 
             if (dbError || !approvalData || !approvalData.approved) {
               if (!approvalData) {

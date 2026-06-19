@@ -5,6 +5,7 @@ import { Sparkles, Info, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { AvgDownInput, PurchaseTranche } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
+import { useLanguage } from '@/lib/language-context';
 
 interface CalculatorFormProps {
   onCalculate: (values: AvgDownInput) => void;
@@ -189,6 +190,7 @@ function FormEmitenLogo({ symbol }: { symbol: string }) {
 }
 
 export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user, initialValues }: CalculatorFormProps) {
+  const { t, language } = useLanguage();
   const [ticker, setTicker] = React.useState('ANTM');
   const [companyName, setCompanyName] = React.useState('Aneka Tambang Tbk');
   const [lotAwal, setLotAwal] = React.useState<string>('10');
@@ -394,7 +396,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         <div>
           <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
             <Sparkles className="h-4.5 w-4.5 text-brand-purple" />
-            Parameter Rencana Average Down
+            {t('calculator.title')}
           </h2>
         </div>
       </div>
@@ -404,7 +406,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         
         {/* Ticker & Nama Emiten (2 Kotak Berdampingan) */}
         <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[320px] relative w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Saham & Emiten</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step1')}</label>
           <div className="flex gap-2 items-center">
             
             {/* Logo Emiten */}
@@ -430,7 +432,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Nama Perusahaan"
+                placeholder={t('calculator.placeholderCompany')}
                 className={`w-full glass-input px-2.5 py-2 text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
                   isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
                 }`}
@@ -441,7 +443,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
 
         {/* Posisi Portofolio Awal */}
         <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[280px] w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Posisi Awal</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step2')}</label>
           <div className="grid grid-cols-3 gap-2">
             <div>
               <input
@@ -449,11 +451,11 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 value={lotAwal}
                 onChange={(e) => setLotAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
                 onBlur={() => handleBlur(lotAwal, setLotAwal)}
-                placeholder="Lot Awal"
+                placeholder={t('calculator.lotAwal')}
                 className="w-full glass-input px-1 py-2 text-xs text-center font-semibold"
                 required
               />
-              <span className="text-[9px] text-slate-500 text-center block mt-1">Lot Awal</span>
+              <span className="text-[9px] text-slate-500 text-center block mt-1">{t('calculator.lotAwal')}</span>
             </div>
             <div>
               <input
@@ -465,7 +467,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 className="w-full glass-input px-1 py-2 text-xs text-center font-semibold"
                 required
               />
-              <span className="text-[9px] text-slate-500 text-center block mt-1">Avg Price (Rp)</span>
+              <span className="text-[9px] text-slate-500 text-center block mt-1">{t('calculator.avgPrice').replace(' (Rp)', '')} (Rp)</span>
             </div>
             <div>
               <div className="relative">
@@ -490,7 +492,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   <RefreshCw className={`h-3 w-3 ${isFetchingTicker ? 'animate-spin' : ''}`} />
                 </button>
               </div>
-              <span className="text-[9px] text-slate-500 text-center block mt-1">Current Price (Rp)</span>
+              <span className="text-[9px] text-slate-500 text-center block mt-1">{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</span>
             </div>
           </div>
           
@@ -508,7 +510,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 htmlFor="avgPriceAwalIncludesFee" 
                 className="text-[9px] text-slate-400 hover:text-slate-300 cursor-pointer transition-colors font-semibold leading-none"
               >
-                Avg. Price awal sudah termasuk fee beli
+                {t('calculator.includingFeeCheckbox')}
               </label>
             </div>
           )}
@@ -516,7 +518,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
 
         {/* Rencana Pembelian Baru */}
         <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[280px] w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">3. Rencana Beli Baru</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step3')}</label>
           
           <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1">
             <AnimatePresence initial={false}>
@@ -530,7 +532,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   className="flex items-center gap-2 overflow-hidden py-0.5"
                 >
                   <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 w-11 shrink-0">
-                    Tahap {index + 1}
+                    {t('calculator.tahap')} {index + 1}
                   </span>
 
                   <div className="flex-1 min-w-[60px]">
@@ -578,23 +580,23 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-dashed border-brand-purple/30 hover:border-brand-purple bg-brand-purple/5 hover:bg-brand-purple/10 text-brand-purple dark:text-brand-purple font-bold text-[9px] transition-all cursor-pointer select-none"
           >
             <Plus className="h-3 w-3" />
-            Tambah Tahap Pembelian
+            {t('calculator.addTranche')}
           </button>
         </div>
 
         {/* Broker Fee Settings */}
         <div className="flex flex-col gap-1.5 shrink-0 min-w-0 md:min-w-[210px] w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">4. Broker Fee</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step4')}</label>
           <select
             value={brokerPreset}
             onChange={(e) => handlePresetChange(e.target.value)}
             className="w-full glass-input px-2.5 py-2 text-xs font-semibold cursor-pointer text-foreground bg-background"
           >
-            <option value="stockbit">Stockbit (Buy 0.15% / Sell 0.25%)</option>
-            <option value="ajaib">Ajaib (Buy 0.15% / Sell 0.25%)</option>
-            <option value="ipot">IPOT (Buy 0.19% / Sell 0.29%)</option>
-            <option value="custom">Custom Fee</option>
-            <option value="none">Tanpa Fee (0.00%)</option>
+            <option value="stockbit">Stockbit ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
+            <option value="ajaib">Ajaib ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
+            <option value="ipot">IPOT ({t('calculator.feeBeli')} 0.19% / {t('calculator.feeJual')} 0.29%)</option>
+            <option value="custom">{t('calculator.presetCustom')}</option>
+            <option value="none">{t('calculator.presetNone')}</option>
           </select>
           
           {brokerPreset === 'custom' && (
@@ -612,7 +614,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
                 </div>
-                <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Beli</span>
+                <span className="text-[8px] text-slate-500 text-center block mt-0.5">{t('calculator.feeBeli')}</span>
               </div>
               <div>
                 <div className="relative">
@@ -627,13 +629,15 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
                 </div>
-                <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Jual</span>
+                <span className="text-[8px] text-slate-500 text-center block mt-0.5">{t('calculator.feeJual')}</span>
               </div>
             </div>
           )}
           
           <span className="text-[9px] text-slate-500 text-center block mt-1">
-            {includeFees ? 'Potongan fee dihitung' : 'Murni tanpa biaya broker'}
+            {includeFees 
+              ? (language === 'id' ? 'Potongan fee dihitung' : 'Fees calculation included') 
+              : (language === 'id' ? 'Murni tanpa biaya broker' : 'Purely without broker fees')}
           </span>
         </div>
 
@@ -651,7 +655,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           {isSaving ? (
             <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
           ) : null}
-          <span>{user ? 'Simpan' : 'Simpan Lokal'}</span>
+          <span>{user ? t('common.save') : t('common.saveLocal')}</span>
         </button>
       </form>
     </div>

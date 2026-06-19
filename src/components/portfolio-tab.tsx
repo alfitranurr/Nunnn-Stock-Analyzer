@@ -24,6 +24,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConfirmModal } from './confirm-modal';
 import { cleanCompanyName } from '@/lib/utils';
+import { useLanguage } from '@/lib/language-context';
 
 interface Holding {
   id: string;
@@ -70,6 +71,7 @@ function PortfolioEmitenLogo({ symbol }: { symbol: string }) {
 }
 
 export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeClick }: PortfolioTabProps) {
+  const { language, t } = useLanguage();
   const [holdings, setHoldings] = React.useState<Holding[]>([]);
   const [cashBalance, setCashBalance] = React.useState<number>(0);
   const [currentPrices, setCurrentPrices] = React.useState<Record<string, number>>({});
@@ -92,13 +94,13 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
 
   // Format ke Rupiah
   const formatIDR = (value: number) => {
-    const formatted = new Intl.NumberFormat('en-US', {
+    const loc = language === 'id' ? 'id-ID' : 'en-US';
+    const formatted = new Intl.NumberFormat(loc, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(Math.abs(value));
     return value < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
   };
-
 
   const loadLocalStorageData = React.useCallback(() => {
     if (!user) return;
@@ -131,11 +133,10 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
     if (isSupabaseConfigured && !user.isMock) {
       try {
         // Fetch Cash
-        const { data: cashData, error: cashError } = await supabase
+        const { data: cashDataArray, error: cashError } = await supabase
           .from('portfolio_cash')
           .select('cash_balance')
-          .eq('user_id', user.id)
-          .single();
+          .eq('user_id', user.id);
 
         if (cashError) {
           // If table does not exist or relation error occurs
@@ -146,15 +147,22 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
             setLoading(false);
             return;
           }
-          if (cashError.code !== 'PGRST116') {
-            console.error('Error fetching cash:', cashError);
-          }
-        } else if (cashData) {
-          setCashBalance(Number(cashData.cash_balance));
+          console.error('Error fetching cash:', cashError);
+        } else if (cashDataArray && cashDataArray.length > 0) {
+          setCashBalance(Number(cashDataArray[0].cash_balance));
         } else {
-          // Initialize cash row if not exist
-          await supabase.from('portfolio_cash').insert({ user_id: user.id, cash_balance: 0 });
-          setCashBalance(0);
+          // Initialize cash row with default Rp 100M if not exist
+          const defaultCash = 100000000;
+          const { error: insertError } = await supabase
+            .from('portfolio_cash')
+            .insert({ user_id: user.id, cash_balance: defaultCash });
+          
+          if (insertError) {
+            console.error('Error initializing cash:', insertError);
+            setCashBalance(0);
+          } else {
+            setCashBalance(defaultCash);
+          }
         }
 
         // Fetch Holdings
@@ -186,7 +194,6 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
         console.error('Error fetching from Supabase, falling back to LocalStorage:', e);
         setIsLocalMode(true);
         loadLocalStorageData();
-      } finally {
         setLoading(false);
       }
     } else {
@@ -272,7 +279,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
         
         if (error) {
           console.error('Error updating stock in Supabase:', error);
-          alert(`Gagal mengubah posisi saham: ${error.message}`);
+          alert(language === 'id' ? `Gagal mengubah posisi saham: ${error.message}` : `Failed to update stock position: ${error.message}`);
         } else {
           fetchData();
         }
@@ -304,7 +311,11 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
           });
         if (error) {
           console.error('Error inserting stock into Supabase:', error);
-          alert(`Gagal menyimpan saham ke cloud database: ${error.message}\n\nTips: Pastikan kolom 'company_name' sudah ditambahkan ke tabel 'portfolio_holdings' di Supabase Anda.`);
+          alert(
+            language === 'id'
+              ? `Gagal menyimpan saham ke cloud database: ${error.message}\n\nTips: Pastikan kolom 'company_name' sudah ditambahkan ke tabel 'portfolio_holdings' di Supabase Anda.`
+              : `Failed to save stock to cloud database: ${error.message}\n\nTips: Ensure that the 'company_name' column has been added to the 'portfolio_holdings' table in your Supabase.`
+          );
         } else {
           fetchData();
         }
@@ -331,7 +342,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
         .eq('id', confirmDeleteId);
       if (error) {
         console.error('Error deleting stock from Supabase:', error);
-        alert(`Gagal menghapus saham: ${error.message}`);
+        alert(language === 'id' ? `Gagal menghapus saham: ${error.message}` : `Failed to delete stock: ${error.message}`);
       } else {
         fetchData();
       }
@@ -341,7 +352,6 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
     setHoldings(updated);
     setConfirmDeleteId(null);
   };
-
 
   const openAddModal = () => {
     setEditingHolding(null);
@@ -385,9 +395,9 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
           <Lock className="h-9 w-9 text-brand-purple animate-pulse" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl md:text-2xl font-black text-white">Portofolio Saya Terkunci</h2>
+          <h2 className="text-xl md:text-2xl font-black text-white">{t('portfolio.portfolioLocked')}</h2>
           <p className="text-sm text-slate-400 leading-relaxed max-w-sm mx-auto">
-            Akses portofolio riil hanya tersedia untuk pengguna terdaftar. Silakan masuk atau daftarkan akun untuk memantau posisi investasi Anda secara real-time.
+            {t('portfolio.portfolioLockedDesc')}
           </p>
         </div>
         <button
@@ -395,7 +405,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
           className="px-6 py-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.03] active:scale-[0.97] flex items-center gap-2"
         >
           <UserPlus className="h-4.5 w-4.5" />
-          <span>Masuk ke Akun Anda</span>
+          <span>{t('portfolio.loginButton')}</span>
         </button>
       </div>
     );
@@ -407,11 +417,11 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4.5">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2">
-            Portofolio Saya
+            {t('portfolio.title')}
             <Briefcase className="h-6.5 w-6.5 text-brand-purple shrink-0" />
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Simulasi pelacakan portofolio saham dan perhitungan P&L bersih secara real-time.
+            {t('portfolio.desc')}
           </p>
         </div>
         
@@ -422,7 +432,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
             className="w-full sm:w-auto flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs transition-all cursor-pointer shadow-md hover:scale-[1.02]"
           >
             <Plus className="h-4.5 w-4.5" />
-            <span>Tambah Saham</span>
+            <span>{t('portfolio.addStock')}</span>
           </button>
         </div>
       </div>
@@ -432,29 +442,33 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
         {/* Card 1: Total Equity */}
         <div className="glass-card p-5 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[96px]">
           <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
-            Total Equity
+            {t('portfolio.totalEquity')}
           </span>
           <h3 className="text-lg sm:text-xl lg:text-2xl font-black text-white mt-1.5 whitespace-nowrap">
             {formatIDR(totalPortfolioValue)}
           </h3>
-          <span className="text-[9px] text-slate-500 mt-0.5">Total Nilai Pasar Saham Saat Ini</span>
+          <span className="text-[9px] text-slate-500 mt-0.5">
+            {language === 'id' ? 'Total Nilai Pasar Saham Saat Ini' : 'Total Market Value of Current Stocks'}
+          </span>
         </div>
 
         {/* Card 2: Modal Terinvestasi (Capital) */}
         <div className="glass-card p-5 border-white/5 relative overflow-hidden flex flex-col justify-center min-h-[96px]">
           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
-            Modal Terinvestasi
+            {t('portfolio.investedCapital')}
           </span>
           <h3 className="text-lg sm:text-xl lg:text-2xl font-black text-slate-200 mt-1.5 whitespace-nowrap">
             {formatIDR(totalStocksCapital)}
           </h3>
-          <span className="text-[9px] text-slate-500 mt-0.5">Total Modal Pembelian Saham</span>
+          <span className="text-[9px] text-slate-500 mt-0.5">
+            {language === 'id' ? 'Total Modal Pembelian Saham' : 'Total Cost of Stock Purchases'}
+          </span>
         </div>
 
         {/* Card 3: Total Return / P&L */}
         <div className="glass-card p-5 border-white/5 relative overflow-hidden flex flex-col justify-center min-h-[96px]">
           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
-            Total Return (P&L)
+            {t('portfolio.totalReturn')}
           </span>
           <h3 className={`text-lg sm:text-xl lg:text-2xl font-black mt-1.5 flex items-center gap-1.5 whitespace-nowrap ${totalReturnRp >= 0 ? 'text-bullish-green dark:text-bullish-neon text-profit-glow' : 'text-bearish-red dark:text-bearish-crimson text-loss-glow'}`}>
             {totalReturnRp >= 0 ? <TrendingUp className="h-5 w-5 shrink-0" /> : <TrendingDown className="h-5 w-5 shrink-0" />}
@@ -470,7 +484,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
       <div className="glass-card p-6 w-full border border-white/5 overflow-hidden">
         <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-white/5">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            Kepemilikan Saham Aktif
+            {language === 'id' ? 'Kepemilikan Saham Aktif' : 'Active Stock Holdings'}
           </h3>
           <button
             onClick={async () => {
@@ -483,20 +497,24 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
             className={`p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all duration-200 cursor-pointer border border-white/5 flex items-center justify-center ${
               isRefreshing ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.03] active:scale-[0.97]'
             }`}
-            title="Refresh Portofolio & Harga"
+            title={language === 'id' ? 'Refresh Portofolio & Harga' : 'Refresh Portfolio & Prices'}
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-brand-purple' : ''}`} />
           </button>
         </div>
 
         {loading && holdings.length === 0 ? (
-          <div className="py-24" />
+          <div className="py-24 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-brand-purple" />
+          </div>
         ) : holdings.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-center text-slate-500 border border-dashed border-white/5 rounded-xl">
             <Briefcase className="h-10 w-10 text-slate-700 mb-3 animate-pulse" />
-            <p className="text-sm font-semibold">Belum Ada Saham Tersimpan</p>
+            <p className="text-sm font-semibold">{language === 'id' ? 'Belum Ada Saham Tersimpan' : 'No Saved Stocks'}</p>
             <p className="text-xs text-slate-400 max-w-xs mt-1">
-              Klik tombol "Tambah Saham" di atas untuk menambahkan posisi kepemilikan aset portofolio Anda.
+              {language === 'id'
+                ? 'Klik tombol "Tambah Saham" di atas untuk menambahkan posisi kepemilikan aset portofolio Anda.'
+                : 'Click "Add Stock" above to add your asset position to portfolio tracking.'}
             </p>
           </div>
         ) : (
@@ -508,14 +526,14 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                   <table className="min-w-full divide-y divide-white/5">
                     <thead className="bg-black/45">
                       <tr>
-                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Saham</th>
-                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Lot</th>
-                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Avg Price</th>
-                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Last Price</th>
-                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Invested</th>
-                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Market Value</th>
-                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Floating P&L</th>
-                        <th scope="col" className="px-4 py-3 scope-row text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('portfolio.tableSaham')}</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('portfolio.tableLot')}</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('portfolio.tableAvgPrice')}</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('portfolio.tableLastPrice')}</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('portfolio.tableInvested')}</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('portfolio.tableMarketValue')}</th>
+                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('portfolio.tablePl')}</th>
+                        <th scope="col" className="px-4 py-3 scope-row text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 bg-transparent">
@@ -528,7 +546,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                         const plPct = investedValue > 0 ? (plRp / investedValue) * 100 : 0;
                         
                         return (
-                          <tr key={h.id} className="hover:bg-white/3 transition-colors">
+                           <tr key={h.id} className="hover:bg-white/3 transition-colors">
                             {/* Saham */}
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-2.5">
@@ -547,7 +565,11 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                             {/* Lot */}
                             <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-semibold">
                               {h.lot.toLocaleString('en-US')} Lot
-                              <span className="text-[10px] text-slate-500 font-normal block">({(h.lot * 100).toLocaleString('en-US')} lembar)</span>
+                              <span className="text-[10px] text-slate-500 font-normal block">
+                                {language === 'id' 
+                                  ? `(${(h.lot * 100).toLocaleString('en-US')} lembar)` 
+                                  : `(${(h.lot * 100).toLocaleString('en-US')} shares)`}
+                              </span>
                             </td>
 
                             {/* Avg Price */}
@@ -559,7 +581,9 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                             <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-bold">
                               {formatIDR(currentPrice)}
                               {currentPrices[tickerUpper] === undefined && (
-                                <span className="text-[8px] text-slate-500 font-normal block leading-none mt-0.5">(Menggunakan Avg)</span>
+                                <span className="text-[8px] text-slate-500 font-normal block leading-none mt-0.5">
+                                  {language === 'id' ? '(Menggunakan Avg)' : '(Using Avg)'}
+                                </span>
                               )}
                             </td>
 
@@ -590,7 +614,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                                 <button
                                   onClick={() => onAnalyzeClick(h.ticker)}
                                   className="p-2 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-500 dark:text-teal-400 border border-teal-500/20 transition-all cursor-pointer flex items-center justify-center"
-                                  title="Analisis Saham Pro"
+                                  title={language === 'id' ? 'Analisis Saham Pro' : 'Pro Stock Analysis'}
                                 >
                                   <LineChart className="h-4.5 w-4.5" />
                                 </button>
@@ -599,7 +623,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                                 <button
                                   onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
                                   className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
-                                  title="Avg Down Saham Ini"
+                                  title={language === 'id' ? 'Avg Down Saham Ini' : 'Avg Down This Stock'}
                                 >
                                   <Calculator className="h-4.5 w-4.5" />
                                 </button>
@@ -608,7 +632,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                                 <button
                                   onClick={() => openEditModal(h)}
                                   className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 transition-all cursor-pointer flex items-center justify-center"
-                                  title="Ubah Posisi"
+                                  title={language === 'id' ? 'Ubah Posisi' : 'Edit Position'}
                                 >
                                   <Edit3 className="h-4.5 w-4.5" />
                                 </button>
@@ -617,7 +641,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                                 <button
                                   onClick={() => setConfirmDeleteId(h.id)}
                                   className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center"
-                                  title="Hapus Saham"
+                                  title={language === 'id' ? 'Hapus Saham' : 'Delete Stock'}
                                 >
                                   <Trash2 className="h-4.5 w-4.5" />
                                 </button>
@@ -663,7 +687,9 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       <span className="text-xs font-extrabold text-slate-200">
                         {h.lot.toLocaleString('en-US')} Lot
                         <span className="text-[9px] text-slate-400 font-normal block text-right mt-0.5">
-                          ({(h.lot * 100).toLocaleString('en-US')} lbr)
+                          {language === 'id' 
+                            ? `(${(h.lot * 100).toLocaleString('en-US')} lbr)` 
+                            : `(${(h.lot * 100).toLocaleString('en-US')} shrs)`}
                         </span>
                       </span>
                     </div>
@@ -713,17 +739,17 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       <button
                         onClick={() => onAnalyzeClick(h.ticker)}
                         className="py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-500 dark:text-teal-400 border border-teal-500/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
-                        title="Analisis Saham Pro"
+                        title={language === 'id' ? 'Analisis Saham Pro' : 'Pro Stock Analysis'}
                       >
                         <LineChart className="h-3 w-3" />
-                        <span className="text-[8px] font-bold tracking-wider uppercase">Analisis</span>
+                        <span className="text-[8px] font-bold tracking-wider uppercase">{language === 'id' ? 'Analisis' : 'Analysis'}</span>
                       </button>
 
                       {/* Avg Down Action */}
                       <button
                         onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
                         className="py-1.5 bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
-                        title="Avg Down Saham Ini"
+                        title={language === 'id' ? 'Avg Down Saham Ini' : 'Avg Down This Stock'}
                       >
                         <Calculator className="h-3 w-3" />
                         <span className="text-[8px] font-bold tracking-wider uppercase">Avg Down</span>
@@ -733,20 +759,20 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       <button
                         onClick={() => openEditModal(h)}
                         className="py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
-                        title="Ubah Posisi"
+                        title={language === 'id' ? 'Ubah Posisi' : 'Edit Position'}
                       >
                         <Edit3 className="h-3 w-3" />
-                        <span className="text-[8px] font-bold tracking-wider uppercase">Ubah</span>
+                        <span className="text-[8px] font-bold tracking-wider uppercase">{language === 'id' ? 'Ubah' : 'Edit'}</span>
                       </button>
 
                       {/* Delete Action */}
                       <button
                         onClick={() => setConfirmDeleteId(h.id)}
                         className="py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
-                        title="Hapus Saham"
+                        title={language === 'id' ? 'Hapus Saham' : 'Delete Stock'}
                       >
                         <Trash2 className="h-3 w-3" />
-                        <span className="text-[8px] font-bold tracking-wider uppercase">Hapus</span>
+                        <span className="text-[8px] font-bold tracking-wider uppercase">{language === 'id' ? 'Hapus' : 'Delete'}</span>
                       </button>
                     </div>
                   </div>
@@ -777,13 +803,15 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
               </button>
 
               <h3 className="text-base font-bold text-white mb-6 border-b border-white/5 pb-3">
-                {editingHolding ? `Edit Saham ${editingHolding.ticker}` : 'Tambah Saham Baru'}
+                {editingHolding 
+                  ? `${t('portfolio.modalEditTitle')} ${editingHolding.ticker}` 
+                  : t('portfolio.modalAddTitle')}
               </h3>
 
               <form onSubmit={handleAddEditSubmit} className="space-y-4">
-                {/* Ticker Input */}
+                 {/* Ticker Input */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kode Saham (Ticker)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('portfolio.formTicker')}</label>
                   <div className="relative mt-1.5">
                     <input
                       type="text"
@@ -791,7 +819,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       disabled={!!editingHolding}
                       value={formTicker}
                       onChange={(e) => setFormTicker(e.target.value.toUpperCase())}
-                      placeholder="Contoh: BBCA"
+                      placeholder={language === 'id' ? 'Contoh: BBCA' : 'e.g. BBCA'}
                       className={`w-full glass-input px-3.5 py-2.5 text-base md:text-sm font-bold uppercase ${
                         editingHolding ? 'bg-white/5 opacity-50 cursor-not-allowed border-none' : 'bg-black/40 border-white/10'
                       }`}
@@ -801,43 +829,43 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                     )}
                   </div>
                 </div>
-
+ 
                 {/* Company Name Input */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Nama Perusahaan (Emiten)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('portfolio.formCompanyName')}</label>
                   <input
                     type="text"
                     disabled={!!editingHolding}
                     value={formCompanyName}
                     onChange={(e) => setFormCompanyName(e.target.value)}
-                    placeholder="Nama Perusahaan (Opsional)"
+                    placeholder={t('portfolio.formCompanyName')}
                     className="w-full glass-input px-3.5 py-2.5 mt-1.5 text-base md:text-sm font-medium bg-black/40 border-white/10 disabled:opacity-50"
                   />
                 </div>
-
+ 
                 <div className="grid grid-cols-2 gap-4">
                   {/* Lot Input */}
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Jumlah Lot</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('portfolio.formLot')}</label>
                     <input
                       type="text"
                       required
                       value={formLot}
                       onChange={(e) => setFormLot(e.target.value.replace(/[^0-9]/g, ''))}
-                      placeholder="Contoh: 10"
+                      placeholder={language === 'id' ? 'Contoh: 10' : 'e.g. 10'}
                       className="w-full glass-input px-3.5 py-2.5 mt-1.5 text-base md:text-sm text-center font-bold bg-black/40 border-white/10"
                     />
                   </div>
-
+ 
                   {/* Avg Price Input */}
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Harga Rata-Rata Beli (Rp)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('portfolio.formAvgPrice')}</label>
                     <input
                       type="text"
                       required
                       value={formAvgPrice}
                       onChange={(e) => setFormAvgPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
-                      placeholder="Contoh: 4300"
+                      placeholder={language === 'id' ? 'Contoh: 4300' : 'e.g. 4300'}
                       className="w-full glass-input px-3.5 py-2.5 mt-1.5 text-base md:text-sm text-center font-bold bg-black/40 border-white/10"
                     />
                   </div>
@@ -849,13 +877,13 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                     onClick={() => setIsAddEditOpen(false)}
                     className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-xs transition-all cursor-pointer"
                   >
-                    Batal
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="flex-1 py-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs transition-all cursor-pointer shadow-md"
                   >
-                    Simpan Posisi
+                    {language === 'id' ? 'Simpan Posisi' : 'Save Position'}
                   </button>
                 </div>
               </form>
@@ -864,16 +892,19 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
         )}
       </AnimatePresence>
 
-
       {/* Confirmation Delete Modal */}
       <ConfirmModal
         isOpen={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
         onConfirm={handleDeleteConfirm}
-        title="Hapus Saham dari Portofolio"
-        message="Apakah Anda yakin ingin menghapus kepemilikan emiten ini? Tindakan ini akan menghapus aset ini dari pelacakan portofolio Anda secara permanen."
-        confirmText="Ya, Hapus"
-        cancelText="Batal"
+        title={language === 'id' ? 'Hapus Saham dari Portofolio' : 'Delete Stock from Portfolio'}
+        message={
+          language === 'id'
+            ? 'Apakah Anda yakin ingin menghapus kepemilikan emiten ini? Tindakan ini akan menghapus aset ini dari pelacakan portofolio Anda secara permanen.'
+            : 'Are you sure you want to delete this stock holding? This action will permanently delete this asset from your portfolio tracking.'
+        }
+        confirmText={language === 'id' ? 'Ya, Hapus' : 'Yes, Delete'}
+        cancelText={t('common.cancel')}
         type="danger"
       />
     </div>

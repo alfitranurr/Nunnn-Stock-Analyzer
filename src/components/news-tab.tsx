@@ -16,6 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/language-context';
 
 interface NewsTabProps {
   user: any;
@@ -40,6 +41,7 @@ interface AISummary {
 }
 
 export function NewsTab({ user, onSignInClick }: NewsTabProps) {
+  const { language, t } = useLanguage();
   const [category, setCategory] = React.useState<'saham' | 'foreign' | 'domestik' | 'global' | 'politik'>('saham');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [news, setNews] = React.useState<NewsItem[]>([]);
@@ -110,7 +112,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
       setNews(data.news || []);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Gagal memuat berita finansial.');
+      setError(err.message || (language === 'id' ? 'Gagal memuat berita finansial.' : 'Failed to load financial news.'));
     } finally {
       setLoading(false);
     }
@@ -164,7 +166,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
         });
 
         if (!res.ok) {
-          throw new Error('Gagal menghasilkan rangkuman AI.');
+          throw new Error(language === 'id' ? 'Gagal menghasilkan rangkuman AI.' : 'Failed to generate AI summary.');
         }
 
         const data = await res.json();
@@ -176,7 +178,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
         console.error(err);
         setSummaryError(prev => ({
           ...prev,
-          [articleKey]: err.message || 'Terjadi kesalahan jaringan.'
+          [articleKey]: err.message || (language === 'id' ? 'Terjadi kesalahan jaringan.' : 'Network error occurred.')
         }));
       } finally {
         setSummaryLoading(prev => ({ ...prev, [articleKey]: false }));
@@ -185,11 +187,11 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
   };
 
   const categories = [
-    { id: 'saham', label: 'Saham Indonesia' },
-    { id: 'foreign', label: 'Saham Foreign' },
-    { id: 'domestik', label: 'Ekonomi Domestik' },
-    { id: 'global', label: 'Ekonomi Global' },
-    { id: 'politik', label: 'Politik Domestik' }
+    { id: 'saham' },
+    { id: 'foreign' },
+    { id: 'domestik' },
+    { id: 'global' },
+    { id: 'politik' }
   ] as const;
 
   return (
@@ -200,10 +202,10 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-brand-purple animate-pulse" /> Berita Saham & Sentimen Ekonomi
+              <BookOpen className="w-5 h-5 text-brand-purple animate-pulse" /> {t('news.title')}
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Pantau pergerakan pasar saham tanah air serta dinamika ekonomi makro real-time terlengkap.
+              {t('news.desc')}
             </p>
           </div>
 
@@ -211,7 +213,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
             <form onSubmit={handleSearchSubmit} className="relative w-full lg:w-64">
               <input
                 type="text"
-                placeholder="Cari berita..."
+                placeholder={t('news.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 focus:ring-1 focus:ring-brand-purple/60 transition-all duration-200"
@@ -232,7 +234,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
               onClick={() => fetchNews(category, searchQuery)}
               disabled={loading}
               className="p-2 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer"
-              title="Segarkan Berita"
+              title={t('news.refresh')}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -251,7 +253,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                   ? 'text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer' 
                   : 'text-slate-600 opacity-40 cursor-not-allowed'
               }`}
-              title="Scroll Kiri"
+              title={language === 'id' ? 'Scroll Kiri' : 'Scroll Left'}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -273,7 +275,11 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  {cat.label}
+                  {cat.id === 'saham' ? t('news.tabSaham') :
+                   cat.id === 'foreign' ? t('news.tabForeign') :
+                   cat.id === 'domestik' ? t('news.tabDomestik') :
+                   cat.id === 'global' ? t('news.tabGlobal') :
+                   t('news.tabPolitik')}
                 </button>
               ))}
             </div>
@@ -287,7 +293,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                   ? 'text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer' 
                   : 'text-slate-600 opacity-40 cursor-not-allowed'
               }`}
-              title="Scroll Kanan"
+              title={language === 'id' ? 'Scroll Kanan' : 'Scroll Right'}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -295,7 +301,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
 
           {searchQuery && (
             <div className="text-xs text-slate-400">
-              Hasil pencarian untuk: <span className="text-brand-purple font-semibold">"{searchQuery}"</span>
+              {language === 'id' ? 'Hasil pencarian untuk:' : 'Search results for:'} <span className="text-brand-purple font-semibold">"{searchQuery}"</span>
             </div>
           )}
         </div>
@@ -327,16 +333,16 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
           <div className="p-4 bg-brand-purple/10 border border-brand-purple/20 rounded-full text-brand-purple">
             <BookOpen className="w-8 h-8 animate-pulse" />
           </div>
-          <h3 className="text-base font-bold text-white">Tidak ada berita ditemukan</h3>
+          <h3 className="text-base font-bold text-white">{t('news.noNews')}</h3>
           <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-            Cobalah mengubah kata kunci pencarian Anda atau periksa kembali kategori utama.
+            {t('news.noNewsDesc')}
           </p>
           {searchQuery && (
             <button
               onClick={handleClearSearch}
               className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold rounded-xl cursor-pointer transition-all duration-200"
             >
-              Kembali ke Kategori Utama
+              {t('news.clearSearch')}
             </button>
           )}
         </div>
@@ -367,7 +373,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-slate-500" />
-                        {item.pubDate ? new Date(item.pubDate).toLocaleDateString('id-ID', {
+                        {item.pubDate ? new Date(item.pubDate).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {
                           weekday: 'short',
                           day: 'numeric',
                           month: 'short',
@@ -387,7 +393,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                       rel="noopener noreferrer"
                       className="px-3.5 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
                     >
-                      Baca Sumber <ArrowRight className="w-3 h-3" />
+                      {t('news.readSource')} <ArrowRight className="w-3 h-3" />
                     </a>
 
                     {/* AI Summary Button */}
@@ -404,10 +410,10 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                           ? 'bg-brand-purple/15 border-brand-purple/35 text-brand-purple'
                           : 'bg-input-bg border-border-color hover:border-brand-purple/25 text-slate-300 hover:text-white'
                       }`}
-                      title={!user ? 'Masuk untuk membuka Rangkuman AI' : undefined}
+                      title={!user ? (language === 'id' ? 'Masuk untuk membuka Rangkuman AI' : 'Sign in to unlock AI Summary') : undefined}
                     >
                       <Sparkles className="w-3.5 h-3.5 animate-pulse text-brand-purple" />
-                      <span>Rangkuman AI</span>
+                      <span>{t('news.aiSummary')}</span>
                       {user ? (
                         isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />
                       ) : (
@@ -431,10 +437,10 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                         
                         {/* Loading State */}
                         {isSumLoading && (
-                          <div className="space-y-4 py-2">
+                           <div className="space-y-4 py-2">
                             <div className="flex items-center gap-2.5 text-xs font-bold text-brand-purple animate-pulse">
                               <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                              <span>AI sedang membaca dan merangkum berita...</span>
+                              <span>{t('news.aiGenerating')}</span>
                             </div>
                             
                             <div className="space-y-3">
@@ -454,7 +460,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                           <div className="p-3.5 bg-rose-500/5 border border-rose-500/15 rounded-xl text-rose-400 text-xs flex gap-2.5">
                             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
                             <div>
-                              <p className="font-bold">Gagal Generasi AI Summary</p>
+                              <p className="font-bold">{t('news.aiFailed')}</p>
                               <p className="mt-0.5 text-slate-400">{sumError}</p>
                               <button
                                 onClick={() => {
@@ -468,7 +474,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                 }}
                                 className="mt-2 text-brand-purple font-bold hover:underline cursor-pointer"
                               >
-                                Coba Lagi
+                                {t('news.aiRetry')}
                               </button>
                             </div>
                           </div>
@@ -482,7 +488,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                             <div className="flex items-center justify-between border-b border-slate-900 pb-2.5">
                               <div className="flex items-center gap-2">
                                 <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded tracking-wider uppercase">
-                                  AI Summary
+                                  {t('news.aiSummary')}
                                 </span>
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
                                   Beta
@@ -500,7 +506,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                             {/* 1. Highlight Utama */}
                             <div className="space-y-1.5">
                               <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest pl-0.5">
-                                Highlight Utama
+                                {t('news.aiHighlight')}
                               </div>
                               <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/15 rounded-xl shadow-sm">
                                 <p className="text-xs md:text-sm font-bold text-emerald-300">
@@ -512,7 +518,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                             {/* 2. Konteks Singkat */}
                             <div className="space-y-1.5">
                               <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">
-                                Konteks Singkat
+                                {t('news.aiContext')}
                               </div>
                               <p className="text-xs text-slate-300 leading-relaxed pl-1.5 border-l-2 border-slate-800">
                                 {summary.context}
@@ -522,7 +528,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                             {/* 3. Key Findings dalam poin bernomor */}
                             <div className="space-y-2">
                               <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">
-                                Temuan Kunci (Key Findings)
+                                {t('news.aiFindings')}
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-0.5">
                                 {summary.keyFindings.map((finding, fidx) => (
@@ -546,7 +552,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                               <div className="p-4 bg-emerald-500/[0.02] border border-emerald-500/20 rounded-xl relative overflow-hidden shadow-inner">
                                 <div className="absolute top-0 bottom-0 left-0 w-1 bg-emerald-500" />
                                 <div className="text-[9px] font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                  <span>KEY TAKEAWAY</span>
+                                  <span>{t('news.aiTakeaway')}</span>
                                 </div>
                                 <p className="text-xs text-slate-200 leading-relaxed font-semibold italic">
                                   "{summary.takeaway}"
@@ -556,7 +562,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
 
                             {/* AI Disclaimer */}
                             <div className="text-[8px] text-slate-500 italic text-center pt-2.5 border-t border-slate-900/40">
-                              Rangkuman otomatis dihasilkan AI. Selalu verifikasi dengan dokumen sumber asli.
+                              {t('news.aiDisclaimer')}
                             </div>
 
                           </div>

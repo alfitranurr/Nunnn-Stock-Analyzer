@@ -15,148 +15,15 @@ import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator'
 import { CompoundingTab } from '@/components/compounding-tab';
 import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight, Percent, TrendingUp, FileText, Coins } from 'lucide-react';
+import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight, Percent, TrendingUp, FileText, Coins, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface TickerConfig {
-  symbol: string;
-  x: string;
-  y: string;
-  pathX: number[];
-  pathY: number[];
-  duration: number;
-  delay: number;
-}
-
-const INITIAL_TICKERS = [
-  { symbol: 'BBRI', x: '5%', y: '15%' },
-  { symbol: 'BBCA', x: '82%', y: '12%' },
-  { symbol: 'GOTO', x: '88%', y: '65%' },
-  { symbol: 'TLKM', x: '8%', y: '72%' },
-  { symbol: 'ASII', x: '78%', y: '45%' },
-  { symbol: 'ANTM', x: '15%', y: '48%' },
-  { symbol: 'BMRI', x: '45%', y: '72%' },
-  { symbol: 'BBNI', x: '42%', y: '10%' },
-  // Barito Group
-  { symbol: 'BREN', x: '75%', y: '70%' },
-  { symbol: 'BRPT', x: '22%', y: '75%' },
-  { symbol: 'TPIA', x: '4%', y: '35%' },
-  { symbol: 'CUAN', x: '52%', y: '25%' },
-  // Happy Hapsoro Group
-  { symbol: 'RAJA', x: '30%', y: '58%' },
-  { symbol: 'PSAB', x: '68%', y: '25%' },
-  // Additional Tickers
-  { symbol: 'ADRO', x: '18%', y: '8%' },
-  { symbol: 'PTBA', x: '28%', y: '22%' },
-  { symbol: 'ITMG', x: '62%', y: '10%' },
-  { symbol: 'UNVR', x: '92%', y: '28%' },
-  { symbol: 'INDF', x: '90%', y: '50%' },
-  { symbol: 'ICBP', x: '70%', y: '55%' },
-  { symbol: 'KLBF', x: '60%', y: '42%' },
-  { symbol: 'AMRT', x: '50%', y: '68%' },
-  { symbol: 'PGAS', x: '35%', y: '45%' },
-  { symbol: 'MEDC', x: '25%', y: '33%' },
-  { symbol: 'MDKA', x: '12%', y: '60%' },
-  { symbol: 'HRUM', x: '16%', y: '28%' },
-  { symbol: 'ARTO', x: '38%', y: '30%' },
-  { symbol: 'BUKA', x: '56%', y: '12%' },
-  { symbol: 'ISAT', x: '72%', y: '8%' },
-  { symbol: 'EXCL', x: '84%', y: '35%' },
-  { symbol: 'JSMR', x: '48%', y: '52%' },
-  { symbol: 'BSDE', x: '38%', y: '78%' },
-  { symbol: 'PWON', x: '10%', y: '80%' },
-  { symbol: 'CTRA', x: '58%', y: '76%' },
-  { symbol: 'TINS', x: '2%', y: '52%' },
-  { symbol: 'BRMS', x: '82%', y: '78%' },
-  { symbol: 'BUMI', x: '94%', y: '72%' },
-  { symbol: 'ACES', x: '66%', y: '74%' },
-  { symbol: 'MAPI', x: '28%', y: '45%' },
-  { symbol: 'MYOR', x: '48%', y: '8%' },
-  { symbol: 'PNLF', x: '34%', y: '18%' },
-  { symbol: 'BBTN', x: '2%', y: '10%' },
-  { symbol: 'BDMN', x: '64%', y: '32%' },
-  { symbol: 'ADHI', x: '22%', y: '65%' },
-  { symbol: 'WIKA', x: '14%', y: '72%' },
-  { symbol: 'PTPP', x: '30%', y: '72%' },
-  { symbol: 'SMGR', x: '44%', y: '40%' },
-  { symbol: 'BELI', x: '74%', y: '48%' },
-];
-
-function EmitenLogo({ symbol }: { symbol: string }) {
-  const [hasError, setHasError] = React.useState(false);
-
-  return (
-    <div className="w-5.5 h-5.5 md:w-7 md:h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-      {!hasError ? (
-        <img
-          src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
-          alt={symbol}
-          className="w-4.5 h-4.5 md:w-5.5 md:h-5.5 object-contain opacity-60 filter brightness-125 saturate-50"
-          onError={() => setHasError(true)}
-        />
-      ) : (
-        <span className="font-black text-[10px] md:text-[12px] text-[#00b15b]/40">
-          {symbol.slice(0, 2)}
-        </span>
-      )}
-    </div>
-  );
-}
+import { useLanguage } from '@/lib/language-context';
 
 export default function Dashboard() {
-  const [showCover, setShowCover] = React.useState(true);
-  const [currentTab, setCurrentTab] = React.useState('news');
+  const [currentTab, setCurrentTab] = React.useState('home');
   const [user, setUser] = React.useState<any>(null);
+  const { language, t } = useLanguage();
 
-  const [tickers, setTickers] = React.useState<TickerConfig[]>([]);
-
-  React.useEffect(() => {
-    // Generate random paths on client load to prevent SSR mismatch
-    const randomized = INITIAL_TICKERS.map((t) => {
-      // Build a 5-point random floating trajectory
-      const pathX = [
-        0,
-        (Math.random() - 0.5) * 350, // random offset up to 175px
-        (Math.random() - 0.5) * 350,
-        (Math.random() - 0.5) * 350,
-        (Math.random() - 0.5) * 350,
-        0
-      ];
-      const pathY = [
-        0,
-        (Math.random() - 0.5) * 250, // random offset up to 125px
-        (Math.random() - 0.5) * 250,
-        (Math.random() - 0.5) * 250,
-        (Math.random() - 0.5) * 250,
-        0
-      ];
-      const duration = 25 + Math.random() * 25; // 25s to 50s duration for slower, smoother drift
-      const delay = Math.random() * 5;
-      return {
-        ...t,
-        pathX,
-        pathY,
-        duration,
-        delay
-      };
-    });
-    setTickers(randomized);
-  }, []);
-
-  React.useEffect(() => {
-    const entered = sessionStorage.getItem('nunnn_stock_entered_dashboard');
-    if (entered === 'true') {
-      setShowCover(false);
-    }
-  }, []);
-
-  const handleEnterDashboard = (tab?: string) => {
-    sessionStorage.setItem('nunnn_stock_entered_dashboard', 'true');
-    setShowCover(false);
-    if (tab) {
-      setCurrentTab(tab);
-    }
-  };
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [plans, setPlans] = React.useState<SavedPlan[]>([]);
   const [activePlanToLoad, setActivePlanToLoad] = React.useState<SavedPlan | null>(null);
@@ -264,7 +131,12 @@ export default function Dashboard() {
               if (!simUser || !simUser.approved) {
                 localStorage.removeItem('nunnn_stock_mock_user');
                 setUser(null);
-                showToast('Akun simulasi Anda belum disetujui oleh Administrator.', 'error');
+                showToast(
+                  language === 'id'
+                    ? 'Akun simulasi Anda belum disetujui oleh Administrator.'
+                    : 'Your simulated account has not been approved by the Administrator.',
+                  'error'
+                );
                 return;
               }
             }
@@ -288,11 +160,12 @@ export default function Dashboard() {
           const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
           
           if (sessionUser.email?.toLowerCase() === adminEmail) {
-            const { data: adminApproval } = await supabase
+            const { data: adminApprovalArray } = await supabase
               .from('user_approvals')
               .select('approved')
-              .eq('email', sessionUser.email)
-              .single();
+              .eq('email', sessionUser.email);
+              
+            const adminApproval = adminApprovalArray && adminApprovalArray.length > 0 ? adminApprovalArray[0] : null;
               
             if (!adminApproval) {
               await supabase.from('user_approvals').insert({ email: sessionUser.email, approved: true });
@@ -300,11 +173,12 @@ export default function Dashboard() {
               await supabase.from('user_approvals').update({ approved: true }).eq('email', sessionUser.email);
             }
           } else {
-            const { data: approvalData, error: dbError } = await supabase
+            const { data: approvalDataArray, error: dbError } = await supabase
               .from('user_approvals')
               .select('approved')
-              .eq('email', sessionUser.email)
-              .single();
+              .eq('email', sessionUser.email);
+
+            const approvalData = approvalDataArray && approvalDataArray.length > 0 ? approvalDataArray[0] : null;
 
             if (dbError || !approvalData || !approvalData.approved) {
               if (!approvalData && sessionUser.email) {
@@ -312,7 +186,12 @@ export default function Dashboard() {
               }
               await supabase.auth.signOut();
               setUser(null);
-              showToast('Akun Anda belum disetujui oleh Administrator.', 'error');
+              showToast(
+                language === 'id'
+                  ? 'Akun Anda belum disetujui oleh Administrator.'
+                  : 'Your account has not been approved by the Administrator.',
+                'error'
+              );
               return;
             }
           }
@@ -411,7 +290,7 @@ export default function Dashboard() {
 
     const newPlanData = {
       ticker: calculatorInput.ticker,
-      company_name: calculatorInput.companyName || 'Emiten BEI',
+      company_name: calculatorInput.companyName || (language === 'id' ? 'Emiten BEI' : 'IDX Company'),
       lot_awal: calculatorInput.lotAwal,
       avg_price_awal: calculatorInput.avgPriceAwal,
       current_price: calculatorInput.currentPrice,
@@ -432,10 +311,19 @@ export default function Dashboard() {
           });
 
         if (error) throw error;
-        showToast(`Rencana ${calculatorInput.ticker} berhasil disimpan ke cloud database!`);
+        showToast(
+          language === 'id'
+            ? `Rencana ${calculatorInput.ticker} berhasil disimpan ke cloud database!`
+            : `Plan ${calculatorInput.ticker} successfully saved to cloud database!`
+        );
         fetchPlans();
       } catch (err: any) {
-        showToast(`Gagal menyimpan: ${err.message}`, 'error');
+        showToast(
+          language === 'id'
+            ? `Gagal menyimpan: ${err.message}`
+            : `Failed to save: ${err.message}`,
+          'error'
+        );
       } finally {
         setIsSaving(false);
       }
@@ -453,7 +341,11 @@ export default function Dashboard() {
         existingPlans.unshift(newLocalPlan);
         localStorage.setItem('nunnn_stock_saved_plans', JSON.stringify(existingPlans));
         setPlans(existingPlans);
-        showToast(`Rencana ${calculatorInput.ticker} berhasil disimpan secara lokal!`);
+        showToast(
+          language === 'id'
+            ? `Rencana ${calculatorInput.ticker} berhasil disimpan secara lokal!`
+            : `Plan ${calculatorInput.ticker} successfully saved locally!`
+        );
         setIsSaving(false);
       }, 600);
     }
@@ -473,24 +365,41 @@ export default function Dashboard() {
           .eq('id', planIdToDelete);
 
         if (error) throw error;
-        showToast('Rencana berhasil dihapus.');
+        showToast(
+          language === 'id'
+            ? 'Rencana berhasil dihapus.'
+            : 'Plan deleted successfully.'
+        );
         fetchPlans();
       } catch (err: any) {
-        showToast('Gagal menghapus rencana.', 'error');
+        showToast(
+          language === 'id'
+            ? 'Gagal menghapus rencana.'
+            : 'Failed to delete plan.',
+          'error'
+        );
       }
     } else {
       // Local Storage delete
       const updated = plans.filter(p => p.id !== planIdToDelete);
       localStorage.setItem('nunnn_stock_saved_plans', JSON.stringify(updated));
       setPlans(updated);
-      showToast('Rencana berhasil dihapus dari browser.');
+      showToast(
+        language === 'id'
+          ? 'Rencana berhasil dihapus dari browser.'
+          : 'Plan deleted successfully from browser.'
+      );
     }
     setPlanIdToDelete(null);
   };
 
   const handleLoadPlan = (plan: SavedPlan) => {
     setActivePlanToLoad(plan);
-    showToast(`Parameter saham ${plan.ticker} berhasil dimuat ke kalkulator.`);
+    showToast(
+      language === 'id'
+        ? `Parameter saham ${plan.ticker} berhasil dimuat ke kalkulator.`
+        : `Stock parameters for ${plan.ticker} loaded into the calculator successfully.`
+    );
   };
 
   const handleAvgDownFromPortfolio = (ticker: string, lot: number, avgPrice: number) => {
@@ -508,7 +417,11 @@ export default function Dashboard() {
     };
     setActivePlanToLoad(mockPlan);
     setCurrentTab('avg-down');
-    showToast(`Parameter saham ${ticker} berhasil dimuat ke kalkulator.`);
+    showToast(
+      language === 'id'
+        ? `Parameter saham ${ticker} berhasil dimuat ke kalkulator.`
+        : `Stock parameters for ${ticker} loaded into the calculator successfully.`
+    );
   };
 
   const handleAnalyzeFromPortfolio = (ticker: string) => {
@@ -520,9 +433,17 @@ export default function Dashboard() {
     setUser(authUser);
     if (authUser.isMock) {
       localStorage.setItem('nunnn_stock_mock_user', JSON.stringify(authUser));
-      showToast('Berhasil masuk ke simulasi akun lokal.');
+      showToast(
+        language === 'id'
+          ? 'Berhasil masuk ke simulasi akun lokal.'
+          : 'Successfully signed in to local account simulation.'
+      );
     } else {
-      showToast('Berhasil masuk menggunakan Supabase Auth!');
+      showToast(
+        language === 'id'
+          ? 'Berhasil masuk menggunakan Supabase Auth!'
+          : 'Successfully signed in using Supabase Auth!'
+      );
     }
   };
 
@@ -555,190 +476,17 @@ export default function Dashboard() {
       }
     } finally {
       setUser(null);
-      showToast('Anda telah keluar dari akun.');
+      showToast(
+        language === 'id'
+          ? 'Anda telah keluar dari akun.'
+          : 'You have signed out from your account.'
+      );
       setIsLogoutConfirmOpen(false);
     }
   };
 
   return (
     <div className="flex min-h-screen">
-      <AnimatePresence>
-        {showCover && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -50 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[100] flex flex-col justify-between bg-[#121518] text-white pt-4 px-4 pb-1 sm:pt-6 sm:px-6 sm:pb-1.5 md:pt-8 md:px-10 md:pb-2 overflow-hidden select-none h-screen w-screen"
-          >
-            {/* Ambient Background Glows */}
-            <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-[#00b15b]/10 blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] rounded-full bg-[#00b15b]/10 blur-[120px] pointer-events-none" />
-
-            {/* Floating Emiten Tickers (Background Animation) */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-              {tickers.map((ticker) => (
-                <motion.div
-                  key={ticker.symbol}
-                  className="absolute px-2.5 py-1.5 md:px-3 md:py-2 rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-[0.5px] shadow-sm flex items-center gap-2 md:gap-2.5 text-[9.5px] md:text-[11.5px] font-bold select-none pointer-events-none z-0"
-                  style={{ left: ticker.x, top: ticker.y }}
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    y: ticker.pathY,
-                    x: ticker.pathX,
-                    opacity: [0, 0.12, 0.32, 0.12, 0]
-                  }}
-                  transition={{
-                    duration: ticker.duration,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: ticker.delay
-                  }}
-                >
-                  {/* Micro Logo Badge */}
-                  <EmitenLogo symbol={ticker.symbol} />
-                  <span className="text-white/25 font-black tracking-wider">{ticker.symbol}</span>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Top Bar Branding */}
-            <div className="flex justify-between items-center no-print shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-[#00b15b] flex items-center justify-center shadow-lg shadow-[#00b15b]/20">
-                  <TrendingUp className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-extrabold text-xs tracking-wider uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                  NUNNN STOCK ANALYZER
-                </span>
-              </div>
-              <div className="text-[9px] text-slate-500 font-bold border border-white/5 bg-white/2 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                v1.2.0 Stable
-              </div>
-            </div>
-
-            {/* Middle Main Landing Info */}
-            <div className="max-w-4xl mx-auto text-center flex-1 flex flex-col justify-center items-center gap-3 sm:gap-4 md:gap-6 relative z-10 w-full py-1">
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.6 }}
-                className="space-y-1 md:space-y-3"
-              >
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00b15b]/10 border border-[#00b15b]/20 text-[9px] font-extrabold uppercase tracking-widest text-[#05fa7b] mb-1">
-                  <Sparkles className="h-2.5 w-2.5 text-[#05fa7b] animate-pulse" />
-                  Sistem Analisis Saham Modern
-                </div>
-                <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-none text-white">
-                  Kuasai Analisis Saham & <br className="hidden sm:inline" />
-                  <span className="text-profit-glow">Perencanaan Keuangan</span>
-                </h1>
-                <p className="text-[10px] sm:text-xs md:text-sm text-slate-400 max-w-sm sm:max-w-lg md:max-w-xl mx-auto leading-relaxed">
-                  Hitung secara presisi floating loss dengan kalkulator Average Down, proyeksikan pertumbuhan portofolio secara compounding, dan pantau berita emiten BEI.
-                </p>
-              </motion.div>
-
-              {/* Call to Action Button */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-                className="shrink-0"
-              >
-                <motion.button
-                  whileHover="hover"
-                  onClick={() => handleEnterDashboard()}
-                  className="group relative flex items-center gap-2 md:gap-3 bg-[#00b15b] hover:bg-[#05fa7b] text-white hover:text-black font-extrabold text-[11px] md:text-xs py-2.5 px-5 md:py-3.5 md:px-7 rounded-xl md:rounded-2xl shadow-xl shadow-[#00b15b]/25 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <span>Mulai Analisis Sekarang</span>
-                  <motion.span
-                    variants={{
-                      hover: { x: 6 }
-                    }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="inline-block"
-                  >
-                    <ArrowRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                  </motion.span>
-                </motion.button>
-              </motion.div>
-
-              {/* Features Preview Cards Grid */}
-              <motion.div
-                initial={{ opacity: 0, y: 25 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 w-full mt-1 md:mt-3"
-              >
-                <div 
-                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
-                >
-                  <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
-                    <TrendingUp className="h-3 w-3 md:h-4.5 md:w-4.5" />
-                  </div>
-                  <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Average Down</h3>
-                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
-                      Hitung avg down bertahap terintegrasi dengan broker fee beli & jual bursa secara presisi.
-                    </p>
-                  </div>
-                </div>
-
-                <div 
-                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
-                >
-                  <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                    <Percent className="h-3 w-3 md:h-4.5 md:w-4.5" />
-                  </div>
-                  <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Compounding</h3>
-                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
-                      Proyeksikan pertumbuhan dana investasi jangka panjang disesuaikan pajak & inflasi.
-                    </p>
-                  </div>
-                </div>
-
-                <div 
-                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
-                >
-                  <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
-                    <Coins className="h-3 w-3 md:h-4.5 md:w-4.5" />
-                  </div>
-                  <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Penjatahan E-IPO</h3>
-                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
-                      Hitung jatah saham IPO terpusat (pooling) dengan regulasi OJK terbaru secara presisi.
-                    </p>
-                  </div>
-                </div>
-
-                <div 
-                  className="glass-card p-2.5 md:p-4 border border-white/5 bg-white/2 text-left flex flex-col justify-between min-h-[85px] sm:min-h-[90px] md:min-h-[120px]"
-                >
-                  <div className="h-5 w-5 md:h-8 md:w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                    <FileText className="h-3 w-3 md:h-4.5 md:w-4.5" />
-                  </div>
-                  <div className="space-y-0.5 mt-1">
-                    <h3 className="font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-wider text-slate-200">Emiten & Berita</h3>
-                    <p className="text-[8.5px] md:text-[9.5px] text-slate-400 leading-snug mt-1">
-                      Pantau sentimen pasar berdasarkan rangkuman berita terintegrasi emiten BEI.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Bottom Footer Credits */}
-            <div className="text-center text-[10px] text-slate-500 py-1.5 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-2">
-              <span>© 2026 Al Fitra Nur Ramadhani. All rights reserved.</span>
-              <div className="flex gap-4">
-                <span>Syarat & Ketentuan</span>
-                <span>Kebijakan Privasi</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Background decoration elements */}
       <div className="mesh-bg" />
 
@@ -751,8 +499,7 @@ export default function Dashboard() {
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         onLogoClick={() => {
-          sessionStorage.removeItem('nunnn_stock_entered_dashboard');
-          setShowCover(true);
+          setCurrentTab('home');
         }}
       />
 
@@ -760,6 +507,133 @@ export default function Dashboard() {
       <main className={`flex-1 min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-20 md:pb-10 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
         <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8">
           
+          {/* 0. Home Tab */}
+          <div className={currentTab === 'home' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'home' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-8"
+            >
+              {/* Premium Hero Banner Card */}
+              <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-card-bg via-[#161a1d] to-[#121517] p-6 md:p-10 shadow-2xl">
+                {/* Glow effects */}
+                <div className="absolute top-0 right-0 w-[200px] md:w-[320px] h-[200px] md:h-[320px] rounded-full bg-brand-purple/10 blur-[80px] md:blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-[180px] md:w-[250px] h-[180px] md:h-[250px] rounded-full bg-emerald-500/5 blur-[80px] md:blur-[100px] pointer-events-none" />
+                
+                <div className="relative z-10 max-w-3xl space-y-4">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-[9px] font-extrabold uppercase tracking-widest text-brand-purple">
+                    <Sparkles className="h-3 w-3 text-brand-purple animate-pulse" />
+                    <span>{t('cover.sparkles')}</span>
+                  </div>
+                  
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white">
+                    {t('cover.title1')} <span className="text-profit-glow">{t('cover.title2')}</span>
+                  </h1>
+                  
+                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed max-w-2xl">
+                    {t('cover.desc')}
+                  </p>
+                  
+                  {/* Status Banner */}
+                  <div className="pt-2">
+                    {user ? (
+                      <div className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-[10px] md:text-xs font-semibold text-emerald-400">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                        <span>
+                          {language === 'id' 
+                            ? `Terhubung: ${user.email} (${isSupabaseConfigured && !user.isMock ? 'Cloud DB' : 'Simulasi Lokal'})`
+                            : `Connected: ${user.email} (${isSupabaseConfigured && !user.isMock ? 'Cloud DB' : 'Local Simulation'})`}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+                        <span className="text-[10px] md:text-xs text-slate-450">
+                          {language === 'id'
+                            ? 'Masuk ke akun Anda untuk menyimpan rencana & memantau portofolio riil.'
+                            : 'Sign in to your account to save plans & monitor real portfolio.'}
+                        </span>
+                        <button
+                          onClick={() => setIsAuthModalOpen(true)}
+                          className="self-start px-4.5 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-[10px] md:text-xs transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                          {t('sidebar.login')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Horizontal Ticker Marquee */}
+                <div className="relative w-full overflow-hidden border-t border-white/5 pt-4 mt-4 select-none">
+                  <style>{`
+                    @keyframes marqueeLtr {
+                      0% { transform: translate3d(-50%, 0, 0); }
+                      100% { transform: translate3d(0%, 0, 0); }
+                    }
+                    .animate-marquee-ltr {
+                      display: flex;
+                      width: max-content;
+                      animation: marqueeLtr 30s linear infinite;
+                    }
+                    .marquee-fade-left {
+                      background: linear-gradient(to right, var(--card-bg) 0%, transparent 100%);
+                    }
+                    .marquee-fade-right {
+                      background: linear-gradient(to left, var(--card-bg) 0%, transparent 100%);
+                    }
+                  `}</style>
+                  
+                  {/* Gradient Fade Overlays */}
+                  <div className="absolute inset-y-0 left-0 w-8.5 marquee-fade-left z-10 pointer-events-none" />
+                  <div className="absolute inset-y-0 right-0 w-8.5 marquee-fade-right z-10 pointer-events-none" />
+                  
+                  <div className="animate-marquee-ltr flex whitespace-nowrap">
+                    <div className="flex items-center gap-6 pr-6 shrink-0">
+                      {['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI', 'BBNI', 'BREN', 'BRPT', 'TPIA', 'CUAN', 'ADRO', 'PTBA', 'ITMG', 'UNVR'].map((symbol) => (
+                        <div key={`marquee-1-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
+                          <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                            <img
+                              src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
+                              alt={symbol}
+                              className="w-4 h-4 object-contain opacity-60"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-black text-white/30 tracking-wider uppercase">{symbol}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-6 pr-6 shrink-0" aria-hidden="true">
+                      {['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI', 'BBNI', 'BREN', 'BRPT', 'TPIA', 'CUAN', 'ADRO', 'PTBA', 'ITMG', 'UNVR'].map((symbol) => (
+                        <div key={`marquee-2-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
+                          <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                            <img
+                              src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
+                              alt={symbol}
+                              className="w-4 h-4 object-contain opacity-60"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-black text-white/30 tracking-wider uppercase">{symbol}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Disclaimer */}
+              <div className="max-w-2xl mx-auto w-full p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-[9px] md:text-[10px] text-slate-500 leading-relaxed text-center">
+                {t('common.disclaimer')}
+              </div>
+            </motion.div>
+          </div>
+
           {/* 1. News & Sentiment Tab */}
           <div className={currentTab === 'news' ? 'block' : 'hidden'}>
             <motion.div
@@ -786,11 +660,11 @@ export default function Dashboard() {
               {/* Header */}
               <div>
                 <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-                  Kalkulator Average Down
+                  {t('calculator.title')}
                   <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 w-full">
-                  Alat bantu hitung rencana average down (pembelian bertahap) untuk meminimalkan kerugian floating loss secara presisi, terintegrasi dengan pajak transaksi bursa Indonesia.
+                  {t('calculator.desc')}
                 </p>
               </div>
 
@@ -799,12 +673,14 @@ export default function Dashboard() {
                 <div className="p-4.5 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
                   <Info className="h-5 w-5 text-brand-purple shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-slate-800 dark:text-white">Tips Uji Coba Mandiri:</span>
+                    <span className="font-bold text-slate-800 dark:text-white">
+                      {language === 'id' ? 'Tips Uji Coba Mandiri:' : 'Self-Trial Tips:'}
+                    </span>
                     <p className="mt-1">
-                      Aplikasi ini mendeteksi Anda belum menghubungkan proyek Supabase (PostgreSQL) riil. 
-                      Jangan khawatir! Seluruh fitur **Average Down**, perhitungan presisi **Broker Fee**, 
-                      dan **Penyimpanan Riwayat** telah dilengkapi dengan simulasi lokal menggunakan *localStorage* browser. 
-                      Anda dapat mencoba alur kerja full-stack secara utuh langsung sekarang.
+                      {language === 'id'
+                        ? 'Aplikasi ini mendeteksi Anda belum menghubungkan proyek Supabase (PostgreSQL) riil. Jangan khawatir! Seluruh fitur Average Down, perhitungan presisi Broker Fee, dan Penyimpanan Riwayat telah dilengkapi dengan simulasi lokal menggunakan localStorage browser. Anda dapat mencoba alur kerja full-stack secara utuh langsung sekarang.'
+                        : 'This application detects that you have not connected a real Supabase (PostgreSQL) project. Do not worry! All features including Average Down, precise Broker Fee calculation, and History Saving are supported via browser localStorage simulation. You can try the full-stack workflow right now.'
+                      }
                     </p>
                   </div>
                 </div>
@@ -915,7 +791,7 @@ export default function Dashboard() {
           </div>
 
           {/* Footer branding */}
-          <div className="text-center text-[10px] text-slate-500 pt-6 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5 no-print">
+          <div className="max-w-xs mx-auto w-full text-center text-[10px] text-slate-500 pt-4 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5 no-print">
             <span>© 2026 Al Fitra Nur Ramadhani. All rights reserved.</span>
           </div>
 
@@ -934,10 +810,14 @@ export default function Dashboard() {
         isOpen={isLogoutConfirmOpen}
         onClose={() => setIsLogoutConfirmOpen(false)}
         onConfirm={executeSignOut}
-        title="Konfirmasi Keluar"
-        message="Apakah Anda yakin ingin keluar dari akun? Anda perlu masuk kembali untuk mengakses cloud database."
-        confirmText="Ya, Keluar"
-        cancelText="Batal"
+        title={language === 'id' ? 'Konfirmasi Keluar' : 'Confirm Sign Out'}
+        message={
+          language === 'id'
+            ? 'Apakah Anda yakin ingin keluar dari akun? Anda perlu masuk kembali untuk mengakses cloud database.'
+            : 'Are you sure you want to sign out? You will need to sign in again to access the cloud database.'
+        }
+        confirmText={language === 'id' ? 'Ya, Keluar' : 'Yes, Sign Out'}
+        cancelText={language === 'id' ? 'Batal' : 'Cancel'}
         type="warning"
       />
 
@@ -945,10 +825,14 @@ export default function Dashboard() {
         isOpen={planIdToDelete !== null}
         onClose={() => setPlanIdToDelete(null)}
         onConfirm={executeDeletePlan}
-        title="Hapus Rencana"
-        message="Apakah Anda yakin ingin menghapus rencana simulasi ini? Tindakan ini tidak dapat dibatalkan."
-        confirmText="Ya, Hapus"
-        cancelText="Batal"
+        title={language === 'id' ? 'Hapus Rencana' : 'Delete Plan'}
+        message={
+          language === 'id'
+            ? 'Apakah Anda yakin ingin menghapus rencana simulasi ini? Tindakan ini tidak dapat dibatalkan.'
+            : 'Are you sure you want to delete this simulation plan? This action cannot be undone.'
+        }
+        confirmText={language === 'id' ? 'Ya, Hapus' : 'Yes, Delete'}
+        cancelText={language === 'id' ? 'Batal' : 'Cancel'}
         type="danger"
       />
 

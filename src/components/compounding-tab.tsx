@@ -20,6 +20,7 @@ import { calculateCompounding, CompoundingInput, CompoundingResult, calculateDai
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
+import { useLanguage } from '@/lib/language-context';
 
 interface CompoundingTabProps {
   user: any;
@@ -46,6 +47,7 @@ const formatNumberForInput = (num: number | string | undefined | null): string =
 };
 
 export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
+  const { t, language } = useLanguage();
   // Input States
   const [calcMode, setCalcMode] = React.useState<'standard' | 'daily'>('daily');
   const [initialAmountStr, setInitialAmountStr] = React.useState('10,000,000');
@@ -549,6 +551,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
     return `M ${getX(0)},${getY(0)} L ${points.join(' L ')} L ${getX(chartData.length - 1)},${getY(0)} Z`;
   }, [chartData, maxY]);
 
+  const depositLinePath = React.useMemo(() => {
+    if (chartData.length === 0) return '';
+    const points = chartData.map((d, i) => `${getX(i)},${getY(d.cumulativeDeposits)}`);
+    return `M ${points.join(' L ')}`;
+  }, [chartData, maxY]);
+
   const nominalLinePath = React.useMemo(() => {
     if (chartData.length === 0) return '';
     const points = chartData.map((d, i) => `${getX(i)},${getY(d.endingBalance)}`);
@@ -640,11 +648,11 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-            Kalkulator Compounding
+            {t('compounding.title')}
             <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Simulasikan efek bunga majemuk, setoran berkala, pajak investasi, serta penyesuaian daya beli riil terhadap inflasi secara dinamis.
+            {t('compounding.desc')}
           </p>
         </div>
 
@@ -655,21 +663,21 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-brand-purple hover:bg-brand-purple/95 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
           >
             <Save className="h-4 w-4" />
-            <span>Simpan Rencana</span>
+            <span>{t('compounding.savePlan')}</span>
           </button>
           <button 
             onClick={handleExportExcel}
             className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-input-bg border border-border-color hover:bg-glass-border text-foreground font-bold text-xs transition-all cursor-pointer"
           >
             <Download className="h-4 w-4 text-brand-purple" />
-            <span>Ekspor Excel</span>
+            <span>{t('compounding.exportExcel')}</span>
           </button>
           <button 
             onClick={handlePrint}
             className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-input-bg border border-border-color hover:bg-glass-border text-foreground font-bold text-xs transition-all cursor-pointer"
           >
             <Printer className="h-4 w-4 text-brand-purple" />
-            <span>Cetak PDF</span>
+            <span>{t('compounding.printPdf')}</span>
           </button>
         </div>
       </div>
@@ -679,11 +687,13 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         <div className="p-4.5 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm no-print">
           <Info className="h-5 w-5 text-brand-purple shrink-0 mt-0.5" />
           <div>
-            <span className="font-bold text-slate-800 dark:text-white">Tips Mode Uji Coba:</span>
+            <span className="font-bold text-slate-800 dark:text-white">
+              {language === 'id' ? 'Tips Mode Uji Coba:' : 'Trial Mode Tips:'}
+            </span>
             <p className="mt-1">
-              Aplikasi belum terhubung dengan database PostgreSQL Supabase. 
-              Penyimpanan rencana compounding akan dialihkan menggunakan simulasi lokal (*localStorage* browser). 
-              Anda tetap dapat menggunakan seluruh fitur secara penuh.
+              {language === 'id' 
+                ? 'Aplikasi belum terhubung dengan database PostgreSQL Supabase. Penyimpanan rencana compounding akan dialihkan menggunakan simulasi lokal (localStorage browser). Anda tetap dapat menggunakan seluruh fitur secara penuh.' 
+                : 'The application is not connected to the Supabase PostgreSQL database yet. Compounding plan storage will fall back to local browser storage (localStorage). You can still use all features completely.'}
             </p>
           </div>
         </div>
@@ -694,14 +704,14 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         <button
           onClick={() => {
             setCalcMode('daily');
-            if (annualReturnRateStr === '10') setAnnualReturnRateStr('5');
+            if (annualReturnRateStr === '10' || annualReturnRateStr === '8') setAnnualReturnRateStr('5');
             if (contributionAmountStr === '1,000,000') setContributionAmountStr('0');
           }}
           className={`flex-1 py-2 rounded-xl transition-all cursor-pointer text-center ${
             calcMode === 'daily' ? 'bg-brand-purple text-white shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Rencana Trading Harian
+          {t('compounding.modeTrading')}
         </button>
         <button
           onClick={() => {
@@ -713,7 +723,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             calcMode === 'standard' ? 'bg-brand-purple text-white shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Investasi Jangka Panjang
+          {t('compounding.modeLongTerm')}
         </button>
       </div>
 
@@ -721,7 +731,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       <div className="glass-card p-5 md:p-6 space-y-4 no-print w-full">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-2">
           <Calendar className="h-4.5 w-4.5 text-brand-purple" />
-          Input Parameter ({isDaily ? 'Trading Harian' : 'Jangka Panjang'})
+          {t('compounding.inputHeader')} ({isDaily ? t('compounding.modeTrading') : t('compounding.modeLongTerm')})
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
@@ -729,7 +739,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             <>
               {/* Modal Investasi Awal */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">1. Modal Awal (Rp)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('compounding.modalAwal')}</label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">Rp</span>
                   <input
@@ -745,7 +755,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Target Profit / Hari (%) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">2. Target Profit / Hari</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('compounding.targetReturn')}</label>
                 <div className="relative">
                   <input
                     type="number"
@@ -762,7 +772,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Durasi (Hari) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">3. Durasi (Hari)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('compounding.durasiHari')}</label>
                 <div className="relative">
                   <input
                     type="number"
@@ -777,7 +787,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Setoran Tambahan Harian (Rp) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">4. Setoran Tambahan / Hari (Rp) - Opsional</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('compounding.setoranTambahan')}</label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">Rp</span>
                   <input
@@ -793,17 +803,17 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Broker Fee Settings */}
               <div className="flex flex-col gap-1.5 shrink-0">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">5. Broker Fee</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('compounding.brokerFee')}</label>
                 <select
                   value={dailyBrokerPreset}
                   onChange={(e) => handleDailyPresetChange(e.target.value)}
                   className="w-full glass-input px-2.5 py-2.5 text-xs font-bold cursor-pointer text-foreground bg-background text-left"
                 >
-                  <option value="stockbit">Stockbit (Buy 0.15% / Sell 0.25%)</option>
-                  <option value="ajaib">Ajaib (Buy 0.15% / Sell 0.25%)</option>
-                  <option value="ipot">IPOT (Buy 0.19% / Sell 0.29%)</option>
-                  <option value="custom">Custom Fee</option>
-                  <option value="none">Tanpa Fee (0.00%)</option>
+                  <option value="stockbit">Stockbit ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
+                  <option value="ajaib">Ajaib ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
+                  <option value="ipot">IPOT ({t('calculator.feeBeli')} 0.19% / {t('calculator.feeJual')} 0.29%)</option>
+                  <option value="custom">{t('calculator.presetCustom')}</option>
+                  <option value="none">{t('calculator.presetNone')}</option>
                 </select>
                 
                 {dailyBrokerPreset === 'custom' && (
@@ -821,7 +831,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">%</span>
                       </div>
-                      <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Beli</span>
+                      <span className="text-[8px] text-slate-500 text-center block mt-0.5">{t('calculator.feeBeli')}</span>
                     </div>
                     <div>
                       <div className="relative">
@@ -836,7 +846,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">%</span>
                       </div>
-                      <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Jual</span>
+                      <span className="text-[8px] text-slate-500 text-center block mt-0.5">{t('calculator.feeJual')}</span>
                     </div>
                   </div>
                 )}
@@ -846,7 +856,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             <>
               {/* Modal Investasi Awal */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">1. Modal Awal (Rp)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('compounding.modalAwal')}</label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">Rp</span>
                   <input
@@ -862,7 +872,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Setoran Rutin & Frekuensi */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">2. Setoran Rutin</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('compounding.setoranTambahanLong')}</label>
                 <div className="grid grid-cols-5 gap-1.5">
                   <div className="col-span-3 relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">Rp</span>
@@ -881,10 +891,10 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       onChange={(e) => setContributionFrequency(e.target.value as any)}
                       className="w-full glass-input px-2.5 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-left"
                     >
-                      <option value="daily">Harian</option>
-                      <option value="weekly">Mingguan</option>
-                      <option value="monthly">Bulanan</option>
-                      <option value="yearly">Tahunan</option>
+                      <option value="daily">{language === 'id' ? 'Harian' : 'Daily'}</option>
+                      <option value="weekly">{language === 'id' ? 'Mingguan' : 'Weekly'}</option>
+                      <option value="monthly">{language === 'id' ? 'Bulanan' : 'Monthly'}</option>
+                      <option value="yearly">{language === 'id' ? 'Tahunan' : 'Yearly'}</option>
                     </select>
                   </div>
                 </div>
@@ -892,7 +902,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Return & Compounding */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">3. Return & Compounding</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{language === 'id' ? '3. Return & Compounding' : '3. Return & Compounding'}</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   <div className="relative">
                     <input
@@ -912,10 +922,10 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       onChange={(e) => setCompoundingFrequency(e.target.value as any)}
                       className="w-full glass-input px-2.5 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-left"
                     >
-                      <option value="daily">Harian</option>
-                      <option value="monthly">Bulanan</option>
-                      <option value="quarterly">Kuartalan</option>
-                      <option value="yearly">Tahunan</option>
+                      <option value="daily">{language === 'id' ? 'Harian' : 'Daily'}</option>
+                      <option value="monthly">{language === 'id' ? 'Bulanan' : 'Monthly'}</option>
+                      <option value="quarterly">{language === 'id' ? 'Kuartalan' : 'Quarterly'}</option>
+                      <option value="yearly">{language === 'id' ? 'Tahunan' : 'Yearly'}</option>
                     </select>
                   </div>
                 </div>
@@ -923,7 +933,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Jangka Waktu */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">4. Jangka Waktu</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{language === 'id' ? '4. Jangka Waktu' : '4. Duration'}</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   <div className="relative">
                     <input
@@ -934,7 +944,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       onChange={(e) => setDurationYearsStr(e.target.value)}
                       className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-slate-500">Thn</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-slate-500">{language === 'id' ? 'Thn' : 'Yrs'}</span>
                   </div>
                   <div className="relative">
                     <input
@@ -945,14 +955,14 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                       onChange={(e) => setDurationMonthsStr(e.target.value)}
                       className="w-full glass-input pl-3 pr-12 py-2.5 text-xs font-bold text-white text-left bg-black/25 focus:bg-background"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-slate-500">Bln</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-slate-500">{language === 'id' ? 'Bln' : 'Mths'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Inflasi & Pajak */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">5. Inflasi & Pajak</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{language === 'id' ? '5. Inflasi & Pajak' : '5. Inflation & Tax'}</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   <div className="relative">
                     <input
@@ -993,7 +1003,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
           <>
             <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20 overflow-hidden">
               <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
-                Modal Akhir (Hari ke-{durationDaysStr})
+                {language === 'id' ? `Modal Akhir (Hari ke-${durationDaysStr})` : `Ending Capital (Day ${durationDaysStr})`}
               </span>
               <h3 
                 className="text-lg md:text-xl font-black text-brand-purple mt-1 tracking-tight truncate"
@@ -1005,7 +1015,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
             <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20 overflow-hidden">
               <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block">
-                Return Total
+                {language === 'id' ? 'Return Total' : 'Total Return'}
               </span>
               <h3 
                 className="text-lg md:text-xl font-black text-blue-400 mt-1 tracking-tight truncate"
@@ -1027,7 +1037,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
             <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
-                Total Disetor
+                {language === 'id' ? 'Total Disetor' : 'Total Invested'}
               </span>
               <h3 
                 className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
@@ -1039,7 +1049,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
             <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
-                Total Profit
+                {language === 'id' ? 'Total Profit' : 'Total Profit'}
               </span>
               <h3 
                 className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
@@ -1052,7 +1062,9 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         ) : (
           <>
             <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20 overflow-hidden">
-              <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">Total Nilai Akhir</span>
+              <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
+                {t('compounding.totalEndingBalance')}
+              </span>
               <h3 
                 className="text-lg md:text-xl font-black text-brand-purple mt-1 tracking-tight truncate"
                 title={formatIDR(results.nominalEndingBalance, false)}
@@ -1061,18 +1073,10 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20 overflow-hidden">
-              <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block">Nilai Riil (Inflasi)</span>
-              <h3 
-                className="text-lg md:text-xl font-black text-blue-400 mt-1 tracking-tight truncate"
-                title={formatIDR(results.realEndingBalance, false)}
-              >
-                {formatIDR(results.realEndingBalance, true)}
-              </h3>
-            </div>
-
-            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
-              <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Total Disetor</span>
+            <div className="glass-card p-4.5 bg-indigo-500/5 border-indigo-500/20 overflow-hidden">
+              <span className="text-[9px] font-bold text-indigo-450 dark:text-indigo-400 uppercase tracking-widest block">
+                {t('compounding.cumulativeDeposits')}
+              </span>
               <h3 
                 className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
                 title={formatIDR(results.totalDeposits, false)}
@@ -1081,274 +1085,252 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
-              <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Hasil Bunga Bersih</span>
+            <div className="glass-card p-4.5 bg-emerald-500/5 border-emerald-500/20 overflow-hidden">
+              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">
+                {t('compounding.cumulativeInterest')}
+              </span>
               <h3 
                 className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
-                title={formatIDR(results.nominalEndingBalance - results.totalDeposits, false)}
+                title={formatIDR(results.totalInterestEarned, false)}
               >
-                {formatIDR(results.nominalEndingBalance - results.totalDeposits, true)}
+                {formatIDR(results.totalInterestEarned, true)}
+              </h3>
+            </div>
+
+            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20 overflow-hidden border-l-2 border-l-blue-450 dark:border-l-blue-400">
+              <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block">
+                {t('compounding.realEndingBalance')}
+              </span>
+              <h3 
+                className="text-lg md:text-xl font-black text-blue-400 mt-1 tracking-tight truncate"
+                title={formatIDR(results.realEndingBalance, false)}
+              >
+                {formatIDR(results.realEndingBalance, true)}
               </h3>
             </div>
           </>
         )}
       </div>
 
-      {/* Interactive SVG Chart Card (Full Width) */}
-      <div className="glass-card p-5 md:p-6 bg-card-bg relative overflow-hidden flex flex-col no-print w-full">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4.5 flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-2">
-          <TrendingUp className="h-4.5 w-4.5 text-brand-purple" />
-          Proyeksi Pertumbuhan Dana Investasi
-        </h3>
-
-        {/* Custom Interactive SVG Graph */}
-        <div className="relative -mx-5 md:-mx-6 h-[300px] w-[calc(100%+2.5rem)] md:w-[calc(100%+3rem)]">
-          <svg 
-            ref={chartRef}
-            viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
-            width="100%" 
-            height="100%" 
-            className="overflow-visible select-none"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => setHoveredIndex(null)}
-          >
-            {/* Defs for gradients & clip-paths */}
-            <defs>
-              <linearGradient id="chartNominalGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#00b15b" stopOpacity="0.2"/>
-                <stop offset="100%" stopColor="#00b15b" stopOpacity="0.0"/>
-              </linearGradient>
-              <linearGradient id="chartDepositGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.2"/>
-                <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.0"/>
-              </linearGradient>
-            </defs>
-
-            {/* Horizontal Grid lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-              const y = chartMargin.top + ratio * plotHeight;
-              return (
-                <line 
-                  key={i}
-                  x1={chartMargin.left} 
-                  y1={y} 
-                  x2={svgWidth - chartMargin.right} 
-                  y2={y} 
-                  stroke="rgba(255,255,255,0.05)" 
-                  strokeWidth="1"
-                />
-              );
-            })}
-
-            {/* Areas */}
-            <path d={nominalAreaPath} fill="url(#chartNominalGrad)" />
-            <path d={depositAreaPath} fill="url(#chartDepositGrad)" />
-
-            {/* Lines */}
-            <path d={nominalLinePath} fill="none" stroke="#00b15b" strokeWidth="2.5" />
-            <path d={depositAreaPath.replace(/ Z$/, '')} fill="none" stroke="#4f46e5" strokeWidth="2" strokeDasharray="2 2" />
-            {!isDaily && input.inflationRate > 0 && (
-              <path d={realLinePath} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 4" />
-            )}
-
-            {chartData.map((d, i) => {
-              const total = chartData.length;
-              const step = Math.max(1, Math.ceil(total / 6));
-              if (i % step !== 0 && i !== total - 1) return null;
-              
-              let anchor: "start" | "middle" | "end" = "middle";
-              let xPos = getX(i);
-              if (i === 0) {
-                anchor = "start";
-                xPos += 20;
-              } else if (i === total - 1) {
-                anchor = "end";
-                xPos -= 20;
-              }
-
-              return (
-                <text
-                  key={i}
-                  x={xPos}
-                  y={svgHeight - 10}
-                  fill="rgba(255,255,255,0.4)"
-                  fontSize="9"
-                  fontWeight="bold"
-                  textAnchor={anchor}
-                >
-                  {d.label}
-                </text>
-              );
-            })}
-
-            {/* Y-Axis values */}
-            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-              const val = (1 - ratio) * maxY;
-              const y = chartMargin.top + ratio * plotHeight;
-              
-              // Clean formatting of large numbers (e.g. 1.2M, 500K)
-              let formatted = '';
-              if (val >= 1000000000) {
-                formatted = `Rp ${(val / 1000000000).toFixed(1)}M`;
-              } else if (val >= 1000000) {
-                formatted = `Rp ${(val / 1000000).toFixed(1)}Jt`;
-              } else if (val >= 1000) {
-                formatted = `Rp ${(val / 1000).toFixed(0)}Rb`;
-              } else {
-                formatted = `Rp ${val.toFixed(0)}`;
-              }
-
-              return (
-                <text
-                  key={i}
-                  x={10}
-                  y={y - 6}
-                  fill="rgba(255,255,255,0.55)"
-                  fontSize="9"
-                  fontWeight="bold"
-                  textAnchor="start"
-                >
-                  {formatted}
-                </text>
-              );
-            })}
-
-            {/* Hover vertical line and intersection dots */}
-            {hoveredIndex !== null && hoveredIndex < chartData.length && (
-              <>
-                <line 
-                  x1={getX(hoveredIndex)}
-                  y1={chartMargin.top}
-                  x2={getX(hoveredIndex)}
-                  y2={svgHeight - chartMargin.bottom}
-                  stroke="rgba(255, 255, 255, 0.2)"
-                  strokeWidth="1.5"
-                  strokeDasharray="3 3"
-                  className="pointer-events-none"
-                />
-
-                {/* Nominal Dot */}
-                <circle 
-                  cx={getX(hoveredIndex)}
-                  cy={getY(chartData[hoveredIndex].endingBalance)}
-                  r="5.5"
-                  fill="#00b15b"
-                  stroke="#121518"
-                  strokeWidth="2"
-                  className="pointer-events-none"
-                />
-
-                {/* Deposits Dot */}
-                <circle 
-                  cx={getX(hoveredIndex)}
-                  cy={getY(chartData[hoveredIndex].cumulativeDeposits)}
-                  r="4.5"
-                  fill="#4f46e5"
-                  stroke="#121518"
-                  strokeWidth="1.5"
-                  className="pointer-events-none"
-                />
-
-                {/* Real Value Dot */}
-                {!isDaily && input.inflationRate > 0 && (
-                  <circle 
-                    cx={getX(hoveredIndex)}
-                    cy={getY(chartData[hoveredIndex].realEndingBalance)}
-                    r="4.5"
-                    fill="#3b82f6"
-                    stroke="#121518"
-                    strokeWidth="1.5"
-                    className="pointer-events-none"
-                  />
-                )}
-              </>
-            )}
-          </svg>
-
-          {/* Float HTML Tooltip Box on Hover */}
-          {hoveredIndex !== null && hoveredIndex < chartData.length && (
-            <div 
-              className="absolute z-10 p-3 bg-slate-900/95 border border-white/10 rounded-xl shadow-2xl text-[10px] space-y-1.5 backdrop-blur-md pointer-events-none"
-              style={{
-                left: `${Math.min(85, Math.max(15, (getX(hoveredIndex) * 100) / svgWidth))}%`,
-                top: '15px',
-                transform: 'translateX(-50%)',
-                minWidth: '220px',
-                width: 'max-content'
-              }}
-            >
-              <p className="font-extrabold text-white text-center pb-1 border-b border-white/5 uppercase tracking-wider">
-                {chartData[hoveredIndex].label}
-              </p>
-              <div className="flex justify-between items-baseline">
-                <span className="text-slate-400">Total Nominal:</span>
-                <span className="font-bold text-brand-purple">{formatIDR(chartData[hoveredIndex].endingBalance)}</span>
-              </div>
-              {!isDaily && input.inflationRate > 0 && (
-                <div className="flex justify-between items-baseline text-blue-400">
-                  <span>Nilai Riil:</span>
-                  <span className="font-bold">{formatIDR(chartData[hoveredIndex].realEndingBalance)}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-baseline text-indigo-400">
-                <span>Modal Disetor:</span>
-                <span className="font-bold">{formatIDR(chartData[hoveredIndex].cumulativeDeposits)}</span>
-              </div>
-              <div className="flex justify-between items-baseline text-slate-300">
-                <span>{isDaily ? 'Total Profit:' : 'Hasil Bunga:'}</span>
-                <span className="font-bold text-slate-100">
-                  {formatIDR(Math.max(0, chartData[hoveredIndex].endingBalance - chartData[hoveredIndex].cumulativeDeposits))}
-                </span>
-              </div>
+      {/* Interactive Charts Area */}
+      <div className="glass-card p-5 md:p-6 space-y-4 print-full-width">
+        <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/5 pb-2.5 no-print">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <TrendingUp className="h-4.5 w-4.5 text-brand-purple" />
+            {language === 'id' ? 'Visualisasi Proyeksi Pertumbuhan Dana' : 'Growth Projection Visualization'}
+          </h2>
+          <div className="flex gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400 select-none">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded bg-brand-purple" />
+              <span>{language === 'id' ? 'Saldo Nominal' : 'Nominal Balance'}</span>
             </div>
-          )}
+            {!isDaily && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded bg-blue-400" />
+                <span>{language === 'id' ? 'Saldo Riil (Inflasi)' : 'Real Balance (Inflation)'}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded bg-indigo-500/30 border border-indigo-400/40" />
+              <span>{t('compounding.cumulativeDeposits')}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Legends */}
-        <div className="flex justify-center items-center gap-6 text-[10px] font-bold text-slate-400 mt-2 select-none">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-1.5 rounded-full bg-brand-purple" />
-            <span>{isDaily ? 'Modal Akhir Hari' : 'Nilai Akhir Nominal'}</span>
-          </div>
-          {!isDaily && input.inflationRate > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-1.5 rounded-full bg-blue-400" />
-              <span>Nilai Riil (Disesuaikan Inflasi {input.inflationRate}%)</span>
+        {/* SVG Drawing Zone */}
+        <div className="relative w-full overflow-hidden select-none bg-black/10 dark:bg-black/20 p-2 md:p-4 rounded-xl border border-slate-300/10 dark:border-white/5">
+          {chartData.length === 0 ? (
+            <div className="h-[300px] flex items-center justify-center text-xs text-slate-500">
+              {language === 'id' ? 'Data simulasi tidak valid untuk membuat grafik.' : 'Simulation data invalid to draw chart.'}
             </div>
+          ) : (
+            <>
+              <svg 
+                ref={chartRef}
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="w-full h-auto overflow-visible cursor-crosshair"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                {/* Y-axis gridlines */}
+                {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
+                  const yVal = chartMargin.top + ratio * plotHeight;
+                  const labelVal = maxY * (1 - ratio);
+                  return (
+                    <g key={index} opacity="0.15">
+                      <line x1={chartMargin.left} y1={yVal} x2={svgWidth - chartMargin.right} y2={yVal} stroke="#94a3b8" strokeDasharray="3 3" />
+                      <text x={chartMargin.left + 5} y={yVal - 4} fill="#ffffff" fontSize="9" fontWeight="bold">
+                        {formatIDR(labelVal, true)}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* X-axis labels (yearly/period grid ticks) */}
+                {chartData.map((d, index) => {
+                  const isTickPoint = chartData.length < 15 
+                    || (chartData.length < 50 && index % 5 === 0) 
+                    || (chartData.length >= 50 && index % 10 === 0)
+                    || index === chartData.length - 1;
+                  
+                  if (!isTickPoint) return null;
+                  const xVal = getX(index);
+                  
+                  return (
+                    <g key={index} opacity="0.25">
+                      <line x1={xVal} y1={chartMargin.top} x2={xVal} y2={svgHeight - chartMargin.bottom} stroke="#94a3b8" strokeWidth="0.5" />
+                      <text x={xVal} y={svgHeight - 10} fill="#ffffff" fontSize="8.5" textAnchor="middle" fontWeight="bold">
+                        {d.label.replace('Tahun ', 'T').replace('Hari ', 'H').replace('Bulan ', 'B')}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Draw Areas */}
+                {/* 1. Nominal Growth Area (Violet Gradient) */}
+                <path d={nominalAreaPath} fill="url(#nominalGrad)" opacity="0.12" />
+                
+                {/* 2. Cumulative Deposits Area (Indigo Solid) */}
+                <path d={depositAreaPath} fill="url(#depositGrad)" opacity="0.08" />
+
+                {/* Draw Lines */}
+                {/* 1. Cumulative Deposit Line */}
+                <path 
+                  d={depositLinePath} 
+                  fill="none" 
+                  stroke="#6366f1" 
+                  strokeWidth="1.5" 
+                  strokeDasharray="4 4"
+                  opacity="0.35" 
+                />
+
+                {/* 2. Nominal Growth Line */}
+                <path d={nominalLinePath} fill="none" stroke="#00b15b" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+
+                {/* 3. Real Value Line (Inflation Adjusted) */}
+                {!isDaily && (
+                  <path d={realLinePath} fill="none" stroke="#3b82f6" strokeWidth="2.2" strokeDasharray="3 2" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+
+                {/* Hover line guide */}
+                {hoveredIndex !== null && (
+                  <line 
+                    x1={getX(hoveredIndex)} 
+                    y1={chartMargin.top} 
+                    x2={getX(hoveredIndex)} 
+                    y2={svgHeight - chartMargin.bottom} 
+                    stroke="#00b15b" 
+                    strokeWidth="1.2" 
+                    opacity="0.4"
+                  />
+                )}
+
+                {/* Hover points */}
+                {hoveredIndex !== null && (
+                  <g>
+                    {/* Nominal Point */}
+                    <circle 
+                      cx={getX(hoveredIndex)} 
+                      cy={getY(chartData[hoveredIndex].endingBalance)} 
+                      r="5.5" 
+                      fill="#00b15b" 
+                      stroke="#ffffff" 
+                      strokeWidth="1.5" 
+                    />
+                    {/* Real Value Point */}
+                    {!isDaily && (
+                      <circle 
+                        cx={getX(hoveredIndex)} 
+                        cy={getY(chartData[hoveredIndex].realEndingBalance)} 
+                        r="4" 
+                        fill="#3b82f6" 
+                        stroke="#ffffff" 
+                        strokeWidth="1.2" 
+                      />
+                    )}
+                    {/* Deposit Point */}
+                    <circle 
+                      cx={getX(hoveredIndex)} 
+                      cy={getY(chartData[hoveredIndex].cumulativeDeposits)} 
+                      r="4" 
+                      fill="#6366f1" 
+                      stroke="#ffffff" 
+                      strokeWidth="1.2" 
+                    />
+                  </g>
+                )}
+
+                {/* Definitions for SVG gradients */}
+                <defs>
+                  <linearGradient id="nominalGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#00b15b" />
+                    <stop offset="100%" stopColor="#00b15b" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="depositGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+
+              {/* Dynamic Interactive Tooltip */}
+              {hoveredIndex !== null && (
+                <div className="absolute top-2 left-2 md:top-4 md:left-4 p-3 bg-slate-950/95 border border-[#00b15b]/30 rounded-xl shadow-xl z-20 space-y-1 font-mono text-[10px] text-slate-350 max-w-[280px] backdrop-blur-md animate-fadeIn">
+                  <div className="font-extrabold text-white border-b border-white/5 pb-1 uppercase tracking-wider">
+                    {chartData[hoveredIndex].label}
+                  </div>
+                  <div className="flex justify-between items-center gap-4">
+                    <span>{language === 'id' ? 'Nominal Saldo' : 'Nominal Balance'}:</span>
+                    <strong className="text-[#05fa7b] font-bold">{formatIDR(chartData[hoveredIndex].endingBalance)}</strong>
+                  </div>
+                  {!isDaily && (
+                    <div className="flex justify-between items-center gap-4">
+                      <span>{language === 'id' ? 'Saldo Riil (Net)' : 'Real Balance (Net)'}:</span>
+                      <strong className="text-blue-400 font-bold">{formatIDR(chartData[hoveredIndex].realEndingBalance)}</strong>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center gap-4 border-t border-white/5 pt-1 mt-1">
+                    <span>{language === 'id' ? 'Total Disetor' : 'Total Deposited'}:</span>
+                    <strong className="text-slate-200 font-bold">{formatIDR(chartData[hoveredIndex].cumulativeDeposits)}</strong>
+                  </div>
+                  <div className="flex justify-between items-center gap-4">
+                    <span>{language === 'id' ? 'Total Profit' : 'Total Profit'}:</span>
+                    <strong className="text-white font-bold">{formatIDR(chartData[hoveredIndex].cumulativeInterest)}</strong>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-1.5 rounded-full bg-indigo-500" />
-            <span>{isDaily ? 'Total Modal + Setoran' : 'Total Modal Disetor'}</span>
-          </div>
         </div>
       </div>
 
-      {/* Amortization Table */}
-      <div className="glass-card p-5 md:p-6 print-full-width">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3 mb-4">
+      {/* Projection Table Card */}
+      <div className="glass-card p-5 md:p-6 space-y-4">
+        
+        {/* Table Controls (Title and switch layout) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3">
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <FileText className="h-4.5 w-4.5 text-brand-purple animate-pulse" />
-            {isDaily ? 'Tabel Simulasi Compounding Harian' : 'Jadwal Rincian Saldo Pertumbuhan'}
+            <FileText className="h-4.5 w-4.5 text-brand-purple" />
+            {language === 'id' ? 'Tabel Rincian Akumulasi Saldo' : 'Balance Accumulation Details Table'}
           </h2>
           
-          {/* Table Toggles */}
           {!isDaily && (
-            <div className="flex bg-input-bg border border-border-color p-1 rounded-xl text-[10px] font-extrabold no-print">
+            <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[10px] font-bold no-print select-none">
               <button
                 onClick={() => setTableType('yearly')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`py-1.5 px-3 rounded-lg transition-all cursor-pointer text-center ${
                   tableType === 'yearly' ? 'bg-brand-purple text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Tahunan
+                {language === 'id' ? 'Tahunan' : 'Yearly'}
               </button>
               <button
                 onClick={() => setTableType('monthly')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`py-1.5 px-3 rounded-lg transition-all cursor-pointer text-center ${
                   tableType === 'monthly' ? 'bg-brand-purple text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Bulanan ({results.monthlyDetails.length})
+                {language === 'id' ? 'Bulanan' : 'Monthly'} ({results.monthlyDetails.length})
               </button>
             </div>
           )}
@@ -1360,23 +1342,23 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             <thead>
               {isDaily ? (
                 <tr className="border-b border-border-color text-slate-500 font-bold uppercase tracking-wider text-[9px]">
-                  <th className="py-3 px-2">Hari</th>
-                  <th className="py-3 px-2 text-right">Modal Awal Hari</th>
-                  {parseFormattedNumber(contributionAmountStr) > 0 && <th className="py-3 px-2 text-right">Setoran Harian</th>}
+                  <th className="py-3 px-2">{language === 'id' ? 'Hari' : 'Day'}</th>
+                  <th className="py-3 px-2 text-right">{language === 'id' ? 'Modal Awal Hari' : 'Start Balance'}</th>
+                  {parseFormattedNumber(contributionAmountStr) > 0 && <th className="py-3 px-2 text-right">{language === 'id' ? 'Setoran Harian' : 'Daily Deposit'}</th>}
                   <th className="py-3 px-2 text-right text-emerald-400">Profit ({annualReturnRateStr}%)</th>
-                  <th className="py-3 px-2 text-right text-blue-400">Akumulasi %</th>
-                  {parseFloat(taxRateStr) > 0 && <th className="py-3 px-2 text-right text-rose-400">Pajak</th>}
-                  <th className="py-3 px-2 text-right text-brand-purple">Modal Akhir Hari</th>
+                  <th className="py-3 px-2 text-right text-blue-400">{language === 'id' ? 'Akumulasi %' : 'Cumulative %'}</th>
+                  {parseFloat(taxRateStr) > 0 && <th className="py-3 px-2 text-right text-rose-400">{language === 'id' ? 'Pajak' : 'Tax'}</th>}
+                  <th className="py-3 px-2 text-right text-brand-purple">{language === 'id' ? 'Modal Akhir Hari' : 'End Balance'}</th>
                 </tr>
               ) : (
                 <tr className="border-b border-border-color text-slate-500 font-bold uppercase tracking-wider text-[9px]">
-                  <th className="py-3 px-2">Periode</th>
-                  <th className="py-3 px-2 text-right">Saldo Awal</th>
-                  <th className="py-3 px-2 text-right">Total Setoran</th>
-                  <th className="py-3 px-2 text-right">Bunga Kotor</th>
-                  {input.taxRate > 0 && <th className="py-3 px-2 text-right text-rose-400">Pajak</th>}
-                  <th className="py-3 px-2 text-right text-brand-purple">Saldo Akhir</th>
-                  {input.inflationRate > 0 && <th className="py-3 px-2 text-right text-blue-400">Saldo Riil</th>}
+                  <th className="py-3 px-2">{language === 'id' ? 'Periode' : 'Period'}</th>
+                  <th className="py-3 px-2 text-right">{language === 'id' ? 'Saldo Awal' : 'Start Balance'}</th>
+                  <th className="py-3 px-2 text-right">{language === 'id' ? 'Total Setoran' : 'Total Deposit'}</th>
+                  <th className="py-3 px-2 text-right">{language === 'id' ? 'Bunga Kotor' : 'Gross Interest'}</th>
+                  {input.taxRate > 0 && <th className="py-3 px-2 text-right text-rose-400">{language === 'id' ? 'Pajak' : 'Tax'}</th>}
+                  <th className="py-3 px-2 text-right text-brand-purple">{language === 'id' ? 'Saldo Akhir' : 'Ending Balance'}</th>
+                  {input.inflationRate > 0 && <th className="py-3 px-2 text-right text-blue-400">{language === 'id' ? 'Saldo Riil' : 'Real Balance'}</th>}
                 </tr>
               )}
             </thead>
@@ -1408,7 +1390,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               ) : tableType === 'yearly' ? (
                 results.yearlySummaries.map((y, i) => (
                   <tr key={i} className="hover:bg-white/2 dark:hover:bg-white/2 transition-colors">
-                    <td className="py-2.5 px-2 font-bold text-slate-200">Tahun {y.year}</td>
+                    <td className="py-2.5 px-2 font-bold text-slate-200">{language === 'id' ? `Tahun ${y.year}` : `Year ${y.year}`}</td>
                     <td className="py-2.5 px-2 text-right text-slate-300">{formatIDR(y.startingBalance)}</td>
                     <td className="py-2.5 px-2 text-right text-indigo-400">+{formatIDR(y.totalDeposits)}</td>
                     <td className="py-2.5 px-2 text-right text-emerald-400">+{formatIDR(y.totalInterestEarned)}</td>
@@ -1424,7 +1406,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               ) : (
                 results.monthlyDetails.map((m, i) => (
                   <tr key={i} className="hover:bg-white/2 dark:hover:bg-white/2 transition-colors text-[11px]">
-                    <td className="py-2 px-2 text-slate-300 font-semibold">T{m.year} - Bln {m.month} ({m.period})</td>
+                    <td className="py-2 px-2 text-slate-300 font-semibold">{language === 'id' ? `T${m.year} - Bln ${m.month} (${m.period})` : `Y${m.year} - Mth ${m.month} (${m.period})`}</td>
                     <td className="py-2 px-2 text-right text-slate-300">{formatIDR(m.startingBalance)}</td>
                     <td className="py-2 px-2 text-right text-indigo-400">+{formatIDR(m.deposit)}</td>
                     <td className="py-2 px-2 text-right text-emerald-400">+{formatIDR(m.interestEarned)}</td>
@@ -1447,16 +1429,16 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       <div className="glass-card p-5 md:p-6 no-print">
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-3 mb-4">
           <Database className="h-4.5 w-4.5 text-brand-purple" />
-          Rencana Compounding Tersimpan
+          {language === 'id' ? 'Rencana Compounding Tersimpan' : 'Saved Compounding Plans'}
         </h2>
 
         {isLoadingPlans ? (
           <div className="py-8 text-center text-xs text-slate-400">
-            Memuat rencana simpanan...
+            {language === 'id' ? 'Memuat rencana simpanan...' : 'Loading saved plans...'}
           </div>
         ) : savedPlans.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-border-color rounded-xl">
-            Belum ada rencana compounding yang disimpan.
+            {language === 'id' ? 'Belum ada rencana compounding yang disimpan.' : 'No saved compounding plans found.'}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1470,10 +1452,10 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     {plan.title}
                   </h4>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Awal: <strong>{formatIDR(Number(plan.initial_amount))}</strong> • Rutin: <strong>{formatIDR(Number(plan.contribution_amount))} ({plan.compounding_frequency === 'trading_daily' ? 'Hari' : plan.contribution_frequency === 'monthly' ? 'Bulan' : plan.contribution_frequency === 'yearly' ? 'Tahun' : plan.contribution_frequency === 'weekly' ? 'Minggu' : 'Hari'})</strong> • Return: <strong>{plan.annual_return_rate}%</strong>
+                    {language === 'id' ? 'Awal' : 'Initial'}: <strong>{formatIDR(Number(plan.initial_amount))}</strong> • {language === 'id' ? 'Rutin' : 'Regular'}: <strong>{formatIDR(Number(plan.contribution_amount))} ({plan.compounding_frequency === 'trading_daily' ? (language === 'id' ? 'Hari' : 'Day') : plan.contribution_frequency === 'monthly' ? (language === 'id' ? 'Bulan' : 'Month') : plan.contribution_frequency === 'yearly' ? (language === 'id' ? 'Tahun' : 'Year') : plan.contribution_frequency === 'weekly' ? (language === 'id' ? 'Minggu' : 'Week') : (language === 'id' ? 'Hari' : 'Day')})</strong> • Return: <strong>{plan.annual_return_rate}%</strong>
                   </p>
                   <p className="text-[9px] text-slate-400/70">
-                    Durasi: {plan.compounding_frequency === 'trading_daily' ? `${plan.duration_months} Hari` : `${plan.duration_years} Tahun ${plan.duration_months} Bulan`} • Compounding: {plan.compounding_frequency === 'trading_daily' ? 'Harian' : plan.compounding_frequency}
+                    {language === 'id' ? 'Durasi' : 'Duration'}: {plan.compounding_frequency === 'trading_daily' ? `${plan.duration_months} ${language === 'id' ? 'Hari' : 'Days'}` : `${plan.duration_years} ${language === 'id' ? 'Tahun' : 'Years'} ${plan.duration_months} ${language === 'id' ? 'Bulan' : 'Months'}`} • Compounding: {plan.compounding_frequency === 'trading_daily' ? (language === 'id' ? 'Harian' : 'Daily') : plan.compounding_frequency}
                   </p>
                 </div>
 
@@ -1482,12 +1464,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     onClick={() => handleLoadPlan(plan)}
                     className="py-1.5 px-3 rounded-lg bg-brand-purple/10 border border-brand-purple/20 hover:bg-brand-purple/20 text-brand-purple font-extrabold text-[10px] transition-colors cursor-pointer select-none"
                   >
-                    Muat
+                    {language === 'id' ? 'Muat' : 'Load'}
                   </button>
                   <button
                     onClick={() => handleDeletePlan(plan.id, plan.title)}
                     className="p-2 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                    title="Hapus Rencana"
+                    title={language === 'id' ? 'Hapus Rencana' : 'Delete Plan'}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -1519,20 +1501,22 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             >
               <h3 className="text-base font-extrabold flex items-center gap-2 mb-2">
                 <Save className="h-5 w-5 text-brand-purple" />
-                Simpan Rencana Simulasi
+                {language === 'id' ? 'Simpan Rencana Simulasi' : 'Save Simulation Plan'}
               </h3>
               <p className="text-xs text-slate-400 mb-5">
-                Simpan parameter compounding ini agar dapat dimuat kembali secara instan di masa depan.
+                {language === 'id' ? 'Simpan parameter compounding ini agar dapat dimuat kembali secara instan di masa depan.' : 'Save these compounding parameters to reload them instantly in the future.'}
               </p>
 
               <form onSubmit={handleSavePlan} className="space-y-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Judul Rencana / Target Simulasi</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {language === 'id' ? 'Judul Rencana / Target Simulasi' : 'Plan Title / Simulation Target'}
+                  </label>
                   <input
                     type="text"
                     value={planTitle}
                     onChange={(e) => setPlanTitle(e.target.value)}
-                    placeholder="Contoh: Dana Pensiun Umur 55"
+                    placeholder={language === 'id' ? 'Contoh: Dana Pensiun Umur 55' : 'e.g. Pension Fund Age 55'}
                     className="w-full glass-input px-3.5 py-2.5 text-xs font-bold"
                     maxLength={100}
                     required
@@ -1546,17 +1530,17 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     onClick={() => setIsSaveModalOpen(false)}
                     className="px-4 py-2 text-xs font-bold rounded-xl hover:bg-input-bg text-slate-400 hover:text-white transition-colors cursor-pointer"
                   >
-                    Batal
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving || !planTitle.trim()}
-                    className="px-5 py-2 text-xs font-bold rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white disabled:opacity-50 transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-brand-purple text-white hover:bg-brand-purple/95 transition-all shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1.5"
                   >
-                    {isSaving && (
+                    {isSaving ? (
                       <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
-                    )}
-                    <span>Simpan</span>
+                    ) : null}
+                    <span>{t('common.save')}</span>
                   </button>
                 </div>
               </form>

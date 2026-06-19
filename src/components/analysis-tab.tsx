@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, DollarSign, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { cleanCompanyName } from '@/lib/utils';
+import { useLanguage } from '@/lib/language-context';
 
 // Popular BEI Tickers for suggestions
 const POPULAR_TICKERS = [
@@ -36,31 +37,39 @@ interface ChartData {
 }
 
 // Utility to format financial metrics
-const formatFinancialNumber = (num: number | null) => {
+const formatFinancialNumber = (num: number | null, language: string) => {
   if (num === null || isNaN(num)) return '-';
   const absNum = Math.abs(num);
   const sign = num < 0 ? '-' : '';
-  if (absNum >= 1e12) return `${sign}Rp ${(absNum / 1e12).toFixed(2)} T`;
-  if (absNum >= 1e9) return `${sign}Rp ${(absNum / 1e9).toFixed(2)} M`;
-  if (absNum >= 1e6) return `${sign}Rp ${(absNum / 1e6).toFixed(2)} Jt`;
-  return `${sign}Rp ${num.toLocaleString('id-ID')}`;
+  const loc = language === 'id' ? 'id-ID' : 'en-US';
+  const unitT = 'T';
+  const unitM = language === 'id' ? 'M' : 'B';
+  const unitJ = language === 'id' ? 'Jt' : 'M';
+  if (absNum >= 1e12) return `${sign}Rp ${(absNum / 1e12).toFixed(2)} ${unitT}`;
+  if (absNum >= 1e9) return `${sign}Rp ${(absNum / 1e9).toFixed(2)} ${unitM}`;
+  if (absNum >= 1e6) return `${sign}Rp ${(absNum / 1e6).toFixed(2)} ${unitJ}`;
+  return `${sign}Rp ${num.toLocaleString(loc)}`;
 };
 
-const formatShort = (num: number) => {
+const formatShort = (num: number, language: string) => {
   const absNum = Math.abs(num);
   const sign = num < 0 ? '-' : '';
-  if (absNum >= 1e12) return `${sign}${(absNum / 1e12).toFixed(1)}T`;
-  if (absNum >= 1e9) return `${sign}${(absNum / 1e9).toFixed(1)}M`;
-  if (absNum >= 1e6) return `${sign}${(absNum / 1e6).toFixed(1)}Jt`;
-  return `${sign}${num.toLocaleString('id-ID')}`;
+  const loc = language === 'id' ? 'id-ID' : 'en-US';
+  const unitT = 'T';
+  const unitM = language === 'id' ? 'M' : 'B';
+  const unitJ = language === 'id' ? 'Jt' : 'M';
+  if (absNum >= 1e12) return `${sign}${(absNum / 1e12).toFixed(1)}${unitT}`;
+  if (absNum >= 1e9) return `${sign}${(absNum / 1e9).toFixed(1)}${unitM}`;
+  if (absNum >= 1e6) return `${sign}${(absNum / 1e6).toFixed(1)}${unitJ}`;
+  return `${sign}${num.toLocaleString(loc)}`;
 };
 
 // SVG-based Custom Bar Chart
-function FinancialBarChart({ data }: { data: ChartData[] }) {
+function FinancialBarChart({ data, language }: { data: ChartData[]; language: string }) {
   if (!data || data.length === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center text-slate-400">
-        Data historis tidak tersedia.
+        {language === 'id' ? 'Data historis tidak tersedia.' : 'Historical data is not available.'}
       </div>
     );
   }
@@ -119,11 +128,11 @@ function FinancialBarChart({ data }: { data: ChartData[] }) {
 
           {/* Y Axis Labels */}
           <text x={padding.left - 10} y={getY(maxValue) + 4} fill="#94a3b8" fontSize="10" textAnchor="end">
-            {formatShort(maxValue)}
+            {formatShort(maxValue, language)}
           </text>
           {hasNegative && (
             <text x={padding.left - 10} y={getY(minValue) + 4} fill="#94a3b8" fontSize="10" textAnchor="end">
-              {formatShort(minValue)}
+              {formatShort(minValue, language)}
             </text>
           )}
           <text x={padding.left - 10} y={zeroY + 4} fill="#94a3b8" fontSize="10" textAnchor="end">
@@ -146,7 +155,7 @@ function FinancialBarChart({ data }: { data: ChartData[] }) {
               <g key={idx} className="group">
                 {/* Revenue Bar - Violet Gradient/Color */}
                 <rect
-                  x={xRev}
+                   x={xRev}
                   y={revY}
                   width={barWidth}
                   height={revHeight}
@@ -179,8 +188,9 @@ function FinancialBarChart({ data }: { data: ChartData[] }) {
                 {/* Browser Native Tooltip */}
                 <title>
                   {item.label}
-                  &#10;Pendapatan: {formatFinancialNumber(item.revenue)}
-                  &#10;Laba Bersih: {formatFinancialNumber(item.netIncome)}
+                  {language === 'id'
+                    ? `\nPendapatan: ${formatFinancialNumber(item.revenue, language)}\nLaba Bersih: ${formatFinancialNumber(item.netIncome, language)}`
+                    : `\nRevenue: ${formatFinancialNumber(item.revenue, language)}\nNet Income: ${formatFinancialNumber(item.netIncome, language)}`}
                 </title>
               </g>
             );
@@ -192,6 +202,7 @@ function FinancialBarChart({ data }: { data: ChartData[] }) {
 }
 
 export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabProps) {
+  const { language, t } = useLanguage();
   const [tickerQuery, setTickerQuery] = React.useState('');
   const [activeTicker, setActiveTicker] = React.useState<string>('BBCA');
   const [suggestions, setSuggestions] = React.useState<typeof POPULAR_TICKERS>([]);
@@ -253,7 +264,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       const fundRes = await fetch(`/api/analysis/fundamentals?symbol=${symbol}`);
       if (!fundRes.ok) {
         const err = await fundRes.json();
-        throw new Error(err.error || 'Gagal memuat data fundamental.');
+        throw new Error(err.error || (language === 'id' ? 'Gagal memuat data fundamental.' : 'Failed to load fundamental data.'));
       }
       const fundData = await fundRes.json();
 
@@ -272,7 +283,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       const newsRes = await fetch(`/api/analysis/news?symbol=${symbol}`);
       if (!newsRes.ok) {
         const err = await newsRes.json();
-        throw new Error(err.error || 'Gagal memuat berita.');
+        throw new Error(err.error || (language === 'id' ? 'Gagal memuat berita.' : 'Failed to load news.'));
       }
       const newsData = await newsRes.json();
 
@@ -283,7 +294,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       setAnalysis(newsData.analysis || null);
     } catch (err: any) {
       console.error('Error fetching stock analysis:', err);
-      setErrorMsg(err.message || 'Terjadi kesalahan saat memuat data analisis.');
+      setErrorMsg(err.message || (language === 'id' ? 'Terjadi kesalahan saat memuat data analisis.' : 'An error occurred while loading analysis data.'));
     } finally {
       setLoading(false);
     }
@@ -366,16 +377,16 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           </div>
         </div>
         <h2 className="mb-3 text-2xl font-bold tracking-tight text-white md:text-3xl">
-          Analisis Saham Pro Terkunci
+          {t('analysis.lockedTitle')}
         </h2>
         <p className="mb-8 text-sm md:text-base text-slate-400 max-w-md mx-auto leading-relaxed">
-          Silakan masuk dengan akun Anda untuk melihat analisa teknikal TradingView, indikator fundamental mendalam, dan rangkuman sentimen berita bertenaga AI untuk saham-saham BEI.
+          {t('analysis.lockedDesc')}
         </p>
         <button
           onClick={onSignInClick}
           className="px-8 py-3.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-xl transition-all duration-300 shadow-md hover:scale-[1.02]"
         >
-          Masuk ke Akun Anda
+          {t('analysis.loginButton')}
         </button>
       </div>
     );
@@ -384,11 +395,11 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   const getAnalysisRecommendations = () => {
     if (!fundamentals) {
       return {
-        fundamental: { rating: 'HOLD', score: 50, desc: 'Menunggu data fundamental...' },
-        technical: { rating: 'HOLD', score: 50, desc: 'Menunggu data teknikal...' },
-        bandarmology: { rating: 'NEUTRAL', score: 50, desc: 'Menunggu data bandarmology...' },
-        narrative: { rating: 'HOLD', score: 50, desc: 'Menunggu sentimen berita...' },
-        unified: { rating: 'HOLD', score: 50, desc: 'Menunggu analisa...' },
+        fundamental: { rating: 'HOLD', score: 50, desc: language === 'id' ? 'Menunggu data fundamental...' : 'Waiting for fundamental data...' },
+        technical: { rating: 'HOLD', score: 50, desc: language === 'id' ? 'Menunggu data teknikal...' : 'Waiting for technical data...' },
+        bandarmology: { rating: 'NEUTRAL', score: 50, desc: language === 'id' ? 'Menunggu data bandarmology...' : 'Waiting for bandarmology data...' },
+        narrative: { rating: 'HOLD', score: 50, desc: language === 'id' ? 'Menunggu sentimen berita...' : 'Waiting for news sentiment...' },
+        unified: { rating: 'HOLD', score: 50, desc: language === 'id' ? 'Menunggu analisa...' : 'Waiting for analysis...' },
         pros: [],
         cons: []
       };
@@ -404,16 +415,16 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       fundMaxPoints += 2;
       if (pe < 0) {
         fundPoints -= 2;
-        reasons.push('EPS negatif (merugi)');
+        reasons.push(language === 'id' ? 'EPS negatif (merugi)' : 'Negative EPS (losing money)');
       } else if (pe < 12) {
         fundPoints += 2;
-        reasons.push('P/E rendah (< 12x)');
+        reasons.push(language === 'id' ? 'P/E rendah (< 12x)' : 'Low P/E (< 12x)');
       } else if (pe < 22) {
         fundPoints += 1;
-        reasons.push('P/E wajar (12x - 22x)');
+        reasons.push(language === 'id' ? 'P/E wajar (12x - 22x)' : 'Fair P/E (12x - 22x)');
       } else {
         fundPoints -= 1;
-        reasons.push('P/E tinggi (> 22x)');
+        reasons.push(language === 'id' ? 'P/E tinggi (> 22x)' : 'High P/E (> 22x)');
       }
     }
 
@@ -422,13 +433,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       fundMaxPoints += 2;
       if (pb < 1.2) {
         fundPoints += 2;
-        reasons.push('PBV sangat murah (< 1.2x)');
+        reasons.push(language === 'id' ? 'PBV sangat murah (< 1.2x)' : 'Very cheap PBV (< 1.2x)');
       } else if (pb < 3.0) {
         fundPoints += 1;
-        reasons.push('PBV wajar (1.2x - 3.0x)');
+        reasons.push(language === 'id' ? 'PBV wajar (1.2x - 3.0x)' : 'Fair PBV (1.2x - 3.0x)');
       } else {
         fundPoints -= 1;
-        reasons.push('PBV tinggi (> 3.0x)');
+        reasons.push(language === 'id' ? 'PBV tinggi (> 3.0x)' : 'High PBV (> 3.0x)');
       }
     }
 
@@ -437,13 +448,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       fundMaxPoints += 2;
       if (roe > 15) {
         fundPoints += 2;
-        reasons.push('ROE tinggi (> 15%)');
+        reasons.push(language === 'id' ? 'ROE tinggi (> 15%)' : 'High ROE (> 15%)');
       } else if (roe > 8) {
         fundPoints += 1;
-        reasons.push('ROE sehat (8% - 15%)');
+        reasons.push(language === 'id' ? 'ROE sehat (8% - 15%)' : 'Healthy ROE (8% - 15%)');
       } else if (roe <= 0) {
         fundPoints -= 2;
-        reasons.push('ROE negatif');
+        reasons.push(language === 'id' ? 'ROE negatif' : 'Negative ROE');
       }
     }
 
@@ -452,10 +463,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       fundMaxPoints += 1;
       if (der < 80) {
         fundPoints += 1;
-        reasons.push('DER rendah (< 80%)');
+        reasons.push(language === 'id' ? 'DER rendah (< 80%)' : 'Low DER (< 80%)');
       } else if (der > 200) {
         fundPoints -= 1;
-        reasons.push('DER tinggi (> 200%)');
+        reasons.push(language === 'id' ? 'DER tinggi (> 200%)' : 'High DER (> 200%)');
       }
     }
 
@@ -464,10 +475,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       fundMaxPoints += 1;
       if (pm > 15) {
         fundPoints += 1;
-        reasons.push('NPM tinggi (> 15%)');
+        reasons.push(language === 'id' ? 'NPM tinggi (> 15%)' : 'High NPM (> 15%)');
       } else if (pm < 0) {
         fundPoints -= 1;
-        reasons.push('NPM negatif');
+        reasons.push(language === 'id' ? 'NPM negatif' : 'Negative NPM');
       }
     }
 
@@ -487,28 +498,32 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
     const fundDesc = reasons.length > 0 
       ? reasons.join(', ')
-      : 'rasio fundamental berada pada level netral';
+      : (language === 'id' ? 'rasio fundamental berada pada level netral' : 'fundamental ratios are at a neutral level');
 
     // 2. TECHNICAL EVALUATION
     const techScore = technicals?.summary?.score ?? 50;
     const techRating = technicals?.summary?.rating ?? 'NEUTRAL';
-    let techDesc = 'kondisi RSI netral dan MA berkonsolidasi';
+    let techDesc = language === 'id' ? 'kondisi RSI netral dan MA berkonsolidasi' : 'RSI is neutral and MA is consolidating';
     if (technicals) {
       const rsiVal = technicals.rsi?.value;
       const rsiSig = technicals.rsi?.signal;
       const macdSig = technicals.macd?.signalName;
-      techDesc = `RSI di level ${rsiVal?.toFixed(1)} (${rsiSig}), tren MACD ${macdSig || 'Netral'}, serta Moving Averages harian`;
+      techDesc = language === 'id'
+        ? `RSI di level ${rsiVal?.toFixed(1)} (${rsiSig}), tren MACD ${macdSig || 'Netral'}, serta Moving Averages harian`
+        : `RSI level ${rsiVal?.toFixed(1)} (${rsiSig}), MACD trend ${macdSig || 'Neutral'}, and daily Moving Averages`;
     }
 
     // 3. BANDARMOLOGY EVALUATION
     const bandarScore = technicals?.bandarmologySummary?.score ?? 50;
     const bandarRating = technicals?.bandarmologySummary?.rating ?? 'NEUTRAL';
-    let bandarDesc = 'aliran dana masuk dan keluar terpantau seimbang';
+    let bandarDesc = language === 'id' ? 'aliran dana masuk dan keluar terpantau seimbang' : 'inflow and outflow of funds are balanced';
     if (technicals) {
       const bandarStatus = technicals.bandarmology?.status || 'NEUTRAL';
       const foreignNet = technicals.bandarmology?.foreignNetBuy || 0;
       const mfiVal = technicals.moneyFlow?.mfi || 50;
-      bandarDesc = `aktivitas Bandarmology berstatus ${bandarStatus}, akumulasi asing bersih sebesar ${formatShort(foreignNet)}, dan Money Flow Index (MFI) di level ${mfiVal.toFixed(1)}`;
+      bandarDesc = language === 'id'
+        ? `aktivitas Bandarmology berstatus ${bandarStatus}, akumulasi asing bersih sebesar ${formatShort(foreignNet, language)}, dan Money Flow Index (MFI) di level ${mfiVal.toFixed(1)}`
+        : `Bandarmology activity status is ${bandarStatus}, net foreign accumulation of ${formatShort(foreignNet, language)}, and Money Flow Index (MFI) at ${mfiVal.toFixed(1)}`;
     }
 
     // 4. NARRATIVE SENTIMENT EVALUATION
@@ -524,9 +539,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
     if (sentiment === 'Bullish') narrRating = 'BUY';
     else if (sentiment === 'Bearish') narrRating = 'SELL';
 
+    const sentimentTranslated = language === 'id'
+      ? (sentiment === 'Bullish' ? 'Bullish' : sentiment === 'Bearish' ? 'Bearish' : 'Netral')
+      : (sentiment === 'Bullish' ? 'Bullish' : sentiment === 'Bearish' ? 'Bearish' : 'Neutral');
+
     const narrDesc = analysis?.summary 
-      ? `sentimen cenderung ${sentiment.toLowerCase()}`
-      : `sentimen pasar terpantau ${sentiment.toLowerCase()}`;
+      ? (language === 'id' ? `sentimen cenderung ${sentimentTranslated.toLowerCase()}` : `sentiment tends to be ${sentimentTranslated.toLowerCase()}`)
+      : (language === 'id' ? `sentimen pasar terpantau ${sentimentTranslated.toLowerCase()}` : `market sentiment observed is ${sentimentTranslated.toLowerCase()}`);
 
     // 5. UNIFIED CONSENSUS (25% Fundamental, 25% Technical, 25% Bandarmology, 25% Narrative)
     const unifiedScore = Math.round((fundScore * 0.25) + (techScore * 0.25) + (bandarScore * 0.25) + (narrScore * 0.25));
@@ -538,7 +557,9 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
     else if (unifiedScore <= 45) unifiedRating = 'SELL';
 
     const tickerName = activeTicker.split('.')[0];
-    const unifiedDesc = `Sinyal utama gabungan untuk ${tickerName} merekomendasikan ${unifiedRating} dengan skor akumulasi ${unifiedScore}%. Secara fundamental dinilai ${fundRating} karena ${fundDesc}. Dari sisi teknikal, indikator menunjukkan status ${techRating} berdasarkan ${techDesc}. Di sisi Bandarmology, transaksi berstatus ${bandarRating} dengan ${bandarDesc}. Sedangkan aspek narasi/berita merekomendasikan ${narrRating} dengan sentimen pasar cenderung ${sentiment.toLowerCase()}.`;
+    const unifiedDesc = language === 'id'
+      ? `Sinyal utama gabungan untuk ${tickerName} merekomendasikan ${unifiedRating} dengan skor akumulasi ${unifiedScore}%. Secara fundamental dinilai ${fundRating} karena ${fundDesc}. Dari sisi teknikal, indikator menunjukkan status ${techRating} berdasarkan ${techDesc}. Di sisi Bandarmology, transaksi berstatus ${bandarRating} dengan ${bandarDesc}. Sedangkan aspek narasi/berita merekomendasikan ${narrRating} dengan sentimen pasar cenderung ${sentiment.toLowerCase()}.`
+      : `Unified consensus signals for ${tickerName} recommend ${unifiedRating} with an accumulated score of ${unifiedScore}%. Fundamentally rated ${fundRating} due to ${fundDesc}. Technically, indicators show a status of ${techRating} based on ${techDesc}. In Bandarmology, transactions are ${bandarRating} with ${bandarDesc}. Meanwhile, the narrative/news aspect recommends ${narrRating} with market sentiment tending to be ${sentiment.toLowerCase()}.`;
 
     // Pros & Cons calculation
     const pros: string[] = [];
@@ -546,78 +567,78 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
     // Fundamental Pros & Cons
     if (pe !== null && pe !== undefined) {
-      if (pe < 0) cons.push('Laba EPS negatif (perusahaan merugi)');
-      else if (pe < 12) pros.push(`Valuasi P/E murah (${pe.toFixed(1)}x)`);
-      else if (pe < 22) pros.push(`Valuasi P/E wajar (${pe.toFixed(1)}x)`);
-      else cons.push(`Valuasi P/E tinggi/mahal (${pe.toFixed(1)}x)`);
+      if (pe < 0) cons.push(language === 'id' ? 'Laba EPS negatif (perusahaan merugi)' : 'Negative EPS earnings (company losing money)');
+      else if (pe < 12) pros.push(language === 'id' ? `Valuasi P/E murah (${pe.toFixed(1)}x)` : `Cheap P/E valuation (${pe.toFixed(1)}x)`);
+      else if (pe < 22) pros.push(language === 'id' ? `Valuasi P/E wajar (${pe.toFixed(1)}x)` : `Fair P/E valuation (${pe.toFixed(1)}x)`);
+      else cons.push(language === 'id' ? `Valuasi P/E tinggi/mahal (${pe.toFixed(1)}x)` : `High/expensive P/E valuation (${pe.toFixed(1)}x)`);
     }
     if (pb !== null && pb !== undefined) {
-      if (pb < 1.2) pros.push(`Valuasi PBV sangat murah (${pb.toFixed(1)}x)`);
-      else if (pb < 3.0) pros.push(`Valuasi PBV wajar (${pb.toFixed(1)}x)`);
-      else cons.push(`Valuasi PBV tinggi/mahal (${pb.toFixed(1)}x)`);
+      if (pb < 1.2) pros.push(language === 'id' ? `Valuasi PBV sangat murah (${pb.toFixed(1)}x)` : `Very cheap PBV valuation (${pb.toFixed(1)}x)`);
+      else if (pb < 3.0) pros.push(language === 'id' ? `Valuasi PBV wajar (${pb.toFixed(1)}x)` : `Fair PBV valuation (${pb.toFixed(1)}x)`);
+      else cons.push(language === 'id' ? `Valuasi PBV tinggi/mahal (${pb.toFixed(1)}x)` : `High/expensive PBV valuation (${pb.toFixed(1)}x)`);
     }
     if (roe !== null && roe !== undefined) {
-      if (roe > 15) pros.push(`Profitabilitas ROE tinggi (${roe.toFixed(1)}%)`);
-      else if (roe > 8) pros.push(`Profitabilitas ROE sehat (${roe.toFixed(1)}%)`);
-      else if (roe <= 0) cons.push(`Profitabilitas ROE negatif (${roe.toFixed(1)}%)`);
-      else cons.push(`Profitabilitas ROE rendah (${roe.toFixed(1)}%)`);
+      if (roe > 15) pros.push(language === 'id' ? `Profitabilitas ROE tinggi (${roe.toFixed(1)}%)` : `High ROE profitability (${roe.toFixed(1)}%)`);
+      else if (roe > 8) pros.push(language === 'id' ? `Profitabilitas ROE sehat (${roe.toFixed(1)}%)` : `Healthy ROE profitability (${roe.toFixed(1)}%)`);
+      else if (roe <= 0) cons.push(language === 'id' ? `Profitabilitas ROE negatif (${roe.toFixed(1)}%)` : `Negative ROE profitability (${roe.toFixed(1)}%)`);
+      else cons.push(language === 'id' ? `Profitabilitas ROE rendah (${roe.toFixed(1)}%)` : `Low ROE profitability (${roe.toFixed(1)}%)`);
     }
     if (der !== null && der !== undefined) {
-      if (der < 80) pros.push(`Rasio utang DER rendah/aman (${der.toFixed(1)}%)`);
-      else if (der > 200) cons.push(`Rasio utang DER tinggi/berisiko (${der.toFixed(1)}%)`);
+      if (der < 80) pros.push(language === 'id' ? `Rasio utang DER rendah/aman (${der.toFixed(1)}%)` : `Low/safe DER debt ratio (${der.toFixed(1)}%)`);
+      else if (der > 200) cons.push(language === 'id' ? `Rasio utang DER tinggi/berisiko (${der.toFixed(1)}%)` : `High/risky DER debt ratio (${der.toFixed(1)}%)`);
     }
     if (pm !== null && pm !== undefined) {
-      if (pm > 15) pros.push(`Margin laba bersih NPM tinggi (${pm.toFixed(1)}%)`);
-      else if (pm < 0) cons.push(`Margin laba bersih NPM negatif (${pm.toFixed(1)}%)`);
+      if (pm > 15) pros.push(language === 'id' ? `Margin laba bersih NPM tinggi (${pm.toFixed(1)}%)` : `High NPM net profit margin (${pm.toFixed(1)}%)`);
+      else if (pm < 0) cons.push(language === 'id' ? `Margin laba bersih NPM negatif (${pm.toFixed(1)}%)` : `Negative NPM net profit margin (${pm.toFixed(1)}%)`);
     }
 
     // Technical Pros & Cons
     if (technicals) {
       const rsiVal = technicals.rsi?.value;
       if (rsiVal !== undefined) {
-        if (rsiVal < 30) pros.push(`Momentum RSI Jenuh Jual / Oversold (${rsiVal.toFixed(1)})`);
-        else if (rsiVal > 70) cons.push(`Momentum RSI Jenuh Beli / Overbought (${rsiVal.toFixed(1)})`);
+        if (rsiVal < 30) pros.push(language === 'id' ? `Momentum RSI Jenuh Jual / Oversold (${rsiVal.toFixed(1)})` : `RSI Momentum Oversold (${rsiVal.toFixed(1)})`);
+        else if (rsiVal > 70) cons.push(language === 'id' ? `Momentum RSI Jenuh Beli / Overbought (${rsiVal.toFixed(1)})` : `RSI Momentum Overbought (${rsiVal.toFixed(1)})`);
       }
       const macdSig = technicals.macd?.signalName;
       if (macdSig) {
-        if (macdSig.includes('Bullish')) pros.push(`Indikator MACD: ${macdSig}`);
-        else if (macdSig.includes('Bearish')) cons.push(`Indikator MACD: ${macdSig}`);
+        if (macdSig.includes('Bullish')) pros.push(language === 'id' ? `Indikator MACD: ${macdSig}` : `MACD Indicator: ${macdSig}`);
+        else if (macdSig.includes('Bearish')) cons.push(language === 'id' ? `Indikator MACD: ${macdSig}` : `MACD Indicator: ${macdSig}`);
       }
       const curPrice = technicals.price || fundamentals.price || 0;
       const sma20 = technicals.movingAverages?.sma20;
       const sma50 = technicals.movingAverages?.sma50;
       if (curPrice && sma20 && sma50) {
-        if (curPrice > sma20 && curPrice > sma50) pros.push('Moving Averages: Uptrend kuat (di atas SMA 20 & 50)');
-        else if (curPrice < sma20 && curPrice < sma50) cons.push('Moving Averages: Downtrend kuat (di bawah SMA 20 & 50)');
+        if (curPrice > sma20 && curPrice > sma50) pros.push(language === 'id' ? 'Moving Averages: Uptrend kuat (di atas SMA 20 & 50)' : 'Moving Averages: Strong uptrend (above SMA 20 & 50)');
+        else if (curPrice < sma20 && curPrice < sma50) cons.push(language === 'id' ? 'Moving Averages: Downtrend kuat (di bawah SMA 20 & 50)' : 'Moving Averages: Strong downtrend (below SMA 20 & 50)');
       }
       const w = technicals.multiTimeframe?.weekly;
       const d = technicals.multiTimeframe?.daily;
-      if (w === 'BULLISH') pros.push('Tren Mingguan (Weekly): Bullish');
-      if (w === 'BEARISH') cons.push('Tren Mingguan (Weekly): Bearish');
-      if (d === 'BULLISH') pros.push('Tren Harian (Daily): Bullish');
-      if (d === 'BEARISH') cons.push('Tren Harian (Daily): Bearish');
+      if (w === 'BULLISH') pros.push(language === 'id' ? 'Tren Mingguan (Weekly): Bullish' : 'Weekly Trend (Weekly): Bullish');
+      if (w === 'BEARISH') cons.push(language === 'id' ? 'Tren Mingguan (Weekly): Bearish' : 'Weekly Trend (Weekly): Bearish');
+      if (d === 'BULLISH') pros.push(language === 'id' ? 'Tren Harian (Daily): Bullish' : 'Daily Trend (Daily): Bullish');
+      if (d === 'BEARISH') cons.push(language === 'id' ? 'Tren Harian (Daily): Bearish' : 'Daily Trend (Daily): Bearish');
     }
 
     // Bandarmology Pros & Cons
     if (technicals) {
       const status = technicals.bandarmology?.status || '';
-      if (status.includes('ACCUMULATION')) pros.push(`Bandarmology: Akumulasi volume (${status})`);
-      else if (status.includes('DISTRIBUTION')) cons.push(`Bandarmology: Distribusi volume (${status})`);
+      if (status.includes('ACCUMULATION')) pros.push(language === 'id' ? `Bandarmology: Akumulasi volume (${status})` : `Bandarmology: Volume accumulation (${status})`);
+      else if (status.includes('DISTRIBUTION')) cons.push(language === 'id' ? `Bandarmology: Distribusi volume (${status})` : `Bandarmology: Volume distribution (${status})`);
 
       const foreignNet = technicals.bandarmology?.foreignNetBuy || 0;
-      if (foreignNet > 0) pros.push(`Aliran Asing (Net Foreign Buy): +${formatShort(foreignNet)}`);
-      else if (foreignNet < 0) cons.push(`Aliran Asing (Net Foreign Sell): ${formatShort(foreignNet)}`);
+      if (foreignNet > 0) pros.push(language === 'id' ? `Aliran Asing (Net Foreign Buy): +${formatShort(foreignNet, language)}` : `Net Foreign Buy: +${formatShort(foreignNet, language)}`);
+      else if (foreignNet < 0) cons.push(language === 'id' ? `Aliran Asing (Net Foreign Sell): ${formatShort(foreignNet, language)}` : `Net Foreign Sell: ${formatShort(foreignNet, language)}`);
 
       const mfiVal = technicals.moneyFlow?.mfi;
       if (mfiVal !== undefined) {
-        if (mfiVal < 30) pros.push(`Aliran Dana (MFI) Jenuh Jual (${mfiVal.toFixed(1)})`);
-        else if (mfiVal > 70) cons.push(`Aliran Dana (MFI) Jenuh Beli (${mfiVal.toFixed(1)})`);
+        if (mfiVal < 30) pros.push(language === 'id' ? `Aliran Dana (MFI) Jenuh Jual (${mfiVal.toFixed(1)})` : `Money Flow (MFI) Oversold (${mfiVal.toFixed(1)})`);
+        else if (mfiVal > 70) cons.push(language === 'id' ? `Aliran Dana (MFI) Jenuh Beli (${mfiVal.toFixed(1)})` : `Money Flow (MFI) Overbought (${mfiVal.toFixed(1)})`);
       }
     }
 
     // Sentiment Pros & Cons
-    if (sentiment === 'Bullish') pros.push('Sentimen Media/Berita: Positif/Bullish');
-    else if (sentiment === 'Bearish') cons.push('Sentimen Media/Berita: Negatif/Bearish');
+    if (sentiment === 'Bullish') pros.push(language === 'id' ? 'Sentimen Media/Berita: Positif/Bullish' : 'Media/News Sentiment: Positive/Bullish');
+    else if (sentiment === 'Bearish') cons.push(language === 'id' ? 'Sentimen Media/Berita: Negatif/Bearish' : 'Media/News Sentiment: Negative/Bearish');
 
     return {
       fundamental: { rating: fundRating, score: fundScore, desc: fundDesc },
@@ -640,10 +661,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-border-color p-5 rounded-2xl bg-card-bg relative z-50">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-brand-purple" /> Analisis Saham Pro
+            <BarChart2 className="w-5 h-5 text-brand-purple" /> {t('analysis.title')}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Emiten aktif: <span className="font-semibold text-brand-purple">{activeTicker.split('.')[0]}</span> - BEI (Bursa Efek Indonesia)
+            {language === 'id' ? 'Emiten aktif' : 'Active Ticker'}: <span className="font-semibold text-brand-purple">{activeTicker.split('.')[0]}</span> - {language === 'id' ? 'BEI (Bursa Efek Indonesia)' : 'IDX (Indonesia Stock Exchange)'}
           </p>
         </div>
 
@@ -667,7 +688,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Cari kode saham (e.g. BBRI, GOTO)..."
+                  placeholder={t('analysis.searchPlaceholder')}
                   value={tickerQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 focus:ring-1 focus:ring-brand-purple/60 transition-all duration-200"
@@ -697,7 +718,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center gap-2 text-brand-purple font-medium"
                   >
                     <Search className="w-4 h-4 text-brand-purple" />
-                    <span className="text-sm">Analisis Saham "{tickerQuery.toUpperCase().trim()}"</span>
+                    <span className="text-sm">{language === 'id' ? 'Analisis Saham' : 'Analyze Stock'} "{tickerQuery.toUpperCase().trim()}"</span>
                   </button>
                 )}
               </div>
@@ -719,10 +740,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <TrendingUp className="w-10 h-10 animate-pulse" />
           </div>
           <h3 className="text-xl font-bold text-white md:text-2xl">
-            Analisis Saham Profesional
+            {t('analysis.popularTitle')}
           </h3>
           <p className="text-xs md:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            Gunakan kotak pencarian di atas untuk menganalisis kode saham BEI apa saja, atau klik salah satu pintasan emiten terpopuler di bawah untuk memulai analisis chart teknikal, ringkasan fundamental keuangan, dan sentimen narasi AI secara instan.
+            {t('analysis.popularDesc')}
           </p>
           <div className="flex flex-wrap gap-2 justify-center pt-2">
             {['BBCA', 'BBRI', 'BMRI', 'TLKM', 'GOTO'].map((symbol) => (
@@ -752,7 +773,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   <div className="flex-1 space-y-4 w-full">
                     <div className="flex items-center gap-2">
                       <Compass className="w-5 h-5 text-brand-purple animate-pulse" />
-                      <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Konsensus Analisis Unifikasi</span>
+                      <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">{t('analysis.consensusTitle')}</span>
                     </div>
                     
                     <div className="flex items-baseline gap-3">
@@ -768,12 +789,20 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                         {recs.unified.rating}
                       </span>
                       <span className="text-sm text-slate-400 font-semibold font-mono">
-                        Skor Akumulasi: {recs.unified.score}%
+                        {t('analysis.consensusScore').replace('{score}', String(recs.unified.score))}
                       </span>
                     </div>
   
                     <p className="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-3xl border-l-2 border-brand-purple/40 pl-3">
-                      Sinyal utama gabungan untuk <span className="font-bold text-white">{activeTicker.split('.')[0]}</span> menyimpulkan rekomendasi <span className={`font-black uppercase ${recs.unified.rating.includes('BUY') ? 'text-emerald-400' : recs.unified.rating.includes('SELL') ? 'text-rose-400' : 'text-yellow-400'}`}>{recs.unified.rating}</span> (Skor: {recs.unified.score}%).
+                      {language === 'id' ? (
+                        <>
+                          Sinyal utama gabungan untuk <span className="font-bold text-white">{activeTicker.split('.')[0]}</span> menyimpulkan rekomendasi <span className={`font-black uppercase ${recs.unified.rating.includes('BUY') ? 'text-emerald-400' : recs.unified.rating.includes('SELL') ? 'text-rose-400' : 'text-yellow-400'}`}>{recs.unified.rating}</span> (Skor: {recs.unified.score}%).
+                        </>
+                      ) : (
+                        <>
+                          Unified consensus signals for <span className="font-bold text-white">{activeTicker.split('.')[0]}</span> recommend <span className={`font-black uppercase ${recs.unified.rating.includes('BUY') ? 'text-emerald-400' : recs.unified.rating.includes('SELL') ? 'text-rose-400' : 'text-yellow-400'}`}>{recs.unified.rating}</span> (Score: {recs.unified.score}%).
+                        </>
+                      )}
                     </p>
 
                     {/* Visual Pros & Cons Grid for Quick Digest */}
@@ -781,7 +810,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       {/* Pros (Kekuatan) */}
                       <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl space-y-2">
                         <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-emerald-500/10 pb-1.5">
-                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> Sinyal Positif & Kekuatan
+                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> {t('analysis.prosTitle')}
                         </div>
                         <ul className="space-y-1.5">
                           {recs.pros && recs.pros.length > 0 ? (
@@ -792,7 +821,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                               </li>
                             ))
                           ) : (
-                            <li className="text-[11px] text-slate-500 italic">Tidak ada sinyal positif yang menonjol.</li>
+                            <li className="text-[11px] text-slate-500 italic">{t('analysis.noPros')}</li>
                           )}
                         </ul>
                       </div>
@@ -800,7 +829,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       {/* Cons (Risiko) */}
                       <div className="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl space-y-2">
                         <div className="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-rose-500/10 pb-1.5">
-                          <TrendingDown className="w-3.5 h-3.5 text-rose-400" /> Sinyal Risiko & Kelemahan
+                          <TrendingDown className="w-3.5 h-3.5 text-rose-400" /> {language === 'id' ? 'Sinyal Risiko & Kelemahan' : 'Risk & Weakness Signals'}
                         </div>
                         <ul className="space-y-1.5">
                           {recs.cons && recs.cons.length > 0 ? (
@@ -811,7 +840,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                               </li>
                             ))
                           ) : (
-                            <li className="text-[11px] text-slate-500 italic">Tidak ada risiko kritis yang terdeteksi.</li>
+                            <li className="text-[11px] text-slate-500 italic">{language === 'id' ? 'Tidak ada risiko kritis yang terdeteksi.' : 'No critical risks detected.'}</li>
                           )}
                         </ul>
                       </div>
@@ -821,7 +850,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2 w-full">
                       {/* Fundamental */}
                       <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Analisa Fundamental</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{language === 'id' ? 'Analisa Fundamental' : 'Fundamental Analysis'}</div>
                         <div className="flex justify-between items-center mt-1">
                           <span className={`text-xs font-bold ${
                             recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'
@@ -832,7 +861,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   
                       {/* Teknikal */}
                       <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Analisa Teknikal</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{language === 'id' ? 'Analisa Teknikal' : 'Technical Analysis'}</div>
                         <div className="flex justify-between items-center mt-1">
                           <span className={`text-xs font-bold ${
                             recs.technical.rating.includes('BUY') ? 'text-emerald-400' : recs.technical.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'
@@ -854,7 +883,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   
                       {/* Narasi/Sentimen */}
                       <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Analisa Narasi</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{language === 'id' ? 'Analisa Narasi' : 'Narrative Analysis'}</div>
                         <div className="flex justify-between items-center mt-1">
                           <span className={`text-xs font-bold ${
                             recs.narrative.rating.includes('BUY') ? 'text-emerald-400' : recs.narrative.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'
@@ -869,7 +898,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   <div className="w-full lg:w-72 flex flex-col items-center justify-center p-4 bg-slate-900/30 border border-slate-900 rounded-2xl relative overflow-hidden shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-br from-brand-purple/5 to-transparent opacity-30 pointer-events-none" />
                     
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Sinyal Konsensus Meter</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{language === 'id' ? 'Sinyal Konsensus Meter' : 'Consensus Signal Meter'}</span>
                     
                     {/* Horizontal segmented bar visualizer with highlight cursor */}
                     <div className="w-full space-y-2">
@@ -900,7 +929,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     </div>
   
                     <div className="mt-4 text-center">
-                      <span className="text-[11px] text-slate-400 font-medium">Verdict: </span>
+                      <span className="text-[11px] text-slate-400 font-medium">{language === 'id' ? 'Kesimpulan: ' : 'Verdict: '}</span>
                       <span className={`text-xs font-black ${
                         recs.unified.rating.includes('STRONG BUY')
                           ? 'text-teal-400'
@@ -922,14 +951,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         <div className="border border-slate-800/60 rounded-2xl overflow-hidden bg-slate-950/40 shadow-lg flex flex-col h-[540px] w-full">
           <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between">
             <span className="text-sm font-semibold text-white flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-emerald-400" /> Chart Teknikal Profesional (TradingView)
+              <TrendingUp className="w-4 h-4 text-emerald-400" /> {language === 'id' ? 'Chart Teknikal Profesional (TradingView)' : 'Professional Technical Chart (TradingView)'}
             </span>
           </div>
           
           <div className="flex-1 bg-slate-950 relative">
             {/* Embedded TradingView Interactive Widget */}
             <iframe
-              src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(tradingViewSymbol)}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=1e293b&theme=dark&style=1&timezone=Asia%2FJakarta&studies=%5B%22RSI%40tv-basicstudies%22%2C%22MACD%40tv-basicstudies%22%2C%22PivotPointsStandard%40tv-basicstudies%22%5D&locale=id`}
+              src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(tradingViewSymbol)}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=1e293b&theme=dark&style=1&timezone=Asia%2FJakarta&studies=%5B%22RSI%40tv-basicstudies%22%2C%22MACD%40tv-basicstudies%22%2C%22PivotPointsStandard%40tv-basicstudies%22%5D&locale=${language === 'id' ? 'id' : 'en'}`}
               className="w-full h-full border-0 absolute inset-0"
               allowFullScreen
             />
@@ -941,7 +970,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-semibold">Dashboard Indikator Teknikal Kompleks</span>
+              <span className="text-sm font-semibold">{language === 'id' ? 'Dashboard Indikator Teknikal Harian' : 'Daily Technical Indicators Dashboard'}</span>
             </div>
             {technicals?.summary && (
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -951,7 +980,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                   : 'bg-slate-800 text-slate-300'
               }`}>
-                Rekomendasi: {technicals.summary.rating} ({technicals.summary.score}%)
+                {language === 'id' ? 'Rekomendasi' : 'Recommendation'}: {technicals.summary.rating} ({technicals.summary.score}%)
               </span>
             )}
           </div>
@@ -961,7 +990,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             {/* Column 1: Oscillators (RSI & MACD) */}
             <div className="space-y-6">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                Osilator (RSI & MACD)
+                {language === 'id' ? 'Osilator (RSI & MACD)' : 'Oscillators (RSI & MACD)'}
               </h4>
               
               {/* RSI (14) */}
@@ -982,9 +1011,9 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 {/* RSI Scale Progress Bar */}
                 <div className="relative pt-1">
                   <div className="flex mb-2 items-center justify-between text-[9px] text-slate-500">
-                    <span>Oversold (30)</span>
-                    <span>Neutral (50)</span>
-                    <span>Overbought (70)</span>
+                    <span>{language === 'id' ? 'Jenuh Jual (30)' : 'Oversold (30)'}</span>
+                    <span>{language === 'id' ? 'Netral (50)' : 'Neutral (50)'}</span>
+                    <span>{language === 'id' ? 'Jenuh Beli (70)' : 'Overbought (70)'}</span>
                   </div>
                   <div className="overflow-hidden h-2 text-xs flex rounded bg-slate-950 border border-slate-900 relative">
                     {/* Zone markers */}
@@ -1005,10 +1034,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 </div>
                 <p className="text-[10px] text-slate-400 leading-relaxed">
                   {(technicals?.rsi?.value || 50) < 30 
-                    ? 'Harga berada di area jenuh jual (Oversold), peluang untuk akumulasi beli.' 
+                    ? (language === 'id' ? 'Harga berada di area jenuh jual (Oversold), peluang untuk akumulasi beli.' : 'Price is in the oversold area, opportunity for buy accumulation.') 
                     : (technicals?.rsi?.value || 50) > 70 
-                    ? 'Harga berada di area jenuh beli (Overbought), rawan aksi ambil untung (profit taking).' 
-                    : 'Momentum harga netral, cenderung konsolidasi.'}
+                    ? (language === 'id' ? 'Harga berada di area jenuh beli (Overbought), rawan aksi ambil untung (profit taking).' : 'Price is in the overbought area, prone to profit-taking actions.') 
+                    : (language === 'id' ? 'Momentum harga netral, cenderung konsolidasi.' : 'Price momentum is neutral, tending to consolidate.')}
                 </p>
               </div>
 
@@ -1053,10 +1082,16 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 
                 <p className="text-[10px] text-slate-400 leading-relaxed">
                   {technicals?.macd?.signalName?.includes('Crossover')
-                    ? `Terjadi crossover ${technicals.macd.signalName.toLowerCase()}, sinyal perubahan tren kuat!`
+                    ? (language === 'id'
+                        ? `Terjadi crossover ${technicals.macd.signalName.toLowerCase()}, sinyal perubahan tren kuat!`
+                        : `Crossover occurred ${technicals.macd.signalName.toLowerCase()}, strong trend reversal signal!`)
                     : (technicals?.macd?.histogram || 0) >= 0
-                    ? 'Histogram positif menunjukkan momentum kenaikan (bullish) masih berlanjut.'
-                    : 'Histogram negatif menunjukkan tekanan jual (bearish) masih berlanjut.'}
+                    ? (language === 'id'
+                        ? 'Histogram positif menunjukkan momentum kenaikan (bullish) masih berlanjut.'
+                        : 'Positive histogram indicates upward (bullish) momentum continues.')
+                    : (language === 'id'
+                        ? 'Histogram negatif menunjukkan tekanan jual (bearish) masih berlanjut.'
+                        : 'Negative histogram indicates downward (bearish) pressure continues.')}
                 </p>
               </div>
             </div>
@@ -1074,7 +1109,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       pivotMethod === 'standard' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Standar
+                    {language === 'id' ? 'Standar' : 'Standard'}
                   </button>
                   <button
                     onClick={() => setPivotMethod('fibonacci')}
@@ -1101,23 +1136,23 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="space-y-1.5 font-mono text-xs">
                       {/* R3 */}
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
-                        <span className="text-rose-400 font-semibold">Resistansi 3 (R3)</span>
+                        <span className="text-rose-400 font-semibold">{language === 'id' ? 'Resistansi 3 (R3)' : 'Resistance 3 (R3)'}</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.r3 ? `Rp ${Math.round(levels.r3).toLocaleString('id-ID')}` : '-'}
+                          {loading ? '...' : levels.r3 ? `Rp ${Math.round(levels.r3).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* R2 */}
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
-                        <span className="text-rose-400/80 font-semibold">Resistansi 2 (R2)</span>
+                        <span className="text-rose-400/80 font-semibold">{language === 'id' ? 'Resistansi 2 (R2)' : 'Resistance 2 (R2)'}</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.r2 ? `Rp ${Math.round(levels.r2).toLocaleString('id-ID')}` : '-'}
+                          {loading ? '...' : levels.r2 ? `Rp ${Math.round(levels.r2).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* R1 */}
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
-                        <span className="text-rose-400/60 font-semibold">Resistansi 1 (R1)</span>
+                        <span className="text-rose-400/60 font-semibold">{language === 'id' ? 'Resistansi 1 (R1)' : 'Resistance 1 (R1)'}</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.r1 ? `Rp ${Math.round(levels.r1).toLocaleString('id-ID')}` : '-'}
+                          {loading ? '...' : levels.r1 ? `Rp ${Math.round(levels.r1).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       
@@ -1125,7 +1160,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       <div className="flex justify-between items-center py-1 bg-slate-950/60 px-2 rounded border border-slate-800/60 my-1">
                         <span className="text-cyan-400 font-bold">Pivot Point (PP)</span>
                         <span className="font-bold text-white">
-                          {loading ? '...' : levels.pp ? `Rp ${Math.round(levels.pp).toLocaleString('id-ID')}` : '-'}
+                          {loading ? '...' : levels.pp ? `Rp ${Math.round(levels.pp).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
 
@@ -1133,31 +1168,31 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
                         <span className="text-emerald-500/60 font-semibold">Support 1 (S1)</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.s1 ? `Rp ${Math.round(levels.s1).toLocaleString('id-ID')}` : '-'}
+                          {loading ? '...' : levels.s1 ? `Rp ${Math.round(levels.s1).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* S2 */}
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
                         <span className="text-emerald-500/80 font-semibold">Support 2 (S2)</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.s2 ? `Rp ${Math.round(levels.s2).toLocaleString('id-ID')}` : '-'}
+                          {loading ? '...' : levels.s2 ? `Rp ${Math.round(levels.s2).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* S3 */}
                       <div className="flex justify-between items-center py-1">
                         <span className="text-emerald-500 font-semibold">Support 3 (S3)</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.s3 ? `Rp ${Math.round(levels.s3).toLocaleString('id-ID')}` : '-'}
+                          {loading ? '...' : levels.s3 ? `Rp ${Math.round(levels.s3).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
 
                       {/* Current Price Comparison */}
                       {currentPrice > 0 && (
                         <div className="text-[10px] text-slate-400 text-center pt-3 border-t border-slate-800 mt-2 font-sans">
-                          Harga saat ini (<span className="text-slate-200 font-bold font-mono">Rp {currentPrice.toLocaleString('id-ID')}</span>) 
+                          {language === 'id' ? 'Harga saat ini' : 'Current price'} (<span className="text-slate-200 font-bold font-mono">Rp {currentPrice.toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}</span>){' '}
                           {currentPrice > levels.pp 
-                            ? ' berada di atas Pivot Point (Tren Bullish jangka pendek).' 
-                            : ' berada di bawah Pivot Point (Tren Bearish jangka pendek).'}
+                            ? (language === 'id' ? 'berada di atas Pivot Point (Tren Bullish jangka pendek).' : 'is above Pivot Point (Short-term Bullish Trend).') 
+                            : (language === 'id' ? 'berada di bawah Pivot Point (Tren Bearish jangka pendek).' : 'is below Pivot Point (Short-term Bearish Trend).')}
                         </div>
                       )}
                     </div>
@@ -1179,7 +1214,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">SMA 20</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.sma20 ? `Rp ${Math.round(technicals.movingAverages.sma20).toLocaleString('id-ID')}` : '-'}
+                        {loading ? '...' : technicals?.movingAverages?.sma20 ? `Rp ${Math.round(technicals.movingAverages.sma20).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1202,7 +1237,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">EMA 20</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.ema20 ? `Rp ${Math.round(technicals.movingAverages.ema20).toLocaleString('id-ID')}` : '-'}
+                        {loading ? '...' : technicals?.movingAverages?.ema20 ? `Rp ${Math.round(technicals.movingAverages.ema20).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1225,7 +1260,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">SMA 50</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.sma50 ? `Rp ${Math.round(technicals.movingAverages.sma50).toLocaleString('id-ID')}` : '-'}
+                        {loading ? '...' : technicals?.movingAverages?.sma50 ? `Rp ${Math.round(technicals.movingAverages.sma50).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1248,7 +1283,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">EMA 50</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.ema50 ? `Rp ${Math.round(technicals.movingAverages.ema50).toLocaleString('id-ID')}` : '-'}
+                        {loading ? '...' : technicals?.movingAverages?.ema50 ? `Rp ${Math.round(technicals.movingAverages.ema50).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1275,11 +1310,17 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     const sma50 = technicals?.movingAverages?.sma50 || 0;
                     
                     if (curPrice > sma20 && curPrice > sma50) {
-                      return 'Harga berada di atas rata-rata jangka pendek dan menengah. Ini mengonfirmasi tren naik (uptrend) yang kuat.';
+                      return language === 'id'
+                        ? 'Harga berada di atas rata-rata jangka pendek dan menengah. Ini mengonfirmasi tren naik (uptrend) yang kuat.'
+                        : 'Price is above short-term and medium-term averages. This confirms a strong uptrend.';
                     } else if (curPrice < sma20 && curPrice < sma50) {
-                      return 'Harga berada di bawah rata-rata jangka pendek dan menengah. Sinyal tren turun (downtrend) dominan.';
+                      return language === 'id'
+                        ? 'Harga berada di bawah rata-rata jangka pendek dan menengah. Sinyal tren turun (downtrend) dominan.'
+                        : 'Price is below short-term and medium-term averages. Dominant downtrend signal.';
                     } else {
-                      return 'Harga berada di antara rata-rata jangka pendek dan menengah, mengindikasikan fase konsolidasi.';
+                      return language === 'id'
+                        ? 'Harga berada di antara rata-rata jangka pendek dan menengah, mengindikasikan fase konsolidasi.'
+                        : 'Price is between short-term and medium-term averages, indicating a consolidation phase.';
                     }
                   })()}
                 </div>
@@ -1290,14 +1331,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           {/* Column 4: Multi-Timeframe Trend */}
           <div className="space-y-6">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-              <Activity className="w-3.5 h-3.5 text-cyan-400" /> Analisis Multi-Timeframe (MTF)
+              <Activity className="w-3.5 h-3.5 text-cyan-400" /> {language === 'id' ? 'Analisis Multi-Timeframe (MTF)' : 'Multi-Timeframe Analysis (MTF)'}
             </h4>
             
             <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-4 space-y-4">
               <div className="space-y-3">
                 {/* Weekly (Long-Term) */}
                 <div className="flex justify-between items-center text-xs border-b border-slate-800/30 pb-2">
-                  <span className="font-semibold text-slate-300 font-sans">Weekly (Jangka Panjang)</span>
+                  <span className="font-semibold text-slate-300 font-sans">{language === 'id' ? 'Weekly (Jangka Panjang)' : 'Weekly (Long-Term)'}</span>
                   <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
                     technicals?.multiTimeframe?.weekly === 'BULLISH'
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
@@ -1309,7 +1350,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
                 {/* Daily (Medium-Term) */}
                 <div className="flex justify-between items-center text-xs border-b border-slate-800/30 pb-2">
-                  <span className="font-semibold text-slate-300 font-sans">Daily (Jangka Menengah)</span>
+                  <span className="font-semibold text-slate-300 font-sans">{language === 'id' ? 'Daily (Jangka Menengah)' : 'Daily (Medium-Term)'}</span>
                   <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
                     technicals?.multiTimeframe?.daily === 'BULLISH'
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
@@ -1321,7 +1362,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
                 {/* Hourly (Jangka Pendek) */}
                 <div className="flex justify-between items-center text-xs pb-1">
-                  <span className="font-semibold text-slate-300 font-sans">Hourly (Jangka Pendek)</span>
+                  <span className="font-semibold text-slate-300 font-sans">{language === 'id' ? 'Hourly (Jangka Pendek)' : 'Hourly (Short-Term)'}</span>
                   <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
                     technicals?.multiTimeframe?.hourly?.includes('BULLISH')
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
@@ -1341,11 +1382,17 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   const h = technicals?.multiTimeframe?.hourly || '';
                   
                   if (w === 'BULLISH' && d === 'BULLISH') {
-                    return 'Tren utama mingguan dan harian selaras dalam kondisi BULLISH. Menawarkan tingkat probabilitas transaksi beli yang paling tinggi.';
+                    return language === 'id'
+                      ? 'Tren utama mingguan dan harian selaras dalam kondisi BULLISH. Menawarkan tingkat probabilitas transaksi beli yang paling tinggi.'
+                      : 'Weekly and daily primary trends align in BULLISH condition. Offers the highest probability of buy transactions.';
                   } else if (w === 'BEARISH' && d === 'BEARISH') {
-                    return 'Tren utama mingguan dan harian dalam kondisi BEARISH. Sebaiknya hindari pembelian, tren turun jangka menengah masih dominan.';
+                    return language === 'id'
+                      ? 'Tren utama mingguan dan harian dalam kondisi BEARISH. Sebaiknya hindari pembelian, tren turun jangka menengah masih dominan.'
+                      : 'Weekly and daily primary trends in BEARISH condition. Avoid buying, medium-term downtrend is still dominant.';
                   } else {
-                    return 'Terjadi divergensi timeframe (tren mingguan dan harian tidak sejalan). Kondisi ini biasa menunjukkan konsolidasi besar atau transisi pembalikan tren.';
+                    return language === 'id'
+                      ? 'Terjadi divergensi timeframe (tren mingguan dan harian tidak sejalan). Kondisi ini biasa menunjukkan konsolidasi besar atau transisi pembalikan tren.'
+                      : 'Timeframe divergence occurred (weekly and daily trends do not align). This condition usually indicates major consolidation or trend reversal transition.';
                   }
                 })()}
               </div>
@@ -1356,9 +1403,17 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           <div className="px-5 pb-5">
             <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
               <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
-                <Activity className="w-3.5 h-3.5" /> Analisis Kesimpulan Teknikal
+                <Activity className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Teknikal' : 'Technical Analysis Conclusion'}
               </span>
-              Secara teknikal, indikator menunjukkan status <span className={`font-bold ${recs.technical.rating.includes('BUY') ? 'text-emerald-400' : recs.technical.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.technical.rating}</span> dengan skor kekuatan sinyal sebesar {recs.technical.score}%. Indikator momentum menunjukkan {recs.technical.desc.charAt(0).toLowerCase() + recs.technical.desc.slice(1)}.
+              {language === 'id' ? (
+                <>
+                  Secara teknikal, indikator menunjukkan status <span className={`font-bold ${recs.technical.rating.includes('BUY') ? 'text-emerald-400' : recs.technical.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.technical.rating}</span> dengan skor kekuatan sinyal sebesar {recs.technical.score}%. Indikator momentum menunjukkan {recs.technical.desc.charAt(0).toLowerCase() + recs.technical.desc.slice(1)}.
+                </>
+              ) : (
+                <>
+                  Technically, the indicators show a status of <span className={`font-bold ${recs.technical.rating.includes('BUY') ? 'text-emerald-400' : recs.technical.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.technical.rating}</span> with a signal strength score of {recs.technical.score}%. Momentum indicators show {recs.technical.desc.charAt(0).toLowerCase() + recs.technical.desc.slice(1)}.
+                </>
+              )}
             </div>
           </div>
 
@@ -1370,7 +1425,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-brand-purple" />
-            <span className="text-sm font-semibold">Analisis Bandarmology & Arus Kas Transaksi</span>
+            <span className="text-sm font-semibold">{language === 'id' ? 'Analisis Bandarmology & Arus Kas Transaksi' : 'Bandarmology & Transaction Cash Flow Analysis'}</span>
           </div>
           {technicals?.bandarmologySummary && (
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -1389,7 +1444,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           {/* Column 1: Bandarmology & Aliran Asing */}
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              Aliran Transaksi & Aliran Asing (Foreign Flow)
+              {language === 'id' ? 'Aliran Transaksi & Aliran Asing (Foreign Flow)' : 'Transaction Flow & Foreign Flow'}
             </h4>
             
             <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-4 space-y-4">
@@ -1409,12 +1464,12 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 </div>
 
                 <div className="bg-slate-950 p-3 rounded border border-slate-900 flex flex-col justify-between">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">Aliran Asing (Net Foreign)</span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">{language === 'id' ? 'Aliran Asing (Net Foreign)' : 'Net Foreign Flow'}</span>
                   <span className={`text-xs font-bold mt-1.5 ${
                     (technicals?.bandarmology?.foreignNetBuy || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
                   }`}>
                     {loading ? '...' : (technicals?.bandarmology?.foreignNetBuy !== undefined) 
-                      ? `${(technicals.bandarmology.foreignNetBuy >= 0 ? '+' : '')}${formatShort(technicals.bandarmology.foreignNetBuy)}` 
+                      ? `${(technicals.bandarmology.foreignNetBuy >= 0 ? '+' : '')}${formatShort(technicals.bandarmology.foreignNetBuy, language)}` 
                       : '-'}
                   </span>
                 </div>
@@ -1462,7 +1517,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
             <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-4 space-y-3">
               <div className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-slate-400 font-sans">Order Flow (Top 3 Broker {activeTicker.split('.')[0]})</span>
+                <span className="font-semibold text-slate-400 font-sans">{language === 'id' ? `Order Flow (Top 3 Broker ${activeTicker.split('.')[0]})` : `Order Flow (Top 3 Brokers for ${activeTicker.split('.')[0]})`}</span>
                 {(() => {
                   const rawVal = technicals?.bandarmology?.top3Brokers || '';
                   let statusText = 'Neutral';
@@ -1516,14 +1571,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     {/* Buyers Column */}
                     <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 space-y-2">
                       <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider border-b border-slate-900 pb-1 flex justify-between">
-                        <span>Broker Buy</span>
-                        <span>Estimasi (Lot)</span>
+                        <span>{language === 'id' ? 'Broker Buy' : 'Brokers (Buy)'}</span>
+                        <span>{language === 'id' ? 'Estimasi (Lot)' : 'Est. (Lots)'}</span>
                       </div>
                       <div className="space-y-1.5">
                         {detailedBrokers.buy.map((b: any, idx: number) => (
                           <div key={idx} className="flex justify-between items-center text-[10px] font-mono">
                             <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">{b.code}</span>
-                            <span className="text-slate-200 font-bold">+{b.lots.toLocaleString('id-ID')}</span>
+                            <span className="text-slate-200 font-bold">+{b.lots.toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}</span>
                           </div>
                         ))}
                       </div>
@@ -1532,14 +1587,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     {/* Sellers Column */}
                     <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 space-y-2">
                       <div className="text-[10px] text-rose-400 font-bold uppercase tracking-wider border-b border-slate-900 pb-1 flex justify-between">
-                        <span>Broker Sell</span>
-                        <span>Estimasi (Lot)</span>
+                        <span>{language === 'id' ? 'Broker Sell' : 'Brokers (Sell)'}</span>
+                        <span>{language === 'id' ? 'Estimasi (Lot)' : 'Est. (Lots)'}</span>
                       </div>
                       <div className="space-y-1.5">
                         {detailedBrokers.sell.map((s: any, idx: number) => (
                           <div key={idx} className="flex justify-between items-center text-[10px] font-mono">
                             <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded font-bold">{s.code}</span>
-                            <span className="text-slate-200 font-bold">-{s.lots.toLocaleString('id-ID')}</span>
+                            <span className="text-slate-200 font-bold">-{s.lots.toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}</span>
                           </div>
                         ))}
                       </div>
@@ -1555,18 +1610,35 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         <div className="px-5 pb-5">
           <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
             <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
-              <Compass className="w-3.5 h-3.5" /> Analisis Kesimpulan Bandarmology
+              <Compass className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Bandarmology' : 'Bandarmology Analysis Conclusion'}
             </span>
-            Aktivitas Bandarmology terpantau menunjukkan status <span className={`font-bold ${recs.bandarmology?.rating?.includes('ACCUMULATION') ? 'text-emerald-400' : recs.bandarmology?.rating?.includes('DISTRIBUTION') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.bandarmology?.rating || 'NEUTRAL'}</span>. Berdasarkan data aliran transaksi, {recs.bandarmology ? recs.bandarmology.desc.charAt(0).toLowerCase() + recs.bandarmology.desc.slice(1) : ''}. {(() => {
-              const status = technicals?.bandarmology?.status || '';
-              if (status.includes('ACCUMULATION')) {
-                return 'Hal ini mengindikasikan volume beli broker besar (Bandar) mendominasi pasar, menunjukkan potensi harga sedang diakumulasi sebelum kenaikan.';
-              } else if (status.includes('DISTRIBUTION')) {
-                return 'Hal ini mengindikasikan volume jual broker besar (Bandar) mendominasi pasar, menunjukkan risiko aksi distribusi besar oleh institusi.';
-              } else {
-                return 'Arus transaksi bandar terpantau seimbang tanpa dominasi akumulasi atau distribusi agresif.';
-              }
-            })()}
+            {language === 'id' ? (
+              <>
+                Aktivitas Bandarmology terpantau menunjukkan status <span className={`font-bold ${recs.bandarmology?.rating?.includes('ACCUMULATION') ? 'text-emerald-400' : recs.bandarmology?.rating?.includes('DISTRIBUTION') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.bandarmology?.rating || 'NEUTRAL'}</span>. Berdasarkan data aliran transaksi, {recs.bandarmology ? recs.bandarmology.desc.charAt(0).toLowerCase() + recs.bandarmology.desc.slice(1) : ''}. {(() => {
+                  const status = technicals?.bandarmology?.status || '';
+                  if (status.includes('ACCUMULATION')) {
+                    return 'Hal ini mengindikasikan volume beli broker besar (Bandar) mendominasi pasar, menunjukkan potensi harga sedang diakumulasi sebelum kenaikan.';
+                  } else if (status.includes('DISTRIBUTION')) {
+                    return 'Hal ini mengindikasikan volume jual broker besar (Bandar) mendominasi pasar, menunjukkan risiko aksi distribusi besar oleh institusi.';
+                  } else {
+                    return 'Arus transaksi bandar terpantau seimbang tanpa dominasi akumulasi atau distribusi agresif.';
+                  }
+                })()}
+              </>
+            ) : (
+              <>
+                Bandarmology activity is observed to show a status of <span className={`font-bold ${recs.bandarmology?.rating?.includes('ACCUMULATION') ? 'text-emerald-400' : recs.bandarmology?.rating?.includes('DISTRIBUTION') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.bandarmology?.rating || 'NEUTRAL'}</span>. Based on transaction flow data, {recs.bandarmology ? recs.bandarmology.desc.charAt(0).toLowerCase() + recs.bandarmology.desc.slice(1) : ''}. {(() => {
+                  const status = technicals?.bandarmology?.status || '';
+                  if (status.includes('ACCUMULATION')) {
+                    return 'This indicates that buy volume from big brokers (Bandar) dominates the market, showing potential that price is being accumulated before an increase.';
+                  } else if (status.includes('DISTRIBUTION')) {
+                    return 'This indicates that sell volume from big brokers (Bandar) dominates the market, showing risk of a major distribution action by institutions.';
+                  } else {
+                    return 'Big broker transaction flows are observed to be balanced without any aggressive dominance of accumulation or distribution.';
+                  }
+                })()}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1575,7 +1647,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         <div className="border border-border-color rounded-2xl bg-card-bg flex flex-col h-auto w-full">
           <div className="px-5 py-4 border-b border-border-color bg-card-bg flex items-center justify-between text-white">
             <span className="text-sm font-semibold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-brand-purple" /> Sentimen & Narasi Terkini
+              <Sparkles className="w-4 h-4 text-brand-purple" /> {language === 'id' ? 'Sentimen & Narasi Terkini' : 'Current Sentiment & Narratives'}
             </span>
             {fundamentals && (
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -1585,7 +1657,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                   : 'bg-slate-800 text-slate-300'
               }`}>
-                Analisis Berita: {recs.narrative.rating} ({recs.narrative.score}%)
+                {language === 'id' ? 'Analisis Berita' : 'News Analysis'}: {recs.narrative.rating} ({recs.narrative.score}%)
               </span>
             )}
           </div>
@@ -1595,7 +1667,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="space-y-4">
               {/* Sentiment Gauge */}
               <div className="flex items-center justify-between p-4 bg-slate-900/60 rounded-xl border border-slate-800/40">
-                <span className="text-xs text-slate-400">Rangkuman Sentimen</span>
+                <span className="text-xs text-slate-400">{language === 'id' ? 'Rangkuman Sentimen' : 'Sentiment Summary'}</span>
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                   analysis?.sentiment === 'Bullish' 
                     ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
@@ -1603,7 +1675,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     : 'bg-slate-800 text-slate-300'
                 }`}>
-                  {analysis?.sentiment || 'Netral'}
+                  {analysis?.sentiment ? (language === 'id' ? (analysis.sentiment === 'Bullish' ? 'Bullish' : analysis.sentiment === 'Bearish' ? 'Bearish' : 'Netral') : analysis.sentiment) : (language === 'id' ? 'Netral' : 'Neutral')}
                 </span>
               </div>
 
@@ -1612,10 +1684,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-purple">
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>
-                    Analisis AI {
+                    {language === 'id' ? 'Analisis AI' : 'AI Analysis'} {
                       analysis?.isAI 
                         ? `(${analysis.modelUsed?.includes('gemini') ? 'Gemini' : analysis.modelUsed?.includes('llama') ? 'Groq' : 'OpenAI'})` 
-                        : '(Sistem Lokal)'
+                        : (language === 'id' ? '(Sistem Lokal)' : '(Local System)')
                     }
                   </span>
                 </div>
@@ -1636,7 +1708,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             {/* Right Column: Related News Feed */}
             <div className="space-y-3">
               <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-slate-500" /> Berita Terkait
+                <Clock className="w-3.5 h-3.5 text-slate-500" /> {language === 'id' ? 'Berita Terkait' : 'Related News'}
               </span>
               <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
                 {loading ? (
@@ -1644,7 +1716,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div key={i} className="h-10 bg-slate-900/60 border border-slate-900 rounded-lg animate-pulse" />
                   ))
                 ) : news.length === 0 ? (
-                  <div className="text-xs text-slate-500 text-center py-4">Tidak ada berita yang ditemukan.</div>
+                  <div className="text-xs text-slate-500 text-center py-4">{language === 'id' ? 'Tidak ada berita yang ditemukan.' : 'No news found.'}</div>
                 ) : (
                   news.map((item, idx) => (
                     <a
@@ -1659,7 +1731,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       </h4>
                       <div className="flex items-center justify-between mt-2 text-[10px] text-slate-500">
                         <span>{item.source}</span>
-                        <span>{item.pubDate ? new Date(item.pubDate).toLocaleDateString('id-ID') : ''}</span>
+                        <span>{item.pubDate ? new Date(item.pubDate).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US') : ''}</span>
                       </div>
                     </a>
                   ))
@@ -1672,9 +1744,17 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           <div className="px-5 pb-5">
             <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
               <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
-                <Sparkles className="w-3.5 h-3.5" /> Analisis Kesimpulan Sentimen & Narasi
+                <Sparkles className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Sentimen & Narasi' : 'Sentiment & Narrative Summary Analysis'}
               </span>
-              Berdasarkan analisis sentimen berita terkini, saham ini memiliki rating sentimen <span className={`font-bold ${recs.narrative.rating.includes('BUY') ? 'text-emerald-400' : recs.narrative.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.narrative.rating}</span>. {recs.narrative.desc.charAt(0).toUpperCase() + recs.narrative.desc.slice(1)}. {analysis?.summary ? 'Analisis sentimen mendeteksi poin-poin utama seperti tercantum dalam rangkuman AI di atas.' : ''}
+              {language === 'id' ? (
+                <>
+                  Berdasarkan analisis sentimen berita terkini, saham ini memiliki rating sentimen <span className={`font-bold ${recs.narrative.rating.includes('BUY') ? 'text-emerald-400' : recs.narrative.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.narrative.rating}</span>. {recs.narrative.desc.charAt(0).toUpperCase() + recs.narrative.desc.slice(1)}. {analysis?.summary ? 'Analisis sentimen mendeteksi poin-poin utama seperti tercantum dalam rangkuman AI di atas.' : ''}
+                </>
+              ) : (
+                <>
+                  Based on current news sentiment analysis, this stock has a sentiment rating of <span className={`font-bold ${recs.narrative.rating.includes('BUY') ? 'text-emerald-400' : recs.narrative.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.narrative.rating}</span>. {recs.narrative.desc.charAt(0).toUpperCase() + recs.narrative.desc.slice(1)}. {analysis?.summary ? 'Sentiment analysis detected main points as listed in the AI summary above.' : ''}
+                </>
+              )}
             </div>
           </div>
 
@@ -1685,7 +1765,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-900 pb-4">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <Building className="w-5 h-5 text-teal-400" /> Ringkasan Fundamental & Keuangan
+            <Building className="w-5 h-5 text-teal-400" /> {language === 'id' ? 'Ringkasan Fundamental & Keuangan' : 'Fundamental & Financial Summary'}
           </h3>
           {fundamentals && (
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full max-w-fit ${
@@ -1695,7 +1775,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                 : 'bg-slate-800 text-slate-300'
             }`}>
-              Analisis Fundamental: {recs.fundamental.rating} ({recs.fundamental.score}%)
+              {language === 'id' ? 'Analisis Fundamental' : 'Fundamental Analysis'}: {recs.fundamental.rating} ({recs.fundamental.score}%)
             </span>
           )}
         </div>
@@ -1711,7 +1791,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className="text-lg font-bold text-white mt-1">
                 {loading ? '...' : fundamentals?.peRatio ? `${fundamentals.peRatio.toFixed(2)}x` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Valuasi Laba</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Valuasi Laba' : 'Earnings Valuation'}</span>
             </div>
 
             {/* PBV Card */}
@@ -1720,7 +1800,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className="text-lg font-bold text-white mt-1">
                 {loading ? '...' : fundamentals?.pbRatio ? `${fundamentals.pbRatio.toFixed(2)}x` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Valuasi Aset</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Valuasi Aset' : 'Asset Valuation'}</span>
             </div>
 
             {/* ROE Card */}
@@ -1731,7 +1811,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               }`}>
                 {loading ? '...' : fundamentals?.roe ? `${fundamentals.roe.toFixed(2)}%` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Efisiensi Ekuitas</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Efisiensi Ekuitas' : 'Equity Efficiency'}</span>
             </div>
 
             {/* ROA Card */}
@@ -1740,7 +1820,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className="text-lg font-bold text-white mt-1">
                 {loading ? '...' : fundamentals?.roa ? `${fundamentals.roa.toFixed(2)}%` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Efisiensi Aset</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Efisiensi Aset' : 'Asset Efficiency'}</span>
             </div>
 
             {/* DER Card */}
@@ -1751,7 +1831,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               }`}>
                 {loading ? '...' : fundamentals?.der ? `${(fundamentals.der).toFixed(2)}%` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Rasio Utang / Modal</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Rasio Utang / Modal' : 'Debt / Equity Ratio'}</span>
             </div>
 
             {/* Div Yield Card */}
@@ -1760,7 +1840,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className="text-lg font-bold text-teal-400 mt-1">
                 {loading ? '...' : fundamentals?.dividendYield ? `${fundamentals.dividendYield.toFixed(2)}%` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Yield Dividen</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Yield Dividen' : 'Dividend Yield'}</span>
             </div>
 
             {/* EPS Card */}
@@ -1769,7 +1849,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className="text-lg font-bold text-white mt-1">
                 {loading ? '...' : fundamentals?.eps ? `Rp ${fundamentals.eps.toFixed(1)}` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Laba Per Saham</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Laba Per Saham' : 'Earnings Per Share'}</span>
             </div>
 
             {/* Profit Margin Card */}
@@ -1778,23 +1858,23 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className="text-lg font-bold text-white mt-1">
                 {loading ? '...' : fundamentals?.profitMargin ? `${fundamentals.profitMargin.toFixed(2)}%` : '-'}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Marjin Laba Bersih</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Marjin Laba Bersih' : 'Net Profit Margin'}</span>
             </div>
 
             {/* Market Cap Card */}
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between col-span-1">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Market Cap</span>
               <span className="text-sm font-bold text-white mt-1 truncate">
-                {loading ? '...' : formatFinancialNumber(fundamentals?.marketCap)}
+                {loading ? '...' : formatFinancialNumber(fundamentals?.marketCap, language)}
               </span>
-              <span className="text-[9px] text-slate-400 mt-2">Kapitalisasi Pasar</span>
+              <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Kapitalisasi Pasar' : 'Market Cap'}</span>
             </div>
           </div>
 
           {/* Performance Charts */}
           <div className="border border-slate-900 bg-slate-950/20 p-5 rounded-xl flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold text-slate-400">Kinerja Pendapatan & Laba Bersih</span>
+              <span className="text-xs font-bold text-slate-400">{language === 'id' ? 'Kinerja Pendapatan & Laba Bersih' : 'Revenue & Net Income Performance'}</span>
               
               {/* Yearly/Quarterly Switcher */}
               <div className="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px]">
@@ -1804,7 +1884,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     historyType === 'annual' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  Tahunan
+                  {language === 'id' ? 'Tahunan' : 'Annual'}
                 </button>
                 <button
                   onClick={() => setHistoryType('quarterly')}
@@ -1812,7 +1892,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     historyType === 'quarterly' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  Kuartalan
+                  {language === 'id' ? 'Kuartalan' : 'Quarterly'}
                 </button>
               </div>
             </div>
@@ -1830,10 +1910,11 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? history.annual.map(d => ({ label: String(d.year), revenue: d.revenue, netIncome: d.netIncome }))
                       : history.quarterly.map(d => ({ label: d.quarter, revenue: d.revenue, netIncome: d.netIncome }))
                   }
+                  language={language}
                 />
               ) : (
                 <div className="flex h-[200px] items-center justify-center text-slate-500 text-xs">
-                  Gagal mengambil riwayat finansial
+                  {language === 'id' ? 'Gagal mengambil riwayat finansial' : 'Failed to retrieve financial history'}
                 </div>
               )}
             </div>
@@ -1842,11 +1923,11 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="flex justify-center gap-6 mt-4 text-[10px] font-semibold text-slate-400 border-t border-border-color pt-3">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-brand-purple rounded-sm" />
-                <span>Pendapatan</span>
+                <span>{language === 'id' ? 'Pendapatan' : 'Revenue'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-teal-500 rounded-sm" />
-                <span>Laba Bersih</span>
+                <span>{language === 'id' ? 'Laba Bersih' : 'Net Income'}</span>
               </div>
             </div>
           </div>
@@ -1854,9 +1935,17 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           {/* Bottom narrative for Fundamental */}
           <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
             <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
-              <Building className="w-3.5 h-3.5" /> Analisis Kesimpulan Fundamental
+              <Building className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Fundamental' : 'Fundamental Analysis Conclusion'}
             </span>
-            Secara fundamental, kinerja keuangan emiten dinilai berada pada kondisi <span className={`font-bold ${recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.fundamental.rating}</span> dengan skor fundamental sebesar {recs.fundamental.score}%. Hal ini dipengaruhi oleh beberapa faktor rasio utama: {recs.fundamental.desc.charAt(0).toUpperCase() + recs.fundamental.desc.slice(1)}.
+            {language === 'id' ? (
+              <>
+                Secara fundamental, kinerja keuangan emiten dinilai berada pada kondisi <span className={`font-bold ${recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.fundamental.rating}</span> dengan skor fundamental sebesar {recs.fundamental.score}%. Hal ini dipengaruhi oleh beberapa faktor rasio utama: {recs.fundamental.desc.charAt(0).toUpperCase() + recs.fundamental.desc.slice(1)}.
+              </>
+            ) : (
+              <>
+                Fundamentally, the issuer's financial performance is assessed to be in <span className={`font-bold ${recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.fundamental.rating}</span> condition with a fundamental score of {recs.fundamental.score}%. This is influenced by several key ratio factors: {recs.fundamental.desc.charAt(0).toUpperCase() + recs.fundamental.desc.slice(1)}.
+              </>
+            )}
           </div>
 
         </div>
