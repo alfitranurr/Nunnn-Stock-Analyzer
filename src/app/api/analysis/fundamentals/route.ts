@@ -202,7 +202,7 @@ function getDeterministicStockData(symbol: string) {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  let symbol = searchParams.get('symbol')?.toUpperCase().trim();
+  const symbol = searchParams.get('symbol')?.toUpperCase().trim();
 
   if (!symbol) {
     return NextResponse.json({ error: 'Symbol parameter is required' }, { status: 400 });

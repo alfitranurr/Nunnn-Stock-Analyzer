@@ -43,10 +43,12 @@ interface PortfolioTabProps {
 
 function PortfolioEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
+  const [prevSymbol, setPrevSymbol] = React.useState(symbol);
   
-  React.useEffect(() => {
+  if (symbol !== prevSymbol) {
+    setPrevSymbol(symbol);
     setHasError(false);
-  }, [symbol]);
+  }
 
   const cleanSymbol = symbol.toUpperCase().trim();
 
@@ -205,7 +207,10 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
   }, [user, loadLocalStorageData]);
 
   React.useEffect(() => {
-    fetchData();
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   // Fetch prices dynamically for each ticker

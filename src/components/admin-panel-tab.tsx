@@ -55,7 +55,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
   });
   const [showResetConfirm, setShowResetConfirm] = React.useState(false);
 
-  const fetchLocalStats = () => {
+  const fetchLocalStats = React.useCallback(() => {
     try {
       const avgDownStr = localStorage.getItem('nunnn_stock_saved_plans');
       const compoundingStr = localStorage.getItem('nunnn_stock_compounding_plans');
@@ -78,7 +78,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     } catch (e) {
       console.error('Failed to parse local stats:', e);
     }
-  };
+  }, [user]);
 
   const executeResetSimData = () => {
     try {
@@ -108,11 +108,14 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
 
   React.useEffect(() => {
     if (activeTab === 'database') {
-      fetchLocalStats();
+      const timer = setTimeout(() => {
+        fetchLocalStats();
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [activeTab, user]);
+  }, [activeTab, fetchLocalStats]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -143,11 +146,14 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [language]);
 
   React.useEffect(() => {
-    fetchUsers();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchUsers]);
 
   // Automatically clear notifications after 4 seconds
   React.useEffect(() => {

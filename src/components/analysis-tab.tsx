@@ -244,18 +244,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  // Listen for initialTicker changes
-  React.useEffect(() => {
-    if (initialTicker) {
-      const cleanTicker = initialTicker.toUpperCase().trim();
-      setActiveTicker(cleanTicker);
-      setTickerQuery(cleanTicker);
-      setHasAnalyzed(true);
-      fetchAnalysisData(cleanTicker);
-    }
-  }, [initialTicker]);
-
-  const fetchAnalysisData = async (symbol: string) => {
+  const fetchAnalysisData = React.useCallback(async (symbol: string) => {
     setLoading(true);
     setErrorMsg(null);
 
@@ -298,7 +287,21 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
     } finally {
       setLoading(false);
     }
-  };
+  }, [language]);
+
+  // Listen for initialTicker changes
+  React.useEffect(() => {
+    if (initialTicker) {
+      const cleanTicker = initialTicker.toUpperCase().trim();
+      const timer = setTimeout(() => {
+        setActiveTicker(cleanTicker);
+        setTickerQuery(cleanTicker);
+        setHasAnalyzed(true);
+        fetchAnalysisData(cleanTicker);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [initialTicker, fetchAnalysisData]);
 
   const handleSearchChange = async (val: string) => {
     setTickerQuery(val);
@@ -718,7 +721,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center gap-2 text-brand-purple font-medium"
                   >
                     <Search className="w-4 h-4 text-brand-purple" />
-                    <span className="text-sm">{language === 'id' ? 'Analisis Saham' : 'Analyze Stock'} "{tickerQuery.toUpperCase().trim()}"</span>
+                    <span className="text-sm">{language === 'id' ? 'Analisis Saham' : 'Analyze Stock'} &quot;{tickerQuery.toUpperCase().trim()}&quot;</span>
                   </button>
                 )}
               </div>
@@ -1943,7 +1946,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               </>
             ) : (
               <>
-                Fundamentally, the issuer's financial performance is assessed to be in <span className={`font-bold ${recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.fundamental.rating}</span> condition with a fundamental score of {recs.fundamental.score}%. This is influenced by several key ratio factors: {recs.fundamental.desc.charAt(0).toUpperCase() + recs.fundamental.desc.slice(1)}.
+                Fundamentally, the issuer&apos;s financial performance is assessed to be in <span className={`font-bold ${recs.fundamental.rating.includes('BUY') ? 'text-emerald-400' : recs.fundamental.rating.includes('SELL') ? 'text-rose-400' : 'text-slate-400'}`}>{recs.fundamental.rating}</span> condition with a fundamental score of {recs.fundamental.score}%. This is influenced by several key ratio factors: {recs.fundamental.desc.charAt(0).toUpperCase() + recs.fundamental.desc.slice(1)}.
               </>
             )}
           </div>

@@ -191,10 +191,12 @@ const BROKER_PRESETS = [
 
 function FormEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
+  const [prevSymbol, setPrevSymbol] = React.useState(symbol);
   
-  React.useEffect(() => {
+  if (symbol !== prevSymbol) {
+    setPrevSymbol(symbol);
     setHasError(false);
-  }, [symbol]);
+  }
 
   const cleanSymbol = symbol.toUpperCase().trim();
 
@@ -249,39 +251,42 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   // Sync state if initialValues changes
   React.useEffect(() => {
     if (initialValues) {
-      setTicker(initialValues.ticker);
-      setCompanyName(cleanCompanyName(initialValues.company_name) || TICKER_DATABASE[initialValues.ticker] || '');
-      setLotAwal(formatNumberForInput(initialValues.lot_awal));
-      setAvgPriceAwal(formatNumberForInput(initialValues.avg_price_awal));
-      setCurrentPrice(formatNumberForInput(initialValues.current_price));
-      if (initialValues.tranches && initialValues.tranches.length > 0) {
-        setTranches(initialValues.tranches.map(t => ({
-          id: t.id || crypto.randomUUID(),
-          lot: formatNumberForInput(t.lot),
-          price: formatNumberForInput(t.price)
-        })));
-      } else {
-        setTranches([
-          { 
-            id: '1', 
-            lot: formatNumberForInput(initialValues.lot_baru), 
-            price: formatNumberForInput(initialValues.harga_beli_baru) 
-          }
-        ]);
-      }
-      setFeeBeli(initialValues.fee_beli);
-      setFeeJual(initialValues.fee_jual);
-      setIncludeFees(initialValues.fee_beli > 0 || initialValues.fee_jual > 0);
-      setAvgPriceAwalIncludesFee(initialValues.avgPriceAwalIncludesFee !== false);
-      
-      const matchedPreset = BROKER_PRESETS.find(p => p.buy === initialValues.fee_beli && p.sell === initialValues.fee_jual);
-      if (matchedPreset) {
-        setBrokerPreset(matchedPreset.id);
-      } else if (initialValues.fee_beli === 0 && initialValues.fee_jual === 0) {
-        setBrokerPreset('none');
-      } else {
-        setBrokerPreset('custom');
-      }
+      const timer = setTimeout(() => {
+        setTicker(initialValues.ticker);
+        setCompanyName(cleanCompanyName(initialValues.company_name) || TICKER_DATABASE[initialValues.ticker] || '');
+        setLotAwal(formatNumberForInput(initialValues.lot_awal));
+        setAvgPriceAwal(formatNumberForInput(initialValues.avg_price_awal));
+        setCurrentPrice(formatNumberForInput(initialValues.current_price));
+        if (initialValues.tranches && initialValues.tranches.length > 0) {
+          setTranches(initialValues.tranches.map(t => ({
+            id: t.id || crypto.randomUUID(),
+            lot: formatNumberForInput(t.lot),
+            price: formatNumberForInput(t.price)
+          })));
+        } else {
+          setTranches([
+            { 
+              id: '1', 
+              lot: formatNumberForInput(initialValues.lot_baru), 
+              price: formatNumberForInput(initialValues.harga_beli_baru) 
+            }
+          ]);
+        }
+        setFeeBeli(initialValues.fee_beli);
+        setFeeJual(initialValues.fee_jual);
+        setIncludeFees(initialValues.fee_beli > 0 || initialValues.fee_jual > 0);
+        setAvgPriceAwalIncludesFee(initialValues.avgPriceAwalIncludesFee !== false);
+        
+        const matchedPreset = BROKER_PRESETS.find(p => p.buy === initialValues.fee_beli && p.sell === initialValues.fee_jual);
+        if (matchedPreset) {
+          setBrokerPreset(matchedPreset.id);
+        } else if (initialValues.fee_beli === 0 && initialValues.fee_jual === 0) {
+          setBrokerPreset('none');
+        } else {
+          setBrokerPreset('custom');
+        }
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [initialValues]);
 
@@ -308,15 +313,18 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   // Mengambil nama emiten & harga secara real-time dari internet (Yahoo Finance) atau database lokal
   React.useEffect(() => {
     const val = ticker.toUpperCase().trim();
-    if (val.length >= 4) {
-      if (TICKER_DATABASE[val]) {
-        setCompanyName(TICKER_DATABASE[val]);
+    const timer = setTimeout(() => {
+      if (val.length >= 4) {
+        if (TICKER_DATABASE[val]) {
+          setCompanyName(TICKER_DATABASE[val]);
+        }
+        fetchRemoteTicker(val);
+      } else {
+        setCompanyName('');
+        setCurrentPrice('');
       }
-      fetchRemoteTicker(val);
-    } else {
-      setCompanyName('');
-      setCurrentPrice('');
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [ticker, fetchRemoteTicker]);
 
   const handleRefreshPrice = React.useCallback(() => {

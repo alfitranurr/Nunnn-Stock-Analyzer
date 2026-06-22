@@ -30,10 +30,12 @@ interface HistoryTableProps {
 
 function HistoryEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
+  const [prevSymbol, setPrevSymbol] = React.useState(symbol);
   
-  React.useEffect(() => {
+  if (symbol !== prevSymbol) {
+    setPrevSymbol(symbol);
     setHasError(false);
-  }, [symbol]);
+  }
 
   const cleanSymbol = symbol.toUpperCase().trim();
 

@@ -301,7 +301,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
 
           {searchQuery && (
             <div className="text-xs text-slate-400">
-              {language === 'id' ? 'Hasil pencarian untuk:' : 'Search results for:'} <span className="text-brand-purple font-semibold">"{searchQuery}"</span>
+              {language === 'id' ? 'Hasil pencarian untuk:' : 'Search results for:'} <span className="text-brand-purple font-semibold">&quot;{searchQuery}&quot;</span>
             </div>
           )}
         </div>
@@ -554,8 +554,8 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                 <div className="text-[9px] font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                   <span>{t('news.aiTakeaway')}</span>
                                 </div>
-                                <p className="text-xs text-slate-200 leading-relaxed font-semibold italic">
-                                  "{summary.takeaway}"
+                                <p className="text-xs text-slate-200 text-center leading-relaxed font-semibold italic">
+                                  &quot;{summary.takeaway}&quot;
                                 </p>
                               </div>
                             </div>

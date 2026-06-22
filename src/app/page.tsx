@@ -24,6 +24,11 @@ export default function Dashboard() {
   const [user, setUser] = React.useState<any>(null);
   const { language, t } = useLanguage();
 
+  const languageRef = React.useRef(language);
+  React.useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [plans, setPlans] = React.useState<SavedPlan[]>([]);
   const [activePlanToLoad, setActivePlanToLoad] = React.useState<SavedPlan | null>(null);
@@ -74,7 +79,9 @@ export default function Dashboard() {
   React.useEffect(() => {
     const savedTab = localStorage.getItem('nunnn_stock_active_tab');
     if (savedTab) {
-      setCurrentTab(savedTab);
+      setTimeout(() => {
+        setCurrentTab(savedTab);
+      }, 0);
     }
   }, []);
 
@@ -114,7 +121,7 @@ export default function Dashboard() {
             
             if (parsedMockUser.email?.toLowerCase() === adminEmail) {
               const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
-              let simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+              const simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
               const adminUserIndex = simUsers.findIndex((u: any) => u.email.toLowerCase() === adminEmail);
               if (adminUserIndex === -1) {
                 simUsers.push({ email: adminEmail, password: 'adminpassword', approved: true });
@@ -132,7 +139,7 @@ export default function Dashboard() {
                 localStorage.removeItem('nunnn_stock_mock_user');
                 setUser(null);
                 showToast(
-                  language === 'id'
+                  languageRef.current === 'id'
                     ? 'Akun simulasi Anda belum disetujui oleh Administrator.'
                     : 'Your simulated account has not been approved by the Administrator.',
                   'error'
@@ -187,7 +194,7 @@ export default function Dashboard() {
               await supabase.auth.signOut();
               setUser(null);
               showToast(
-                language === 'id'
+                languageRef.current === 'id'
                   ? 'Akun Anda belum disetujui oleh Administrator.'
                   : 'Your account has not been approved by the Administrator.',
                 'error'
@@ -228,12 +235,7 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Fetch plans when user changes
-  React.useEffect(() => {
-    fetchPlans();
-  }, [user]);
-
-  const fetchPlans = async () => {
+  const fetchPlans = React.useCallback(async () => {
     // 1. Jika Supabase Terkonfigurasi & User Logged In riil
     if (isSupabaseConfigured && user && !user.isMock) {
       try {
@@ -262,7 +264,15 @@ export default function Dashboard() {
         setPlans([]);
       }
     }
-  };
+  }, [user]);
+
+  // Fetch plans when user changes
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchPlans();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchPlans]);
 
   const handleCalculate = React.useCallback((input: AvgDownInput) => {
     setCalculatorInput(input);

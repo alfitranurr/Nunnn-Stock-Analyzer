@@ -32,7 +32,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       setTimeout(() => {
         setLoading(false);
         const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
-        let simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+        const simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
 
         const isCurrentAdmin = cleanEmail === adminEmail;
 

@@ -16,10 +16,12 @@ interface ResultsDisplayProps {
 
 function ResultsEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
+  const [prevSymbol, setPrevSymbol] = React.useState(symbol);
   
-  React.useEffect(() => {
+  if (symbol !== prevSymbol) {
+    setPrevSymbol(symbol);
     setHasError(false);
-  }, [symbol]);
+  }
 
   const cleanSymbol = symbol.toUpperCase().trim();
 
@@ -46,6 +48,17 @@ function ResultsEmitenLogo({ symbol }: { symbol: string }) {
 export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayProps) {
   const { t, language } = useLanguage();
   const [hasConfettiFired, setHasConfettiFired] = React.useState(false);
+  const [prevResult, setPrevResult] = React.useState(result);
+  const [prevTicker, setPrevTicker] = React.useState(ticker);
+
+  if (result !== prevResult || ticker !== prevTicker) {
+    setPrevResult(result);
+    setPrevTicker(ticker);
+    if (result && !result.turnedIntoProfit) {
+      setHasConfettiFired(false);
+    }
+  }
+
   const cleanName = cleanCompanyName(companyName);
 
   // Format ke Rupiah
@@ -66,13 +79,6 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
     return 'text-lg';
   };
 
-  // Reset confetti status jika ticker atau input berubah secara mendasar
-  React.useEffect(() => {
-    if (result && !result.turnedIntoProfit) {
-      setHasConfettiFired(false);
-    }
-  }, [result, ticker]);
-
   // Efek Confetti ketika berhasil mengubah Loss jadi Profit
   React.useEffect(() => {
     if (result && result.turnedIntoProfit && !hasConfettiFired) {
@@ -82,7 +88,10 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         origin: { y: 0.6 },
         colors: ['#00b15b', '#05fa7b', '#008f47', '#ffffff']
       });
-      setHasConfettiFired(true);
+      const timer = setTimeout(() => {
+        setHasConfettiFired(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [result, hasConfettiFired]);
 

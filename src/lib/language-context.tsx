@@ -19,7 +19,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedLang = localStorage.getItem('nunnn_stock_language') as Language;
       if (savedLang === 'id' || savedLang === 'en') {
-        setLanguageState(savedLang);
+        const timer = setTimeout(() => {
+          setLanguageState(savedLang);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     } catch (e) {
       console.warn('Failed to load saved language:', e);

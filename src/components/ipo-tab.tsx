@@ -185,10 +185,12 @@ const TICKER_DATABASE: Record<string, string> = {
 
 function IpoEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
+  const [prevSymbol, setPrevSymbol] = React.useState(symbol);
   
-  React.useEffect(() => {
+  if (symbol !== prevSymbol) {
+    setPrevSymbol(symbol);
     setHasError(false);
-  }, [symbol]);
+  }
 
   const cleanSymbol = symbol.toUpperCase().trim();
 
@@ -252,12 +254,15 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   // Fetch ticker real-time data automatically on input change
   React.useEffect(() => {
     const val = ticker.toUpperCase().trim();
-    if (val.length >= 4) {
-      if (TICKER_DATABASE[val]) {
-        setCompanyName(TICKER_DATABASE[val]);
+    const timer = setTimeout(() => {
+      if (val.length >= 4) {
+        if (TICKER_DATABASE[val]) {
+          setCompanyName(TICKER_DATABASE[val]);
+        }
+        fetchRemoteTicker(val);
       }
-      fetchRemoteTicker(val);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [ticker, fetchRemoteTicker]);
 
   // Saving state
@@ -343,7 +348,10 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   }, [user]);
 
   React.useEffect(() => {
-    fetchSavedPlans();
+    const timer = setTimeout(() => {
+      fetchSavedPlans();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchSavedPlans]);
 
   // Save Plan Action

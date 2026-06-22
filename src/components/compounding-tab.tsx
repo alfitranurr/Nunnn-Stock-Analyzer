@@ -215,7 +215,10 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
   }, [user]);
 
   React.useEffect(() => {
-    fetchSavedPlans();
+    const timer = setTimeout(() => {
+      fetchSavedPlans();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchSavedPlans]);
 
   // Save Plan Action
