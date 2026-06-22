@@ -486,7 +486,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-dvh overflow-hidden">
       {/* Background decoration elements */}
       <div className="mesh-bg" />
 
@@ -504,8 +504,8 @@ export default function Dashboard() {
       />
 
       {/* Main Dashboard Panel */}
-      <main className={`flex-1 min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-20 md:pb-10 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
-        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8">
+      <main className={`flex-1 h-dvh flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-3 md:pb-4 max-w-7xl w-full mx-auto flex flex-col justify-between custom-scrollbar">
           
           {/* 0. Home Tab */}
           <div className={currentTab === 'home' ? 'block' : 'hidden'}>
@@ -791,7 +791,7 @@ export default function Dashboard() {
           </div>
 
           {/* Footer branding */}
-          <div className="max-w-xs mx-auto w-full text-center text-[10px] text-slate-500 pt-4 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5 no-print">
+          <div className="max-w-xs mx-auto w-full text-center text-[10px] text-slate-500 pt-3 pb-1 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5 no-print mt-auto shrink-0">
             <span>© 2026 Al Fitra Nur Ramadhani. All rights reserved.</span>
           </div>
 

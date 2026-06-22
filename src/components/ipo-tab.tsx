@@ -489,7 +489,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-fadeIn font-sans pb-10">
+    <div className="space-y-6 md:space-y-8 animate-fadeIn font-sans pb-2">
       
       {/* 1. Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
