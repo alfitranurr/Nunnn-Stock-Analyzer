@@ -22,6 +22,7 @@ import { useLanguage } from '@/lib/language-context';
 export default function Dashboard() {
   const [currentTab, setCurrentTab] = React.useState('home');
   const [user, setUser] = React.useState<any>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const { language, t } = useLanguage();
 
   const languageRef = React.useRef(language);
@@ -75,8 +76,23 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // Persistent active tab on page refresh/reload using sessionStorage.
+  // This preserves the current tab on F5/reload, but defaults to 'home' when opening in a new tab/session.
   React.useEffect(() => {
+    const savedTab = sessionStorage.getItem('nunnn_stock_active_tab');
+    if (savedTab) {
+      setTimeout(() => {
+        setCurrentTab(savedTab);
+      }, 0);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    sessionStorage.setItem('nunnn_stock_active_tab', currentTab);
     // Scroll ke paling atas secara instan saat berpindah tab/halaman
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
     window.scrollTo(0, 0);
   }, [currentTab]);
 
@@ -510,7 +526,7 @@ export default function Dashboard() {
 
       {/* Main Dashboard Panel */}
       <main className={`flex-1 h-dvh flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-3 md:pb-4 max-w-7xl w-full mx-auto flex flex-col justify-between custom-scrollbar">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-3 md:pb-4 max-w-7xl w-full mx-auto flex flex-col justify-between custom-scrollbar">
           
           {/* 0. Home Tab */}
           <div className={currentTab === 'home' ? 'block' : 'hidden'}>
