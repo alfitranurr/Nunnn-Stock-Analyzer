@@ -114,7 +114,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
   }
 
   const isProfitAwal = result.floatingPLAwal >= 0;
-  const isProfitTotal = result.floatingPLTotal >= 0;
+  const isProfitTotal = result.floatingPLTotalPct >= 0;
 
   return (
     <div className="space-y-4 md:space-y-6 w-full animate-fadeIn">

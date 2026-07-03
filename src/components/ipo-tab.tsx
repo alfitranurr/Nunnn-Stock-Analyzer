@@ -499,27 +499,28 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   return (
     <div className="space-y-6 md:space-y-8 animate-fadeIn font-sans pb-2">
       
-      {/* 1. Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-            {t('ipo.title')}
-            <Coins className="h-6 w-6 text-brand-purple animate-bounce shrink-0" />
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t('ipo.desc')}
-          </p>
+      {/* 1. Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
+        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 w-full">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+              <Coins className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span>{language === 'id' ? 'Analisis Penjatahan Saham E-IPO' : 'Initial Public Offering Allocation'}</span>
+            </div>
+            
+            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+              {t('ipo.title')}
+              <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
+            </h1>
+            
+            <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
+              {t('ipo.desc')}
+            </p>
+          </div>
         </div>
-
-        {/* Action Button */}
-        <button 
-          onClick={handleSavePlan}
-          disabled={isSaving}
-          className="flex items-center gap-2 py-2.5 px-4.5 rounded-xl bg-brand-purple hover:bg-brand-purple/95 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shrink-0"
-        >
-          <Save className="h-4 w-4" />
-          <span>{isSaving ? t('ipo.saving') : t('ipo.saveSim')}</span>
-        </button>
       </div>
 
       {/* 2. OJK Regulation Cheat Sheet Accordion */}

@@ -17,7 +17,8 @@ import {
   Percent,
   Coins,
   Briefcase,
-  RotateCcw
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { ConfirmModal } from '@/components/confirm-modal';
@@ -289,46 +290,58 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border border-border-color p-5 rounded-2xl bg-card-bg relative z-10 animate-fadeIn">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-brand-purple animate-pulse" /> {t('admin.title')}
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            {t('admin.desc')}
-          </p>
-        </div>
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
+        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
         
-        <div className="flex items-center gap-2 self-end md:self-center">
-          {/* Section Switcher Tabs */}
-          <div className="flex bg-slate-900 p-0.5 border border-slate-800 rounded-lg text-[10px] font-bold">
-            <button
-              onClick={() => setActiveTab('approvals')}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                activeTab === 'approvals' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {t('admin.tabApprovals')}
-            </button>
-            <button
-              onClick={() => setActiveTab('database')}
-              className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                activeTab === 'database' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {language === 'id' ? 'Status DB' : 'DB Status'}
-            </button>
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 w-full">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span>{language === 'id' ? 'Panel Manajemen Sistem & Admin' : 'Administrator Management Panel'}</span>
+            </div>
+            
+            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+              {t('admin.title')}
+              <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
+            </h1>
+            
+            <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
+              {t('admin.desc')}
+            </p>
           </div>
 
-          <button
-            onClick={fetchUsers}
-            disabled={loading}
-            className="p-2 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer"
-            title={language === 'id' ? 'Refresh Data' : 'Refresh Data'}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2 self-stretch md:self-auto shrink-0">
+            {/* Section Switcher Tabs */}
+            <div className="flex bg-white/5 p-1 border border-white/10 rounded-xl text-xs font-bold w-full md:w-auto">
+              <button
+                onClick={() => setActiveTab('approvals')}
+                className={`flex-1 md:flex-none px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                  activeTab === 'approvals' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('admin.tabApprovals')}
+              </button>
+              <button
+                onClick={() => setActiveTab('database')}
+                className={`flex-1 md:flex-none px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                  activeTab === 'database' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('admin.tabDatabase')}
+              </button>
+            </div>
+
+            <button
+              onClick={fetchUsers}
+              disabled={loading}
+              className="p-2.5 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+              title={language === 'id' ? 'Refresh Data' : 'Refresh Data'}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 

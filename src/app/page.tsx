@@ -13,9 +13,10 @@ import { AdminPanelTab } from '@/components/admin-panel-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { CompoundingTab } from '@/components/compounding-tab';
+import { DividendTab } from '@/components/dividend-tab';
 import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight, Percent, TrendingUp, FileText, Coins, Home } from 'lucide-react';
+import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight, Percent, TrendingUp, FileText, Coins, Home, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
@@ -542,7 +543,7 @@ export default function Dashboard() {
                 <div className="absolute top-0 right-0 w-[200px] md:w-[320px] h-[200px] md:h-[320px] rounded-full bg-brand-purple/10 blur-[80px] md:blur-[120px] pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-[180px] md:w-[250px] h-[180px] md:h-[250px] rounded-full bg-emerald-500/5 blur-[80px] md:blur-[100px] pointer-events-none" />
                 
-                <div className="relative z-10 max-w-3xl space-y-4">
+                <div className="relative z-10 w-full space-y-4">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-[9px] font-extrabold uppercase tracking-widest text-brand-purple">
                     <Sparkles className="h-3 w-3 text-brand-purple animate-pulse" />
                     <span>{t('cover.sparkles')}</span>
@@ -552,7 +553,7 @@ export default function Dashboard() {
                     {t('cover.title1')} <span className="text-profit-glow">{t('cover.title2')}</span>
                   </h1>
                   
-                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed max-w-2xl">
+                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
                     {t('cover.desc')}
                   </p>
                   
@@ -582,6 +583,52 @@ export default function Dashboard() {
                         </button>
                       </div>
                     )}
+                  </div>
+
+                  {/* Feature Quick Navigation Grid (Horizontal Cards) */}
+                  <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <button
+                      onClick={() => setCurrentTab('avg-down')}
+                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
+                    >
+                      <div>
+                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">Average Down</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Floating Loss & Fee</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentTab('dividend')}
+                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
+                    >
+                      <div>
+                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">
+                          Kalkulator Dividen
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Passive Income & Pajak</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentTab('compounding')}
+                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
+                    >
+                      <div>
+                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">Compounding</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Pertumbuhan Investasi</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentTab('ipo')}
+                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
+                    >
+                      <div>
+                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">Jatah E-IPO</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Pooling Jatah Saham</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
                   </div>
                 </div>
 
@@ -678,15 +725,28 @@ export default function Dashboard() {
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6 md:space-y-8"
             >
-              {/* Header */}
-              <div>
-                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-                  {t('calculator.title')}
-                  <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
-                </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 w-full">
-                  {t('calculator.desc')}
-                </p>
+              {/* Header Banner */}
+              <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
+                <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
+                <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
+                
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="space-y-2 w-full">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                      <Calculator className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+                      <span>{language === 'id' ? 'Average Down & Floating Loss Analysis' : 'Average Down & Floating Loss Analysis'}</span>
+                    </div>
+                    
+                    <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+                      {t('calculator.title')}
+                      <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
+                    </h1>
+                    
+                    <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
+                      {t('calculator.desc')}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Alert Status Konfigurasi Supabase */}
@@ -745,6 +805,21 @@ export default function Dashboard() {
               className="space-y-6 md:space-y-8"
             >
               <CompoundingTab
+                user={user}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+              />
+            </motion.div>
+          </div>
+
+          {/* 3.4. Dividend Calculator Tab */}
+          <div className={currentTab === 'dividend' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'dividend' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
+              <DividendTab
                 user={user}
                 onSignInClick={() => setIsAuthModalOpen(true)}
               />

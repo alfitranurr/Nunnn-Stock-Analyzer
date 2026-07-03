@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, ExternalLink, Calendar, Calculator, Info } from 'lucide-react';
+import { Trash2, ExternalLink, Calendar, Calculator, Info, Sparkles } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { cleanCompanyName } from '@/lib/utils';
 
@@ -47,11 +47,12 @@ function HistoryEmitenLogo({ symbol }: { symbol: string }) {
         <img
           src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
           alt={cleanSymbol}
-          className="w-6 h-6 object-contain"
+          className="w-full h-full object-contain p-0.5"
           onError={() => setHasError(true)}
+          loading="lazy"
         />
       ) : (
-        <span className="font-black text-[9.5px] text-brand-purple">
+        <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">
           {cleanSymbol.slice(0, 2)}
         </span>
       )}
@@ -76,7 +77,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     } catch {
       return dateStr;
@@ -84,19 +85,32 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
   };
 
   return (
-    <div className="glass-card p-6 w-full border border-slate-200/50 dark:border-white/5 overflow-hidden">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6 pb-4 border-b border-slate-200/50 dark:border-white/5">
-        <div>
-          <h3 className="text-lg font-bold tracking-tight flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-brand-purple" />
-            Riwayat Simulasi Rencana
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Daftar simulasi average down yang telah disimpan sebelumnya.
-          </p>
-        </div>
-        <div className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-400">
-          Total: {plans.length} Rencana
+    <div className="space-y-6 w-full">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
+        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 w-full">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+              <Calendar className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span>Simulasi & Riwayat Rencana Tersimpan</span>
+            </div>
+            
+            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+              Riwayat Simulasi Rencana
+              <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
+            </h1>
+            
+            <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
+              Daftar seluruh simulasi Average Down dan rencana investasi saham yang telah Anda simpan sebelumnya.
+            </p>
+          </div>
+
+          <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-300 shrink-0 self-start md:self-auto">
+            Total: {plans.length} Rencana
+          </div>
         </div>
       </div>
 
