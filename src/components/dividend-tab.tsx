@@ -492,24 +492,22 @@ Dibuat via NUNNN STOCK ANALYZER
         <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
         
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 w-full">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-              <Coins className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-              <span>{isEn ? 'Dividend & Passive Income Analysis' : 'Analisis Dividen & Passive Income'}</span>
-            </div>
-            
-            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
-              {isEn ? 'Stock Dividend Calculator' : 'Kalkulator Dividen Saham'}
-              <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
-            </h1>
-            
-            <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
-              {isEn 
-                ? 'Calculate 1-year dividend projections, monthly cashflow schedules, and real-time historical dividends for all IDX stocks with tax options.'
-                : 'Hitung proyeksi dividen 1 tahun, jadwal cashflow bulanan, serta historis dividen seluruh saham BEI secara real-time terintegrasi opsi pajak Indonesia.'}
-            </p>
+        <div className="relative z-10 space-y-2 w-full">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+            <Coins className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+            <span>{isEn ? 'Dividend & Passive Income Analysis' : 'Analisis Dividen & Passive Income'}</span>
           </div>
+          
+          <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+            {isEn ? 'Stock Dividend Calculator' : 'Kalkulator Dividen Saham'}
+            <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
+          </h1>
+          
+          <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
+            {isEn 
+              ? 'Calculate 1-year dividend projections, monthly cashflow schedules, and real-time historical dividends for all IDX stocks with tax options.'
+              : 'Hitung proyeksi dividen 1 tahun, jadwal cashflow bulanan, serta historis dividen seluruh saham BEI secara real-time terintegrasi opsi pajak Indonesia.'}
+          </p>
         </div>
       </div>
 
