@@ -936,10 +936,10 @@ Dibuat via NUNNN STOCK ANALYZER
           </div>
         </div>
 
-        {/* Row 2: Summary Metric Cards (Clean Vertical Stack Layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Row 2: Summary Metric Cards (3 Column Grid Layout) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
-          {/* Gross Dividend Card */}
+          {/* Card 1: Gross Dividend Card */}
           <div className="p-5 sm:p-6 rounded-3xl border border-white/10 bg-white/[0.02] shadow-lg flex flex-col justify-between space-y-3">
             <div>
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block w-full">
@@ -956,20 +956,35 @@ Dibuat via NUNNN STOCK ANALYZER
             </div>
           </div>
 
-          {/* Net Dividend Card */}
-          <div className="p-5 sm:p-6 rounded-3xl border border-white/10 bg-white/[0.02] shadow-lg flex flex-col justify-between space-y-3">
+          {/* Card 2: Total Dividend Tax Card */}
+          <div className="p-5 sm:p-6 rounded-3xl border border-amber-500/20 bg-amber-500/[0.02] shadow-lg flex flex-col justify-between space-y-3">
             <div>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block w-full">
+              <span className="text-xs font-bold text-amber-400/90 uppercase tracking-wider block w-full">
+                {isEn ? 'Estimated Total Tax (1 Year)' : 'Total Potongan Pajak (1 Tahun)'}
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight mt-2">
+                {formatIDR(result.taxAnnualAmountRp)}
+              </div>
+            </div>
+            <div className="pt-2 border-t border-amber-500/10 text-xs text-slate-400 font-medium">
+              {result.taxRatePercent > 0
+                ? (isEn ? `Tax Rate: ${result.taxRatePercent}% Final` : `Tarif Pajak: ${result.taxRatePercent}% Final`)
+                : (isEn ? 'Tax-Free (0% Payout)' : 'Bebas Potongan Pajak (0%)')}
+            </div>
+          </div>
+
+          {/* Card 3: Net Dividend Card */}
+          <div className="p-5 sm:p-6 rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.02] shadow-lg flex flex-col justify-between space-y-3">
+            <div>
+              <span className="text-xs font-bold text-emerald-400/90 uppercase tracking-wider block w-full">
                 {isEn ? 'Estimated Net Dividend (1 Year)' : 'Estimasi Dividen Bersih (1 Tahun)'}
               </span>
               <div className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight mt-2">
                 {formatIDR(result.netAnnualDividendRp)}
               </div>
             </div>
-            <div className="pt-2 border-t border-white/5 text-xs text-slate-400 font-medium">
-              {result.taxRatePercent > 0 
-                ? (isEn ? `Tax ${result.taxRatePercent}% (${formatIDR(result.taxAnnualAmountRp)})` : `Pajak ${result.taxRatePercent}% (${formatIDR(result.taxAnnualAmountRp)})`)
-                : (isEn ? 'Tax-Free (0%)' : 'Bebas Potongan Pajak (0%)')}
+            <div className="pt-2 border-t border-emerald-500/10 text-xs text-slate-400 font-medium">
+              {isEn ? 'Net cash received after tax' : 'Total bersih diterima setelah pajak'}
             </div>
           </div>
 
