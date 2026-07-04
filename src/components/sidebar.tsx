@@ -231,50 +231,58 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         animate={isCollapsed ? "collapsed" : "expanded"}
         variants={sidebarVariants}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-sidebar-bg border-r border-border-color py-4 px-3 z-30 group"
+        className={cn(
+          "hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-sidebar-bg border-r border-border-color py-4 z-30 group transition-all duration-300",
+          isCollapsed ? "px-0 items-center" : "px-3"
+        )}
       >
         {/* Sidebar Header */}
-        <div className={cn("flex items-center justify-between mb-5 transition-all duration-300", isCollapsed ? "px-1" : "px-2")}>
+        <div className={cn("flex items-center mb-5 transition-all duration-300 relative w-full", isCollapsed ? "justify-center px-0" : "justify-between px-2")}>
           <button
             onClick={onLogoClick}
-            className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
+            className={cn("flex items-center cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all bg-transparent border-0 p-0", isCollapsed ? "justify-center w-full" : "gap-2 text-left")}
           >
             {!isCollapsed ? (
               <span className="font-extrabold text-lg text-emerald-400 tracking-wider font-sans select-none">
                 NUNNN STOCK
               </span>
             ) : (
-              <span className="font-black text-xl text-emerald-400 select-none">
+              <span className="font-black text-2xl text-emerald-400 select-none tracking-tight text-center leading-none">
                 N
               </span>
             )}
           </button>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden group-hover:flex p-1 rounded-lg bg-input-bg hover:bg-glass-border border border-border-color text-foreground cursor-pointer transition-all duration-200 absolute -right-3.5 top-4 z-40 shadow-md"
+            className="hidden group-hover:flex p-1 rounded-lg bg-input-bg hover:bg-glass-border border border-border-color text-foreground cursor-pointer transition-all duration-200 absolute -right-3.5 top-0.5 z-40 shadow-md"
           >
             {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </div>
 
         {/* Navigation Menu (Scrollable if screen is short) */}
-        <nav className="flex-1 overflow-y-auto space-y-1.5 pr-1.5 custom-scrollbar">
+        <nav className={cn(
+          "flex-1 overflow-y-auto space-y-2 custom-scrollbar w-full",
+          isCollapsed ? "px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" : "pr-1.5"
+        )}>
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => item.active && setCurrentTab(item.id)}
               className={cn(
-                "w-full flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 border relative group/item cursor-pointer text-left",
-                isCollapsed ? "justify-center px-0" : "justify-between px-3.5",
+                "flex items-center transition-all duration-300 border relative group/item cursor-pointer",
+                isCollapsed
+                  ? "w-11 h-11 mx-auto justify-center rounded-xl p-0 shrink-0"
+                  : "w-full justify-between px-3.5 py-2.5 rounded-xl text-left",
                 currentTab === item.id && item.active
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 dark:text-emerald-400 font-semibold"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 dark:text-emerald-400 font-semibold shadow-sm"
                   : "bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-input-bg",
                 !item.active && "opacity-45 cursor-not-allowed"
               )}
               title={isCollapsed ? item.label : undefined}
             >
-              <div className="flex items-center gap-3">
-                <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/item:scale-110", currentTab === item.id && "text-emerald-400")} />
+              <div className={cn("flex items-center justify-center", isCollapsed ? "w-full h-full" : "gap-3")}>
+                <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/item:scale-110 shrink-0", currentTab === item.id && "text-emerald-400")} />
                 {!isCollapsed && <span className="text-[13px] font-semibold text-left whitespace-nowrap">{item.label}</span>}
               </div>
               {!isCollapsed && item.labelBadge && (
@@ -290,7 +298,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         </nav>
 
         {/* Bottom Section */}
-        <div className="mt-auto pt-3 border-t border-border-color space-y-3 shrink-0">
+        <div className="mt-auto pt-3 border-t border-border-color space-y-3 shrink-0 w-full">
           {/* Language Switcher */}
           {!isCollapsed ? (
             <div className="flex flex-col gap-1.5 px-2.5">
@@ -319,11 +327,11 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               </div>
             </div>
           ) : (
-            <div className="flex justify-center px-1">
+            <div className="flex justify-center w-full">
               <button
                 type="button"
                 onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}
-                className="w-9 h-9 rounded-xl border border-border-color bg-input-bg flex items-center justify-center text-xs font-black text-emerald-400 hover:bg-glass-border hover:text-white transition-all cursor-pointer"
+                className="w-11 h-11 rounded-xl border border-border-color bg-input-bg flex items-center justify-center text-xs font-black text-emerald-400 hover:bg-glass-border hover:text-white transition-all cursor-pointer shadow-sm mx-auto"
                 title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
               >
                 {language.toUpperCase()}
@@ -333,10 +341,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
           {/* Profile Footer */}
           {user ? (
-            <div className={cn("flex items-center justify-between gap-2.5 overflow-hidden", isCollapsed ? "justify-center" : "px-2.5")}>
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-8.5 h-8.5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-md">
-                  <User className="h-4.5 w-4.5 text-emerald-400" />
+            <div className={cn("flex items-center overflow-hidden w-full", isCollapsed ? "justify-center" : "justify-between gap-2.5 px-2.5")}>
+              <div className={cn("flex items-center overflow-hidden", isCollapsed ? "justify-center w-full" : "gap-2.5")}>
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-md mx-auto" title={user.email}>
+                  <User className="h-5 w-5 text-emerald-400" />
                 </div>
                 {!isCollapsed && (
                   <div className="overflow-hidden">
@@ -359,12 +367,12 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             <button
               onClick={onSignInClick}
               className={cn(
-                "flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
-                isCollapsed ? "w-9 h-9 px-0" : "w-full px-3.5"
+                "flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
+                isCollapsed ? "w-11 h-11 p-0 mx-auto" : "w-full py-2.5 px-3.5"
               )}
               title={t('sidebar.login')}
             >
-              <User className="h-4.5 w-4.5" />
+              <User className="h-5 w-5" />
               {!isCollapsed && <span>{t('sidebar.login')}</span>}
             </button>
           )}
