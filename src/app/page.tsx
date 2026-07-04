@@ -796,6 +796,18 @@ export default function Dashboard() {
                   initialValues={activePlanToLoad}
                 />
 
+                {/* Section Divider / Sekat Pemisah */}
+                <div className="relative my-2 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-dashed border-slate-300/60 dark:border-white/10" />
+                  </div>
+                  <div className="relative flex items-center gap-2 bg-background px-4 py-1.5 rounded-full border border-slate-200/60 dark:border-white/10 text-xs font-black tracking-widest uppercase text-slate-600 dark:text-slate-300 shadow-sm select-none">
+                    <span className="text-emerald-500 font-mono font-bold">----</span>
+                    <span>{t('calculator.conclusion')}</span>
+                    <span className="text-emerald-500 font-mono font-bold">----</span>
+                  </div>
+                </div>
+
                 <ResultsDisplay 
                   result={calculatorResult} 
                   ticker={calculatorInput?.ticker || 'ANTM'} 

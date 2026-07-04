@@ -505,7 +505,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         </div>
       </div>
 
-      {/* Responsive Form Layout with Consistent Sub-Cards */}
+      {/* Responsive Form Layout with Card-Inside-Card design */}
       <form onSubmit={handleSaveClick} className="flex flex-col gap-5 w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-5 items-stretch w-full">
           

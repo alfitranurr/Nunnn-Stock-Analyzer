@@ -108,6 +108,7 @@ export const translations = {
       placeholderCompany: 'Nama Perusahaan',
       loadSuccess: 'Parameter saham berhasil dimuat ke kalkulator.',
       savedSuccess: 'Rencana berhasil disimpan!',
+      conclusion: 'KESIMPULAN',
     },
     results: {
       title: 'Hasil Analisis & Kalkulasi Rencana',
@@ -461,6 +462,7 @@ export const translations = {
       placeholderCompany: 'Company Name',
       loadSuccess: 'Stock parameters loaded into the calculator successfully.',
       savedSuccess: 'Plan saved successfully!',
+      conclusion: 'CONCLUSION',
     },
     results: {
       title: 'Analysis & Plan Calculation Results',
