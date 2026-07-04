@@ -505,280 +505,300 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         </div>
       </div>
 
-      {/* Horizontal Form Layout */}
-      <form onSubmit={handleSaveClick} className="flex flex-col xl:flex-row xl:items-end justify-between gap-5 w-full">
-        
-        {/* Ticker & Nama Emiten (2 Kotak Berdampingan) */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[320px] relative w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step1')}</label>
-          <div className="flex gap-2 items-center">
-            
-            {/* Logo Emiten */}
-            <FormEmitenLogo symbol={ticker} />
-
-            {/* Kotak Ticker */}
-            <div className="w-1/3 relative">
-              <input
-                type="text"
-                value={ticker}
-                onChange={(e) => {
-                  setTicker(e.target.value.toUpperCase());
-                }}
-                placeholder="ANTM"
-                className="w-full text-center font-bold tracking-wider glass-input px-2 py-2 text-xs uppercase"
-                required
-              />
-            </div>
-            
-            {/* Kotak Nama Perusahaan */}
-            <div className="w-2/3">
-              <input
-                type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder={t('calculator.placeholderCompany')}
-                className={`w-full glass-input px-2.5 py-2 text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
-                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
-                }`}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Posisi Portofolio Awal */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[280px] w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step2')}</label>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <input
-                type="text"
-                value={lotAwal}
-                onChange={(e) => setLotAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onBlur={() => handleBlur(lotAwal, setLotAwal)}
-                placeholder={t('calculator.lotAwal')}
-                className="w-full glass-input px-1 py-2 text-xs text-center font-semibold"
-                required
-              />
-              <span className="text-[9px] text-slate-500 text-center block mt-1">{t('calculator.lotAwal')}</span>
-            </div>
-            <div>
-              <input
-                type="text"
-                value={avgPriceAwal}
-                onChange={(e) => setAvgPriceAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onBlur={() => handleBlur(avgPriceAwal, setAvgPriceAwal)}
-                placeholder="Avg Price"
-                className="w-full glass-input px-1 py-2 text-xs text-center font-semibold"
-                required
-              />
-              <span className="text-[9px] text-slate-500 text-center block mt-1">{t('calculator.avgPrice').replace(' (Rp)', '')} (Rp)</span>
-            </div>
-            <div>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={currentPrice}
-                  onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
-                  onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
-                  placeholder="Harga Sekarang"
-                  className={`w-full glass-input pl-1 pr-6 py-2 text-xs text-center font-semibold transition-all duration-300 ${
-                    isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
-                  }`}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={handleRefreshPrice}
-                  disabled={isFetchingTicker || ticker.toUpperCase().trim().length < 4}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Refresh Harga Sekarang"
-                >
-                  <RefreshCw className={`h-3 w-3 ${isFetchingTicker ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
-              <span className="text-[9px] text-slate-500 text-center block mt-1">{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</span>
-            </div>
-          </div>
+      {/* Responsive Form Layout with Consistent Sub-Cards */}
+      <form onSubmit={handleSaveClick} className="flex flex-col gap-5 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-5 items-stretch w-full">
           
-          {/* Checkbox Penyesuaian Fee Beli Awal */}
-          {includeFees && (
-            <div className="flex items-center gap-1.5 mt-1.5 animate-fadeIn select-none">
-              <input
-                type="checkbox"
-                id="avgPriceAwalIncludesFee"
-                checked={avgPriceAwalIncludesFee}
-                onChange={(e) => setAvgPriceAwalIncludesFee(e.target.checked)}
-                className="rounded border-white/10 text-emerald-500 focus:ring-emerald-500 bg-black/40 h-3.5 w-3.5 cursor-pointer"
-              />
-              <label 
-                htmlFor="avgPriceAwalIncludesFee" 
-                className="text-[9px] text-slate-400 hover:text-slate-300 cursor-pointer transition-colors font-semibold leading-none"
-              >
-                {t('calculator.includingFeeCheckbox')}
+          {/* Sub-Card Step 1: Ticker & Nama Emiten */}
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-300 block">
+                {t('calculator.step1')}
               </label>
+              <div className="flex gap-2.5 items-center">
+                
+                {/* Logo Emiten */}
+                <FormEmitenLogo symbol={ticker} />
+
+                {/* Kotak Ticker */}
+                <div className="w-1/3 relative">
+                  <input
+                    type="text"
+                    value={ticker}
+                    onChange={(e) => {
+                      setTicker(e.target.value.toUpperCase());
+                    }}
+                    placeholder="ANTM"
+                    className="w-full text-center font-bold tracking-wider glass-input px-2.5 py-2.5 text-xs uppercase"
+                    required
+                  />
+                </div>
+                
+                {/* Kotak Nama Perusahaan */}
+                <div className="w-2/3">
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder={t('calculator.placeholderCompany')}
+                    className={`w-full glass-input px-3 py-2.5 text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
+                      isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
+                    }`}
+                  />
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Rencana Pembelian Baru */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[280px] w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step3')}</label>
-          
-          {tranches.length > 0 && (
-            <div className="flex items-center gap-2 px-1 text-[9px] font-extrabold uppercase tracking-wider text-slate-500/80">
-              <span className="w-11 shrink-0">{t('calculator.tahap')}</span>
-              <span className="flex-1 text-center">{t('calculator.trancheLot')}</span>
-              <span className="flex-2 text-center pr-6">{t('calculator.tranchePrice')}</span>
-              {tranches.length > 1 && <span className="w-8 shrink-0" />}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2">
-            <AnimatePresence initial={false}>
-              {tranches.map((tranche, index) => (
-                <motion.div
-                  key={tranche.id}
-                  initial={{ opacity: 0, height: 0, y: -10 }}
-                  animate={{ opacity: 1, height: 'auto', y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2 overflow-hidden py-0.5 shrink-0"
-                >
-                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 w-11 shrink-0">
-                    {t('calculator.tahap')} {index + 1}
-                  </span>
-
-                  <div className="flex-1 min-w-[60px]">
-                    <input
-                      type="text"
-                      value={tranche.lot}
-                      onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
-                      onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
-                      placeholder={t('calculator.trancheLot')}
-                      className="w-full glass-input px-1 py-1.5 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex-2 min-w-[90px] relative">
-                    <input
-                      type="text"
-                      value={tranche.price}
-                      onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
-                      onBlur={() => handleTrancheBlur(tranche.id, 'price')}
-                      placeholder={t('calculator.tranchePrice')}
-                      className="w-full glass-input pl-1.5 pr-6 py-1.5 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRefreshTranchePrice(tranche.id)}
-                      disabled={fetchingTrancheId !== null || isFetchingTicker || ticker.toUpperCase().trim().length < 4}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="Set / Refresh Harga saat ini"
-                    >
-                      <RefreshCw className={`h-2.5 w-2.5 ${(fetchingTrancheId === tranche.id || isFetchingTicker) ? 'animate-spin' : ''}`} />
-                    </button>
-                  </div>
-
-                  {tranches.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTranche(tranche.id)}
-                      className="p-1.5 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
-                      title="Hapus Tahap Ini"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
           </div>
 
+          {/* Sub-Card Step 2: Posisi Portofolio Awal */}
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-300 block">
+                {t('calculator.step2')}
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <input
+                    type="text"
+                    value={lotAwal}
+                    onChange={(e) => setLotAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
+                    onBlur={() => handleBlur(lotAwal, setLotAwal)}
+                    placeholder={t('calculator.lotAwal')}
+                    className="w-full glass-input px-1.5 py-2.5 text-xs text-center font-semibold"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.lotAwal')}</span>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={avgPriceAwal}
+                    onChange={(e) => setAvgPriceAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
+                    onBlur={() => handleBlur(avgPriceAwal, setAvgPriceAwal)}
+                    placeholder="Avg Price"
+                    className="w-full glass-input px-1.5 py-2.5 text-xs text-center font-semibold"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.avgPrice').replace(' (Rp)', '')} (Rp)</span>
+                </div>
+                <div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={currentPrice}
+                      onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
+                      onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
+                      placeholder="Harga Sekarang"
+                      className={`w-full glass-input pl-1.5 pr-7 py-2.5 text-xs text-center font-semibold transition-all duration-300 ${
+                        isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
+                      }`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRefreshPrice}
+                      disabled={isFetchingTicker || ticker.toUpperCase().trim().length < 4}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-emerald-400 hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Refresh Harga Sekarang"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isFetchingTicker ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Checkbox Penyesuaian Fee Beli Awal */}
+            {includeFees ? (
+              <div className="flex items-center gap-2 pt-1 animate-fadeIn select-none">
+                <input
+                  type="checkbox"
+                  id="avgPriceAwalIncludesFee"
+                  checked={avgPriceAwalIncludesFee}
+                  onChange={(e) => setAvgPriceAwalIncludesFee(e.target.checked)}
+                  className="rounded border-white/10 text-emerald-500 focus:ring-emerald-500 bg-black/40 h-3.5 w-3.5 cursor-pointer"
+                />
+                <label 
+                  htmlFor="avgPriceAwalIncludesFee" 
+                  className="text-[10px] text-slate-400 hover:text-slate-300 cursor-pointer transition-colors font-semibold leading-none"
+                >
+                  {t('calculator.includingFeeCheckbox')}
+                </label>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Sub-Card Step 3: Rencana Pembelian Baru */}
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-300 block">
+                {t('calculator.step3')}
+              </label>
+              
+              {tranches.length > 0 && (
+                <div className="flex items-center gap-2 px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <span className="w-12 shrink-0">{t('calculator.tahap')}</span>
+                  <span className="flex-1 text-center">{t('calculator.trancheLot')}</span>
+                  <span className="flex-2 text-center pr-6">{t('calculator.tranchePrice')}</span>
+                  {tranches.length > 1 && <span className="w-8 shrink-0" />}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <AnimatePresence initial={false}>
+                  {tranches.map((tranche, index) => (
+                    <motion.div
+                      key={tranche.id}
+                      initial={{ opacity: 0, height: 0, y: -10 }}
+                      animate={{ opacity: 1, height: 'auto', y: 0 }}
+                      exit={{ opacity: 0, height: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-2 overflow-hidden py-0.5 shrink-0"
+                    >
+                      <span className="text-[10px] font-bold text-slate-400 w-12 shrink-0">
+                        {t('calculator.tahap')} {index + 1}
+                      </span>
+
+                      <div className="flex-1 min-w-[60px]">
+                        <input
+                          type="text"
+                          value={tranche.lot}
+                          onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
+                          onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
+                          placeholder={t('calculator.trancheLot')}
+                          className="w-full glass-input px-1.5 py-2 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex-2 min-w-[90px] relative">
+                        <input
+                          type="text"
+                          value={tranche.price}
+                          onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
+                          onBlur={() => handleTrancheBlur(tranche.id, 'price')}
+                          placeholder={t('calculator.tranchePrice')}
+                          className="w-full glass-input pl-2 pr-7 py-2 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRefreshTranchePrice(tranche.id)}
+                          disabled={fetchingTrancheId !== null || isFetchingTicker || ticker.toUpperCase().trim().length < 4}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-emerald-400 hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Set / Refresh Harga saat ini"
+                        >
+                          <RefreshCw className={`h-3 w-3 ${(fetchingTrancheId === tranche.id || isFetchingTicker) ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
+
+                      {tranches.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTranche(tranche.id)}
+                          className="p-1.5 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                          title="Hapus Tahap Ini"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddTranche}
+              className="mt-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-dashed border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 font-bold text-xs transition-all cursor-pointer select-none"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {t('calculator.addTranche')}
+            </button>
+          </div>
+
+          {/* Sub-Card Step 4: Broker Fee Settings */}
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-300 block">
+                {t('calculator.step4')}
+              </label>
+              <select
+                value={brokerPreset}
+                onChange={(e) => handlePresetChange(e.target.value)}
+                className="w-full glass-input px-3 py-2.5 text-xs font-semibold cursor-pointer text-foreground bg-background rounded-xl"
+              >
+                <option value="stockbit">Stockbit ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
+                <option value="ajaib">Ajaib ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
+                <option value="ipot">IPOT ({t('calculator.feeBeli')} 0.19% / {t('calculator.feeJual')} 0.29%)</option>
+                <option value="custom">{t('calculator.presetCustom')}</option>
+                <option value="none">{t('calculator.presetNone')}</option>
+              </select>
+              
+              {brokerPreset === 'custom' && (
+                <div className="grid grid-cols-2 gap-2 mt-2 animate-fadeIn">
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="10"
+                        value={feeBeli}
+                        onChange={(e) => setFeeBeli(parseFloat(e.target.value) || 0)}
+                        className="w-full glass-input pl-2 pr-5 py-2 text-xs text-center font-semibold"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
+                    </div>
+                    <span className="text-[9px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeBeli')}</span>
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="10"
+                        value={feeJual}
+                        onChange={(e) => setFeeJual(parseFloat(e.target.value) || 0)}
+                        className="w-full glass-input pl-2 pr-5 py-2 text-xs text-center font-semibold"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
+                    </div>
+                    <span className="text-[9px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeJual')}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <span className="text-[10px] text-slate-400 text-center block font-medium">
+              {includeFees 
+                ? (language === 'id' ? 'Potongan fee dihitung' : 'Fees calculation included') 
+                : (language === 'id' ? 'Murni tanpa biaya broker' : 'Purely without broker fees')}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Row */}
+        <div className="flex items-center justify-end pt-3 border-t border-slate-200/50 dark:border-white/5 w-full">
           <button
-            type="button"
-            onClick={handleAddTranche}
-            className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-dashed border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 dark:text-emerald-400 font-bold text-[9px] transition-all cursor-pointer select-none"
+            type="submit"
+            disabled={
+              isSaving ||
+              parseFormattedNumber(lotAwal) <= 0 ||
+              parseFormattedNumber(avgPriceAwal) <= 0 ||
+              tranches.some(t => parseFormattedNumber(t.lot) <= 0 || parseFormattedNumber(t.price) <= 0)
+            }
+            className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
           >
-            <Plus className="h-3 w-3" />
-            {t('calculator.addTranche')}
+            {isSaving ? (
+              <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
+            ) : null}
+            <span>{user ? t('common.save') : t('common.saveLocal')}</span>
           </button>
         </div>
-
-        {/* Broker Fee Settings */}
-        <div className="flex flex-col gap-1.5 shrink-0 min-w-0 md:min-w-[210px] w-full">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step4')}</label>
-          <select
-            value={brokerPreset}
-            onChange={(e) => handlePresetChange(e.target.value)}
-            className="w-full glass-input px-2.5 py-2 text-xs font-semibold cursor-pointer text-foreground bg-background"
-          >
-            <option value="stockbit">Stockbit ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
-            <option value="ajaib">Ajaib ({t('calculator.feeBeli')} 0.15% / {t('calculator.feeJual')} 0.25%)</option>
-            <option value="ipot">IPOT ({t('calculator.feeBeli')} 0.19% / {t('calculator.feeJual')} 0.29%)</option>
-            <option value="custom">{t('calculator.presetCustom')}</option>
-            <option value="none">{t('calculator.presetNone')}</option>
-          </select>
-          
-          {brokerPreset === 'custom' && (
-            <div className="grid grid-cols-2 gap-2 mt-1.5 animate-fadeIn">
-              <div>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="10"
-                    value={feeBeli}
-                    onChange={(e) => setFeeBeli(parseFloat(e.target.value) || 0)}
-                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-semibold"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
-                </div>
-                <span className="text-[8px] text-slate-500 text-center block mt-0.5">{t('calculator.feeBeli')}</span>
-              </div>
-              <div>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="10"
-                    value={feeJual}
-                    onChange={(e) => setFeeJual(parseFloat(e.target.value) || 0)}
-                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-semibold"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
-                </div>
-                <span className="text-[8px] text-slate-500 text-center block mt-0.5">{t('calculator.feeJual')}</span>
-              </div>
-            </div>
-          )}
-          
-          <span className="text-[9px] text-slate-500 text-center block mt-1">
-            {includeFees 
-              ? (language === 'id' ? 'Potongan fee dihitung' : 'Fees calculation included') 
-              : (language === 'id' ? 'Murni tanpa biaya broker' : 'Purely without broker fees')}
-          </span>
-        </div>
-
-        {/* Submit Action */}
-        <button
-          type="submit"
-          disabled={
-            isSaving ||
-            parseFormattedNumber(lotAwal) <= 0 ||
-            parseFormattedNumber(avgPriceAwal) <= 0 ||
-            tranches.some(t => parseFormattedNumber(t.lot) <= 0 || parseFormattedNumber(t.price) <= 0)
-          }
-          className="py-2 px-5 rounded-lg bg-emerald-500 hover:bg-emerald-600 hover:opacity-90 disabled:opacity-50 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-9 xl:mb-3.5"
-        >
-          {isSaving ? (
-            <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
-          ) : null}
-          <span>{user ? t('common.save') : t('common.saveLocal')}</span>
-        </button>
       </form>
     </div>
   );
