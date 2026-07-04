@@ -365,7 +365,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
           {/* Stats Cards Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex items-center gap-4">
-              <div className="p-3 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-xl">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl">
                 <Users className="w-5 h-5" />
               </div>
               <div>
@@ -411,7 +411,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                 placeholder={t('admin.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 focus:ring-1 focus:ring-brand-purple/60 transition-all duration-200"
+                className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-all duration-200"
               />
               <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500" />
             </div>
@@ -420,7 +420,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               <button
                 onClick={() => setStatusFilter('all')}
                 className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-md transition-colors cursor-pointer text-center ${
-                  statusFilter === 'all' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
+                  statusFilter === 'all' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 {language === 'id' ? 'Semua' : 'All'}
@@ -428,7 +428,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               <button
                 onClick={() => setStatusFilter('approved')}
                 className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-md transition-colors cursor-pointer text-center ${
-                  statusFilter === 'approved' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
+                  statusFilter === 'approved' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 {t('admin.statusApproved')}
@@ -436,7 +436,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               <button
                 onClick={() => setStatusFilter('pending')}
                 className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-md transition-colors cursor-pointer text-center ${
-                  statusFilter === 'pending' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
+                  statusFilter === 'pending' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Pending
@@ -460,7 +460,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                   {loading ? (
                     <tr>
                       <td colSpan={4} className="px-5 py-12 text-center text-slate-500">
-                        <span className="inline-block animate-spin h-5 w-5 border-2 border-brand-purple border-t-transparent rounded-full mr-2.5 vertical-middle" />
+                        <span className="inline-block animate-spin h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full mr-2.5 vertical-middle" />
                         {language === 'id' ? 'Sedang memuat data user...' : 'Loading user data...'}
                       </td>
                     </tr>
@@ -482,7 +482,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                             <div className="flex items-center gap-2">
                               <span>{item.email}</span>
                               {isSelf && (
-                                <span className="bg-brand-purple/20 text-brand-purple border border-brand-purple/35 text-[9px] font-bold px-1.5 py-0.2 rounded-md uppercase">
+                                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/35 text-[9px] font-bold px-1.5 py-0.2 rounded-md uppercase">
                                   Admin ({language === 'id' ? 'Anda' : 'You'})
                                 </span>
                               )}
@@ -559,7 +559,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
           <div className="glass-card p-6 space-y-6 animate-fadeIn">
             <div>
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-white/5 pb-2.5">
-                <Database className="h-4.5 w-4.5 text-brand-purple" />
+                <Database className="h-4.5 w-4.5 text-emerald-400" />
                 {t('admin.dbStatusTitle')}
               </h3>
               <p className="text-xs text-slate-500 mt-1">
@@ -591,7 +591,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                 </div>
                 <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full border ${
                   !isSupabaseConfigured 
-                    ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' 
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
                     : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                 }`}>
                   {!isSupabaseConfigured ? t('admin.dbSimulatedActive') : (language === 'id' ? 'Supabase Auth Aktif' : 'Supabase Auth Active')}
@@ -604,7 +604,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
           <div className="glass-card p-6 space-y-6 animate-fadeIn">
             <div>
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-white/5 pb-2.5">
-                <Database className="h-4.5 w-4.5 text-brand-purple" />
+                <Database className="h-4.5 w-4.5 text-emerald-400" />
                 {t('admin.dbLocalStatsTitle')}
               </h3>
               <p className="text-xs text-slate-500 mt-1">
@@ -614,8 +614,8 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {/* Stat 1: Avg Down */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-brand-purple/20 transition-all rounded-xl flex items-center gap-3">
-                <div className="p-2.5 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg shrink-0">
+              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Calculator className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -627,8 +627,8 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 2: Compounding */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-brand-purple/20 transition-all rounded-xl flex items-center gap-3">
-                <div className="p-2.5 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg shrink-0">
+              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Percent className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -640,8 +640,8 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 3: E-IPO */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-brand-purple/20 transition-all rounded-xl flex items-center gap-3">
-                <div className="p-2.5 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg shrink-0">
+              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Coins className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -653,8 +653,8 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 4: Holdings */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-brand-purple/20 transition-all rounded-xl flex items-center gap-3">
-                <div className="p-2.5 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg shrink-0">
+              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Briefcase className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -666,8 +666,8 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 5: Users */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-brand-purple/20 transition-all rounded-xl flex items-center gap-3 col-span-2 md:col-span-1">
-                <div className="p-2.5 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-lg shrink-0">
+              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3 col-span-2 md:col-span-1">
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">

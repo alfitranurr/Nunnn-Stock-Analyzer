@@ -65,7 +65,7 @@ function PortfolioEmitenLogo({ symbol }: { symbol: string }) {
           onError={() => setHasError(true)}
         />
       ) : (
-        <span className="font-black text-[9.5px] text-brand-purple">
+        <span className="font-black text-[9.5px] text-emerald-400">
           {cleanSymbol.slice(0, 2)}
         </span>
       )}
@@ -396,9 +396,9 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 min-h-[480px] max-w-lg mx-auto space-y-6 animate-fadeIn">
-        <div className="w-20 h-20 rounded-3xl bg-brand-purple/10 border border-brand-purple/30 flex items-center justify-center shadow-lg relative overflow-hidden group">
-          <div className="absolute inset-0 bg-brand-purple/5 blur-xl group-hover:scale-110 transition-transform pointer-events-none" />
-          <Lock className="h-9 w-9 text-brand-purple animate-pulse" />
+        <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-lg relative overflow-hidden group">
+          <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:scale-110 transition-transform pointer-events-none" />
+          <Lock className="h-9 w-9 text-emerald-400 animate-pulse" />
         </div>
         <div className="space-y-2">
           <h2 className="text-xl md:text-2xl font-black text-white">{t('portfolio.portfolioLocked')}</h2>
@@ -408,7 +408,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
         </div>
         <button
           onClick={onSignInClick}
-          className="px-6 py-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.03] active:scale-[0.97] flex items-center gap-2"
+          className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.03] active:scale-[0.97] flex items-center gap-2"
         >
           <UserPlus className="h-4.5 w-4.5" />
           <span>{t('portfolio.loginButton')}</span>
@@ -440,30 +440,6 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
               {t('portfolio.desc')}
             </p>
           </div>
-
-          {/* Header Action Buttons */}
-          <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
-            <button
-              onClick={openAddModal}
-              className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95"
-            >
-              <Plus className="h-4.5 w-4.5" />
-              <span>{t('portfolio.addStock')}</span>
-            </button>
-            <button
-              onClick={async () => {
-                setIsRefreshing(true);
-                setCurrentPrices({});
-                await fetchData();
-                setIsRefreshing(false);
-              }}
-              disabled={isRefreshing}
-              className="p-2.5 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition-all flex items-center justify-center shrink-0 cursor-pointer"
-              title="Refresh Prices"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
-            </button>
-          </div>
         </div>
       </div>
 
@@ -471,7 +447,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
         {/* Card 1: Total Equity */}
         <div className="glass-card p-5 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[96px]">
-          <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
+          <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">
             {t('portfolio.totalEquity')}
           </span>
           <h3 className="text-lg sm:text-xl lg:text-2xl font-black text-white mt-1.5 whitespace-nowrap">
@@ -512,30 +488,39 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
 
       {/* Holdings Section */}
       <div className="glass-card p-6 w-full border border-white/5 overflow-hidden">
-        <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-white/5">
+        <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-white/5 gap-3">
           <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             {language === 'id' ? 'Kepemilikan Saham Aktif' : 'Active Stock Holdings'}
           </h3>
-          <button
-            onClick={async () => {
-              setIsRefreshing(true);
-              setCurrentPrices({});
-              await fetchData();
-              setIsRefreshing(false);
-            }}
-            disabled={isRefreshing}
-            className={`p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all duration-200 cursor-pointer border border-white/5 flex items-center justify-center ${
-              isRefreshing ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.03] active:scale-[0.97]'
-            }`}
-            title={language === 'id' ? 'Refresh Portofolio & Harga' : 'Refresh Portfolio & Prices'}
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-brand-purple' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openAddModal}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all cursor-pointer shadow-md shadow-emerald-500/20 active:scale-95"
+            >
+              <Plus className="h-4 w-4" />
+              <span>{t('portfolio.addStock')}</span>
+            </button>
+            <button
+              onClick={async () => {
+                setIsRefreshing(true);
+                setCurrentPrices({});
+                await fetchData();
+                setIsRefreshing(false);
+              }}
+              disabled={isRefreshing}
+              className={`p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all duration-200 cursor-pointer border border-white/5 flex items-center justify-center ${
+                isRefreshing ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.03] active:scale-[0.97]'
+              }`}
+              title={language === 'id' ? 'Refresh Portofolio & Harga' : 'Refresh Portfolio & Prices'}
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {loading && holdings.length === 0 ? (
           <div className="py-24 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-brand-purple" />
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
           </div>
         ) : holdings.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-center text-slate-500 border border-dashed border-white/5 rounded-xl">
@@ -582,7 +567,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                               <div className="flex items-center gap-2.5">
                                 <PortfolioEmitenLogo symbol={h.ticker} />
                                 <div className="flex flex-col">
-                                  <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider leading-tight">
+                                  <span className="font-extrabold text-sm text-emerald-400 dark:text-emerald-400 tracking-wider leading-tight">
                                     {tickerUpper}
                                   </span>
                                   <span className="text-[9px] text-slate-400 truncate max-w-[120px] leading-tight" title={cleanCompanyName(h.company_name)}>
@@ -652,7 +637,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                                 {/* Avg Down Action */}
                                 <button
                                   onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
-                                  className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
+                                  className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 dark:text-emerald-400 border border-emerald-500/20 transition-all cursor-pointer flex items-center justify-center"
                                   title={language === 'id' ? 'Avg Down Saham Ini' : 'Avg Down This Stock'}
                                 >
                                   <Calculator className="h-4.5 w-4.5" />
@@ -706,7 +691,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       <div className="flex items-center gap-2">
                         <PortfolioEmitenLogo symbol={h.ticker} />
                         <div className="flex flex-col">
-                          <span className="font-extrabold text-sm text-brand-purple tracking-wider leading-none">
+                          <span className="font-extrabold text-sm text-emerald-400 tracking-wider leading-none">
                             {tickerUpper}
                           </span>
                           <span className="text-[9px] text-slate-400 truncate max-w-[155px] mt-0.5" title={cleanCompanyName(h.company_name)}>
@@ -778,7 +763,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       {/* Avg Down Action */}
                       <button
                         onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}
-                        className="py-1.5 bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
+                        className="py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 dark:text-emerald-400 border border-emerald-500/20 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-0.5 cursor-pointer transition-all duration-200"
                         title={language === 'id' ? 'Avg Down Saham Ini' : 'Avg Down This Stock'}
                       >
                         <Calculator className="h-3 w-3" />
@@ -855,11 +840,11 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       }`}
                     />
                     {isFetchingTicker && (
-                      <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-brand-purple" />
+                      <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-emerald-400" />
                     )}
                   </div>
                 </div>
- 
+
                 {/* Company Name Input */}
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('portfolio.formCompanyName')}</label>
@@ -872,7 +857,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                     className="w-full glass-input px-3.5 py-2.5 mt-1.5 text-base md:text-sm font-medium bg-black/40 border-white/10 disabled:opacity-50"
                   />
                 </div>
- 
+
                 <div className="grid grid-cols-2 gap-4">
                   {/* Lot Input */}
                   <div>
@@ -886,7 +871,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       className="w-full glass-input px-3.5 py-2.5 mt-1.5 text-base md:text-sm text-center font-bold bg-black/40 border-white/10"
                     />
                   </div>
- 
+
                   {/* Avg Price Input */}
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('portfolio.formAvgPrice')}</label>
@@ -911,7 +896,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs transition-all cursor-pointer shadow-md"
+                    className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all cursor-pointer shadow-md"
                   >
                     {language === 'id' ? 'Simpan Posisi' : 'Save Position'}
                   </button>

@@ -102,10 +102,12 @@ const formatIDR = (val: number): string => {
 function CompanyLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
   const cleanSymbol = symbol.toUpperCase().trim();
+  const [prevSymbol, setPrevSymbol] = React.useState(cleanSymbol);
 
-  React.useEffect(() => {
+  if (prevSymbol !== cleanSymbol) {
+    setPrevSymbol(cleanSymbol);
     setHasError(false);
-  }, [cleanSymbol]);
+  }
 
   if (cleanSymbol.length < 3) {
     return (
@@ -125,7 +127,7 @@ function CompanyLogo({ symbol }: { symbol: string }) {
           onError={() => setHasError(true)}
         />
       ) : (
-        <span className="font-black text-xs text-brand-purple">
+        <span className="font-black text-xs text-emerald-400">
           {cleanSymbol.slice(0, 2)}
         </span>
       )}
@@ -219,15 +221,20 @@ export function DividendTab({ user, onSignInClick }: DividendTabProps) {
   React.useEffect(() => {
     const val = ticker.toUpperCase().trim();
     if (val.length >= 3) {
-      fetchDividendData(val);
+      const timer = setTimeout(() => {
+        fetchDividendData(val);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [ticker, fetchDividendData]);
 
   // Handle live search debounced
   React.useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
+      const timer = setTimeout(() => {
+        setSearchResults([]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
     const timer = setTimeout(async () => {
       setIsSearching(true);
@@ -483,7 +490,7 @@ Dibuat via NUNNN STOCK ANALYZER
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
         <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-brand-purple/10 blur-[90px] pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 w-full">

@@ -54,18 +54,37 @@ export default function Dashboard() {
   const [showScrollTop, setShowScrollTop] = React.useState(false);
 
   React.useEffect(() => {
+    const container = scrollContainerRef.current;
+
     const handleScroll = () => {
-      if (window.scrollY > 300) {
+      const currentScroll = container ? container.scrollTop : window.scrollY;
+      if (currentScroll > 250) {
         setShowScrollTop(true);
       } else {
         setShowScrollTop(false);
       }
     };
+
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+    }
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const scrollToTop = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }
     window.scrollTo({
       top: 0,
       behavior: 'smooth',
@@ -540,12 +559,12 @@ export default function Dashboard() {
               {/* Premium Hero Banner Card */}
               <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-card-bg via-[#161a1d] to-[#121517] p-6 md:p-10 shadow-2xl">
                 {/* Glow effects */}
-                <div className="absolute top-0 right-0 w-[200px] md:w-[320px] h-[200px] md:h-[320px] rounded-full bg-brand-purple/10 blur-[80px] md:blur-[120px] pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[200px] md:w-[320px] h-[200px] md:h-[320px] rounded-full bg-emerald-500/10 blur-[80px] md:blur-[120px] pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-[180px] md:w-[250px] h-[180px] md:h-[250px] rounded-full bg-emerald-500/5 blur-[80px] md:blur-[100px] pointer-events-none" />
                 
                 <div className="relative z-10 w-full space-y-4">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-[9px] font-extrabold uppercase tracking-widest text-brand-purple">
-                    <Sparkles className="h-3 w-3 text-brand-purple animate-pulse" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-extrabold uppercase tracking-widest text-emerald-400">
+                    <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
                     <span>{t('cover.sparkles')}</span>
                   </div>
                   
@@ -577,7 +596,7 @@ export default function Dashboard() {
                         </span>
                         <button
                           onClick={() => setIsAuthModalOpen(true)}
-                          className="self-start px-4.5 py-1.5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-[10px] md:text-xs transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                          className="self-start px-4.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] md:text-xs transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98]"
                         >
                           {t('sidebar.login')}
                         </button>
@@ -751,8 +770,8 @@ export default function Dashboard() {
 
               {/* Alert Status Konfigurasi Supabase */}
               {!isSupabaseConfigured && (
-                <div className="p-4.5 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
-                  <Info className="h-5 w-5 text-brand-purple shrink-0 mt-0.5" />
+                <div className="p-4.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
+                  <Info className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-slate-800 dark:text-white">
                       {language === 'id' ? 'Tips Uji Coba Mandiri:' : 'Self-Trial Tips:'}
@@ -957,18 +976,20 @@ export default function Dashboard() {
       <AnimatePresence>
         {showScrollTop && (
           <motion.button
-            initial={{ opacity: 0, scale: 0.5, y: 20 }}
+            initial={{ opacity: 0, scale: 0.6, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.5, y: 20 }}
-            whileHover={{ scale: 1.1, y: -2 }}
+            exit={{ opacity: 0, scale: 0.6, y: 30 }}
+            whileHover={{ scale: 1.12, y: -4 }}
             whileTap={{ scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
             onClick={scrollToTop}
-            className={`fixed right-6 md:right-8 z-40 p-3 rounded-full bg-brand-purple hover:bg-brand-purple/95 text-white shadow-lg shadow-brand-purple/20 cursor-pointer transition-all duration-500 border border-white/10 flex items-center justify-center ${
+            className={`fixed right-6 md:right-8 z-40 p-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/25 cursor-pointer transition-all duration-300 border border-emerald-400/30 flex items-center justify-center backdrop-blur-md group ${
               toast ? 'bottom-24 md:bottom-26' : 'bottom-6 md:bottom-8'
             }`}
+            title={language === 'id' ? 'Kembali ke atas' : 'Scroll to top'}
             aria-label="Scroll to top"
           >
-            <ChevronUp className="h-5.5 w-5.5" />
+            <ChevronUp className="h-5.5 w-5.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
           </motion.button>
         )}
       </AnimatePresence>

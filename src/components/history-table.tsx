@@ -156,7 +156,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                           <div className="flex items-center gap-2.5">
                             <HistoryEmitenLogo symbol={plan.ticker} />
                             <div className="flex flex-col">
-                              <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider leading-tight">
+                              <span className="font-extrabold text-sm text-emerald-400 dark:text-emerald-400 tracking-wider leading-tight">
                                 {plan.ticker}
                               </span>
                               <span className="text-[10px] text-slate-400 truncate max-w-[130px] leading-tight" title={cleanCompanyName(plan.company_name)}>
@@ -177,7 +177,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                         {/* Rencana Baru */}
                         <td className="px-4 py-4.5 whitespace-nowrap">
                           <div className="flex flex-col text-xs text-slate-600 dark:text-slate-300">
-                            <span className="font-semibold text-brand-purple dark:text-brand-purple">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
+                            <span className="font-semibold text-emerald-400 dark:text-emerald-400">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
                             <span className="text-[10px] text-slate-400">@ {formatIDR(plan.harga_beli_baru)}</span>
                           </div>
                         </td>
@@ -202,7 +202,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => onLoadPlan(plan)}
-                              className="p-2 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 transition-all cursor-pointer flex items-center justify-center"
+                              className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 dark:text-emerald-400 border border-emerald-500/20 transition-all cursor-pointer flex items-center justify-center"
                               title="Terapkan Parameter"
                             >
                               <ExternalLink className="h-4 w-4" />
@@ -245,7 +245,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                   <div className="flex items-center gap-2">
                     <HistoryEmitenLogo symbol={plan.ticker} />
                     <div className="flex flex-col">
-                      <span className="font-extrabold text-sm text-brand-purple tracking-wider leading-none">
+                      <span className="font-extrabold text-sm text-emerald-400 tracking-wider leading-none">
                         {plan.ticker}
                       </span>
                       <span className="text-[9px] text-slate-400 truncate max-w-[150px] mt-0.5">
@@ -267,7 +267,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                   </div>
                   <div>
                     <span className="text-slate-500 text-[10px] block">Rencana Baru</span>
-                    <span className="font-bold text-brand-purple">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
+                    <span className="font-bold text-emerald-400">+{plan.lot_baru.toLocaleString('en-US')} Lot</span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">@ {formatIDR(plan.harga_beli_baru)}</span>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onLoadPlan(plan)}
-                      className="py-1.5 px-3 rounded-lg bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple border border-brand-purple/20 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                      className="py-1.5 px-3 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       <span>Muat</span>
@@ -309,7 +309,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
       
       {!user && plans.length > 0 && (
         <div className="mt-4 p-3 rounded-xl bg-slate-100/50 dark:bg-black/25 border border-slate-200/50 dark:border-white/5 text-[11px] text-slate-500 flex items-start gap-2">
-          <Info className="h-4 w-4 text-brand-purple shrink-0 mt-0.5" />
+          <Info className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
           <span>
             Anda saat ini menggunakan <strong>Penyimpanan Lokal (localStorage)</strong>. Riwayat ini akan hilang jika cache browser dibersihkan. 
             <button 
@@ -317,7 +317,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                 const el = document.querySelector('[title="Masuk ke Akun"]') as HTMLButtonElement;
                 if (el) el.click();
               }}
-              className="text-brand-purple hover:underline font-bold ml-1 cursor-pointer bg-transparent border-none p-0 inline"
+              className="text-emerald-400 hover:underline font-bold ml-1 cursor-pointer bg-transparent border-none p-0 inline"
             >
               Masuk ke akun Anda
             </button> untuk menyinkronkan data secara otomatis ke cloud database.

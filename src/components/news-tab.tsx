@@ -349,7 +349,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
         </div>
       ) : news.length === 0 ? (
         <div className="border border-border-color bg-card-bg rounded-2xl p-12 text-center max-w-2xl mx-auto my-6 flex flex-col items-center justify-center space-y-4">
-          <div className="p-4 bg-brand-purple/10 border border-brand-purple/20 rounded-full text-brand-purple">
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400">
             <BookOpen className="w-8 h-8 animate-pulse" />
           </div>
           <h3 className="text-base font-bold text-white">{t('news.noNews')}</h3>
@@ -377,17 +377,17 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
             return (
               <div
                 key={idx}
-                className="border border-border-color bg-card-bg rounded-2xl hover:border-brand-purple/30 transition-all duration-300 overflow-hidden flex flex-col animate-fadeIn"
+                className="border border-border-color bg-card-bg rounded-2xl hover:border-emerald-500/30 transition-all duration-300 overflow-hidden flex flex-col animate-fadeIn"
               >
                 {/* Main Card Body */}
                 <div className="p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="space-y-2.5 flex-1">
-                    <h3 className="font-bold text-slate-100 text-sm md:text-base leading-snug hover:text-brand-purple transition-colors">
+                    <h3 className="font-bold text-slate-100 text-sm md:text-base leading-snug hover:text-emerald-400 transition-colors">
                       {item.title}
                     </h3>
                     
                     <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 font-medium">
-                      <span className="bg-brand-purple/10 text-brand-purple px-2 py-0.5 rounded border border-brand-purple/20">
+                      <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
                         {item.source}
                       </span>
                       <span className="flex items-center gap-1.5">
@@ -426,12 +426,12 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                       }}
                       className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border transition-all duration-300 select-none ${
                         isExpanded
-                          ? 'bg-brand-purple/15 border-brand-purple/35 text-brand-purple'
-                          : 'bg-input-bg border-border-color hover:border-brand-purple/25 text-slate-300 hover:text-white'
+                          ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-400'
+                          : 'bg-input-bg border-border-color hover:border-emerald-500/25 text-slate-300 hover:text-white'
                       }`}
                       title={!user ? (language === 'id' ? 'Masuk untuk membuka Rangkuman AI' : 'Sign in to unlock AI Summary') : undefined}
                     >
-                      <Sparkles className="w-3.5 h-3.5 animate-pulse text-brand-purple" />
+                      <Sparkles className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
                       <span>{t('news.aiSummary')}</span>
                       {user ? (
                         isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />
@@ -457,7 +457,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                         {/* Loading State */}
                         {isSumLoading && (
                            <div className="space-y-4 py-2">
-                            <div className="flex items-center gap-2.5 text-xs font-bold text-brand-purple animate-pulse">
+                            <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-400 animate-pulse">
                               <Sparkles className="w-3.5 h-3.5 animate-spin" />
                               <span>{t('news.aiGenerating')}</span>
                             </div>
@@ -491,7 +491,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                   setExpandedArticles(prev => ({ ...prev, [articleKey]: false }));
                                   setTimeout(() => handleToggleSummary(item), 100);
                                 }}
-                                className="mt-2 text-brand-purple font-bold hover:underline cursor-pointer"
+                                className="mt-2 text-emerald-400 font-bold hover:underline cursor-pointer"
                               >
                                 {t('news.aiRetry')}
                               </button>
@@ -509,7 +509,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                 <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded tracking-wider uppercase">
                                   {t('news.aiSummary')}
                                 </span>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                   Beta
                                 </span>
                               </div>

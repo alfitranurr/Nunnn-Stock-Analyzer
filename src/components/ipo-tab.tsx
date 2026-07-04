@@ -206,7 +206,7 @@ function IpoEmitenLogo({ symbol }: { symbol: string }) {
           onError={() => setHasError(true)}
         />
       ) : (
-        <span className="font-black text-[9.5px] text-brand-purple">
+        <span className="font-black text-[9.5px] text-emerald-400">
           {cleanSymbol.slice(0, 2)}
         </span>
       )}
@@ -530,7 +530,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           className="w-full flex items-center justify-between p-4.5 bg-input-bg/50 hover:bg-input-bg text-left transition-colors cursor-pointer select-none"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-brand-purple/10 text-brand-purple">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
               <Info className="h-4 w-4" />
             </div>
             <div>
@@ -575,43 +575,43 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 20% / Rp10 Miliar' : 'Min 20% / 10 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '22,5%' : '22.5%'}</td>
                         <td className="p-3 whitespace-nowrap">25%</td>
-                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">30%</td>
+                        <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">30%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
                         <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'II (> Rp100M - ≤ Rp250M)' : 'II (> 100M - ≤ 250M IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 15% / Rp20 Miliar' : 'Min 15% / 20 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '17,5%' : '17.5%'}</td>
                         <td className="p-3 whitespace-nowrap">20%</td>
-                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">25%</td>
+                        <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">25%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
                         <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'III (> Rp250M - ≤ Rp500M)' : 'III (> 250M - ≤ 500M IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 10% / Rp37.5 Miliar' : 'Min 10% / 37.5 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
                         <td className="p-3 whitespace-nowrap">15%</td>
-                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">20%</td>
+                        <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">20%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
                         <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'IV (> Rp500M - ≤ Rp1 Triliun)' : 'IV (> 500M - ≤ 1 Trillion IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 7,5% / Rp50 Miliar' : 'Min 7.5% / 50 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '10%' : '10%'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
-                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">{language === 'id' ? '17,5%' : '17.5%'}</td>
+                        <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">{language === 'id' ? '17,5%' : '17.5%'}</td>
                       </tr>
                       <tr className="hover:bg-white/5">
                         <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'V (> Rp1 Triliun)' : 'V (> 1 Trillion IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 2,5% / Rp75 Miliar' : 'Min 2.5% / 75 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '5%' : '5%'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '7,5%' : '7.5%'}</td>
-                        <td className="p-3 text-brand-purple font-bold whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
+                        <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
 
-                <div className="bg-brand-purple/5 p-4 rounded-xl border border-brand-purple/20 space-y-2">
+                <div className="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20 space-y-2">
                   <h4 className="font-bold text-slate-800 dark:text-white text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                    <Percent className="h-4.5 w-4.5 text-brand-purple" /> {t('ipo.diffTitle')}
+                    <Percent className="h-4.5 w-4.5 text-emerald-400" /> {t('ipo.diffTitle')}
                   </h4>
                   <ul className="list-disc list-inside space-y-1 mt-1 text-[11px]">
                     <li><strong>{t('ipo.diffOldRule')}</strong></li>
@@ -627,7 +627,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       {/* 3. Input Parameters Panel */}
       <div className="glass-card p-5 md:p-6 space-y-5">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-2.5">
-          <Calculator className="h-4.5 w-4.5 text-brand-purple" />
+          <Calculator className="h-4.5 w-4.5 text-emerald-400" />
           {t('ipo.inputHeader')}
         </h2>
 
@@ -656,7 +656,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               className={`w-full glass-input px-3.5 py-2.5 text-xs font-bold text-white bg-black/25 focus:bg-background transition-all duration-300 ${
-                isFetchingTicker ? 'animate-pulse text-slate-400 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
+                isFetchingTicker ? 'animate-pulse text-slate-400 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
               }`}
               placeholder="PT Jeli Indonesia Tbk"
             />
@@ -673,7 +673,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 onChange={(e) => setPriceStr(e.target.value.replace(/[^0-9.,]/g, ''))}
                 onBlur={() => setPriceStr(formatNumberForInput(priceStr, language))}
                 className={`w-full glass-input pl-8 pr-3 py-2.5 text-xs font-extrabold text-white text-left bg-black/25 focus:bg-background transition-all duration-300 ${
-                  isFetchingTicker ? 'animate-pulse text-slate-400 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
+                  isFetchingTicker ? 'animate-pulse text-slate-400 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
                 }`}
               />
             </div>
@@ -740,7 +740,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             {personalOrderAmount > 0 && (
               <span className="text-[10px] text-slate-400 mt-1 block">
                 {language === 'id' ? 'Dana dibutuhkan: ' : 'Required funds: '}
-                <span className="text-brand-purple font-black">{formatIDR(personalOrderAmount)}</span>
+                <span className="text-emerald-400 font-black">{formatIDR(personalOrderAmount)}</span>
               </span>
             )}
           </div>
@@ -750,7 +750,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
         <div className="p-4 bg-black/15 rounded-xl border border-border-color space-y-3">
           <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
             <span>{t('ipo.labelRatios')}</span>
-            <span className="text-brand-purple text-xs font-extrabold">
+            <span className="text-emerald-400 text-xs font-extrabold">
               {language === 'id' ? `Ritel ${retailRatio}% : Non-Ritel ${100 - retailRatio}%` : `Retail ${retailRatio}% : Non-Retail ${100 - retailRatio}%`}
             </span>
           </div>
@@ -760,7 +760,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             max="95" 
             value={retailRatio}
             onChange={(e) => setRetailRatio(parseInt(e.target.value, 10))}
-            className="w-full accent-brand-purple h-1 bg-input-bg rounded-lg cursor-pointer"
+            className="w-full accent-emerald-500 h-1 bg-input-bg rounded-lg cursor-pointer"
           />
           <p className="text-[9px] text-slate-500">
             {t('ipo.retailEstimateDesc')
@@ -791,9 +791,9 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           <p className="text-[10px] text-slate-400">{t('ipo.cardInitialVal').replace('{percent}', formatDecimal(results.initialPercentage))}</p>
         </div>
 
-        <div className="glass-card p-4.5 space-y-1.5 border-l-2 border-l-brand-purple">
+        <div className="glass-card p-4.5 space-y-1.5 border-l-2 border-l-emerald-500">
           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('ipo.cardFinal')}</span>
-          <p className="text-lg font-black text-brand-purple">{formatRawNumber(results.adjustedLots)} Lot</p>
+          <p className="text-lg font-black text-emerald-400">{formatRawNumber(results.adjustedLots)} Lot</p>
           <p className="text-[10px] text-slate-400">{t('ipo.cardAdjustedVal').replace('{percent}', formatDecimal(results.adjustedPercentage))}</p>
         </div>
       </div>
@@ -829,7 +829,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             </div>
             
             <div className="pt-2">
-              <h4 className="font-extrabold text-[10px] text-brand-purple uppercase tracking-wider mb-2">{t('ipo.estRetailTitle')}</h4>
+              <h4 className="font-extrabold text-[10px] text-emerald-400 uppercase tracking-wider mb-2">{t('ipo.estRetailTitle')}</h4>
               <div className="p-3 bg-black/20 rounded-lg space-y-2 border border-border-color/30">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 text-[11px]">{t('ipo.estAllotmentAvg')}</span>
@@ -843,7 +843,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-white/5">
                   <span className="text-slate-300 font-semibold text-[11px]">{t('ipo.estRounded')}</span>
-                  <span className="font-black text-brand-purple text-xs">{Math.ceil(results.oldRule.retailAllotmentPerPerson)} Lot</span>
+                  <span className="font-black text-emerald-400 text-xs">{Math.ceil(results.oldRule.retailAllotmentPerPerson)} Lot</span>
                 </div>
               </div>
             </div>
@@ -871,19 +871,19 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
         </div>
 
         {/* NEW RULE CARD (SEOJK 25/2025) */}
-        <div className="glass-card p-5 space-y-4 border-2 border-brand-purple relative overflow-hidden shadow-lg shadow-brand-purple/5">
-          <div className="absolute top-0 right-0 bg-brand-purple text-white text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-lg">
+        <div className="glass-card p-5 space-y-4 border-2 border-emerald-500 relative overflow-hidden shadow-lg shadow-emerald-500/5">
+          <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-lg">
             {language === 'id' ? 'Terbaru' : 'Latest'}
           </div>
 
           <div className="flex justify-between items-center border-b border-border-color pb-3">
             <div>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-brand-purple/20 border border-brand-purple/30 text-brand-purple">{t('ipo.compNewTitle')}</span>
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">{t('ipo.compNewTitle')}</span>
               <h3 className="text-base font-extrabold text-white mt-1">SEOJK 25/2025</h3>
             </div>
             <div className="text-right">
               <span className="text-[9px] font-bold text-slate-500 block uppercase tracking-wider">{t('ipo.compRatio')}</span>
-              <span className="text-sm font-black text-brand-purple">{t('ipo.compNewRatioVal')}</span>
+              <span className="text-sm font-black text-emerald-400">{t('ipo.compNewRatioVal')}</span>
             </div>
           </div>
 
@@ -894,7 +894,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             </div>
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
               <span className="text-slate-400">{t('ipo.compRetailLots')} (50.0%)</span>
-              <span className="font-bold text-brand-purple">{formatRawNumber(results.newRule.retailPoolLots)} Lot</span>
+              <span className="font-bold text-emerald-400">{formatRawNumber(results.newRule.retailPoolLots)} Lot</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-border-color/50">
               <span className="text-slate-400">{t('ipo.compNonRetailLots')} (50.0%)</span>
@@ -902,8 +902,8 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
             </div>
             
             <div className="pt-2">
-              <h4 className="font-extrabold text-[10px] text-brand-purple uppercase tracking-wider mb-2">{t('ipo.estRetailTitle')}</h4>
-              <div className="p-3 bg-brand-purple/5 rounded-lg space-y-2 border border-brand-purple/20">
+              <h4 className="font-extrabold text-[10px] text-emerald-400 uppercase tracking-wider mb-2">{t('ipo.estRetailTitle')}</h4>
+              <div className="p-3 bg-emerald-500/5 rounded-lg space-y-2 border border-emerald-500/20">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-200 text-[11px]">{t('ipo.estAllotmentAvg')}</span>
                   <span className="font-black text-white text-xs">{formatDecimal(results.newRule.retailAllotmentPerPerson, 3)} Lot</span>
@@ -914,9 +914,9 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                     {t('ipo.estProbabilityVal').replace('{percent}', results.newRule.retailProbability1Lot.toFixed(1))}
                   </span>
                 </div>
-                <div className="flex justify-between items-center pt-1 border-t border-brand-purple/10">
+                <div className="flex justify-between items-center pt-1 border-t border-emerald-500/10">
                   <span className="text-slate-200 font-semibold text-[11px]">{t('ipo.estRounded')}</span>
-                  <span className="font-black text-brand-purple text-sm">{Math.ceil(results.newRule.retailAllotmentPerPerson)} Lot</span>
+                  <span className="font-black text-emerald-400 text-sm">{Math.ceil(results.newRule.retailAllotmentPerPerson)} Lot</span>
                 </div>
               </div>
             </div>
@@ -949,12 +949,12 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       <div className="glass-card p-5 md:p-6 space-y-5">
         <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/5 pb-2.5">
           <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <User className="h-4.5 w-4.5 text-brand-purple" />
+            <User className="h-4.5 w-4.5 text-emerald-400" />
             {t('ipo.personalSimTitle')}
           </h2>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
             personalOrderAmount <= 100_000_000 
-              ? 'bg-brand-purple/10 border-brand-purple/20 text-brand-purple' 
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
               : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
           }`}>
             {language === 'id' 
@@ -1006,7 +1006,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               <div className="pt-2 border-t border-white/5 space-y-1">
                 <div className="flex justify-between text-[11px]">
                   <span className="text-slate-300 font-semibold">{language === 'id' ? 'Estimasi Min Allotment:' : 'Estimated Min Allotment:'}</span>
-                  <span className="font-black text-brand-purple">{results.oldRule.personalAllotmentGuaranteed} Lot</span>
+                  <span className="font-black text-emerald-400">{results.oldRule.personalAllotmentGuaranteed} Lot</span>
                 </div>
                 {results.oldRule.personalAllotmentProbabilityExtra > 0 && (
                   <p className="text-[10px] text-yellow-500 text-right font-medium">
@@ -1020,8 +1020,8 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           </div>
 
           {/* Allotment Estimate Card (New Rule) */}
-          <div className="bg-brand-purple/5 p-4.5 rounded-xl border border-brand-purple/20 space-y-3">
-            <h3 className="font-bold text-[11px] text-brand-purple uppercase tracking-wider">
+          <div className="bg-emerald-500/5 p-4.5 rounded-xl border border-emerald-500/20 space-y-3">
+            <h3 className="font-bold text-[11px] text-emerald-400 uppercase tracking-wider">
               {language === 'id' ? 'Estimasi Jatah' : 'Estimated Allocation'} (SEOJK 25/2025)
             </h3>
             
@@ -1038,10 +1038,10 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 <span className="text-slate-400">{language === 'id' ? 'Jatah Proporsional (1/X)' : 'Proportional Allocation (1/X)'}</span>
                 <span className="font-bold text-white">{formatDecimal(results.newRule.personalAllotmentProportional, 2)} Lot</span>
               </div>
-              <div className="pt-2 border-t border-brand-purple/10 space-y-1">
+              <div className="pt-2 border-t border-emerald-500/10 space-y-1">
                 <div className="flex justify-between text-[11px]">
                   <span className="text-slate-200 font-bold">{language === 'id' ? 'Estimasi Min Allotment:' : 'Estimated Min Allotment:'}</span>
-                  <span className="font-black text-brand-purple text-sm">{results.newRule.personalAllotmentGuaranteed} Lot</span>
+                  <span className="font-black text-emerald-400 text-sm">{results.newRule.personalAllotmentGuaranteed} Lot</span>
                 </div>
                 {results.newRule.personalAllotmentProbabilityExtra > 0 && (
                   <p className="text-[10px] text-bullish-neon text-right font-bold">
@@ -1079,7 +1079,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       {/* 7. Saved Simulation Plans Table */}
       <div className="glass-card p-5 md:p-6 space-y-4">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-          <Calendar className="h-4.5 w-4.5 text-brand-purple" />
+          <Calendar className="h-4.5 w-4.5 text-emerald-400" />
           {t('ipo.simulationHistory')}
         </h2>
 
@@ -1121,14 +1121,14 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                     <td className="p-3 text-slate-300">{formatRawNumber(plan.total_lots * 100)} {language === 'id' ? 'Lembar' : 'Shares'}</td>
                     <td className="p-3 text-center text-white font-bold">{plan.oversubscription}x</td>
                     <td className="p-3 text-center text-slate-300">{plan.retail_ratio}%</td>
-                    <td className="p-3 text-center font-bold text-brand-purple">
+                    <td className="p-3 text-center font-bold text-emerald-400">
                       {plan.personal_order_lots > 0 ? `${formatRawNumber(plan.personal_order_lots)} Lot` : '-'}
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleLoadPlan(plan)}
-                          className="px-2.5 py-1 rounded bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple font-bold text-[10px] cursor-pointer transition-colors border border-brand-purple/25"
+                          className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-[10px] cursor-pointer transition-colors border border-emerald-500/25"
                         >
                           {language === 'id' ? 'Muat' : 'Load'}
                         </button>
@@ -1158,7 +1158,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 <div className="flex items-center gap-2.5 border-b border-border-color pb-2">
                   <IpoEmitenLogo symbol={plan.ticker} />
                   <div className="flex flex-col">
-                    <span className="font-extrabold text-sm text-brand-purple tracking-wider leading-none">
+                    <span className="font-extrabold text-sm text-emerald-400 tracking-wider leading-none">
                       {plan.ticker}
                     </span>
                     <span className="text-[9px] text-slate-400 truncate max-w-[170px] mt-0.5" title={cleanCompanyName(plan.company_name)}>
@@ -1191,14 +1191,14 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 <div className="flex items-center justify-between pt-2 border-t border-border-color bg-black/10 -mx-4 -mb-4 p-3 rounded-b-xl">
                   <div>
                     <span className="text-[9px] text-slate-500 uppercase block font-bold leading-none mb-1">{language === 'id' ? 'Pesanan Pribadi' : 'Personal Order'}</span>
-                    <span className="font-extrabold text-brand-purple text-xs">
+                    <span className="font-extrabold text-emerald-400 text-xs">
                       {plan.personal_order_lots > 0 ? `${formatRawNumber(plan.personal_order_lots)} Lot` : '-'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleLoadPlan(plan)}
-                      className="px-3 py-1.5 rounded bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple font-bold text-[10px] cursor-pointer transition-colors border border-brand-purple/25 flex items-center gap-1"
+                      className="px-3 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-[10px] cursor-pointer transition-colors border border-emerald-500/25 flex items-center gap-1"
                     >
                       {language === 'id' ? 'Muat' : 'Load'}
                     </button>

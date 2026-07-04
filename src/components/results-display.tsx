@@ -37,7 +37,7 @@ function ResultsEmitenLogo({ symbol }: { symbol: string }) {
           onError={() => setHasError(true)}
         />
       ) : (
-        <span className="font-black text-[12px] text-brand-purple">
+        <span className="font-black text-[12px] text-emerald-400">
           {cleanSymbol.slice(0, 2)}
         </span>
       )}
@@ -125,12 +125,12 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="glass-card p-4 md:p-5 border-brand-purple/20 bg-card-bg relative overflow-hidden flex items-center gap-4 min-h-[84px] md:min-h-[92px]"
+          className="glass-card p-4 md:p-5 border-emerald-500/20 bg-card-bg relative overflow-hidden flex items-center gap-4 min-h-[84px] md:min-h-[92px]"
         >
-          <div className="absolute top-0 left-0 w-32 h-32 bg-brand-purple/2 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
           <ResultsEmitenLogo symbol={ticker} />
           <div className="flex flex-col justify-center">
-            <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
+            <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">
               Ticker
             </span>
             <h2 className="text-2xl md:text-3.5xl font-black text-white tracking-wider leading-none">
@@ -150,7 +150,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
             {language === 'id' ? 'Nama Emiten' : 'Company Name'}
           </span>
-          <h3 className={`${getCompanyFontSize(cleanName)} font-bold text-brand-purple dark:text-brand-purple mt-1 break-words leading-tight`} title={cleanName}>
+          <h3 className={`${getCompanyFontSize(cleanName)} font-bold text-emerald-400 dark:text-emerald-400 mt-1 break-words leading-tight`} title={cleanName}>
             {cleanName || '-'}
           </h3>
         </motion.div>
@@ -164,13 +164,13 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5.5 w-full"
       >
         {/* Card 1: Modal Baru yang Dibutuhkan */}
-        <div className="md:col-span-2 glass-card p-4 md:p-5 bg-brand-purple/5 border-brand-purple/20 relative overflow-hidden flex flex-col justify-center min-h-[96px] md:min-h-[110px]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/5 rounded-full blur-2xl pointer-events-none" />
-          <span className="text-[9px] font-bold text-brand-purple dark:text-brand-purple uppercase tracking-widest block">
+        <div className="md:col-span-2 glass-card p-4 md:p-5 bg-emerald-500/5 border-emerald-500/20 relative overflow-hidden flex flex-col justify-center min-h-[96px] md:min-h-[110px]">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+          <span className="text-[9px] font-bold text-emerald-400 dark:text-emerald-400 uppercase tracking-widest block">
             {language === 'id' ? 'Modal Baru yang Dibutuhkan' : 'Required New Capital'}
           </span>
           <div className="flex flex-col md:flex-row md:items-baseline gap-1.5 md:gap-4 mt-1.5 flex-wrap">
-            <h3 className="text-xl md:text-3xl font-black tracking-tight text-brand-purple dark:text-brand-purple">
+            <h3 className="text-xl md:text-3xl font-black tracking-tight text-emerald-400 dark:text-emerald-400">
               {formatIDR(result.capitalRequired)}
             </h3>
             <p className="text-xs md:text-base font-medium text-slate-500 dark:text-slate-400">
@@ -258,14 +258,14 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, x: 15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
-          className="glass-card p-4 md:p-6 border-brand-purple/20 bg-slate-900/10 flex flex-col justify-between relative overflow-hidden"
+          className="glass-card p-4 md:p-6 border-emerald-500/20 bg-slate-900/10 flex flex-col justify-between relative overflow-hidden"
         >
           {result.turnedIntoProfit && (
             <div className="absolute -right-12 -top-12 w-28 h-28 bg-bullish-green/10 rounded-full blur-xl pointer-events-none" />
           )}
           <div>
             <div className="flex justify-between items-center mb-4 md:mb-5.5">
-              <span className="text-[10px] md:text-xs font-extrabold uppercase tracking-widest text-brand-purple">
+              <span className="text-[10px] md:text-xs font-extrabold uppercase tracking-widest text-emerald-400">
                 {language === 'id' ? 'SESUDAH AVG DOWN' : 'AFTER AVG DOWN'}
               </span>
               {result.turnedIntoProfit ? (
@@ -274,7 +274,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                   Turned Profit!
                 </span>
               ) : (
-                <span className="text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
+                <span className="text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   {language === 'id' ? 'Target Posisi Baru' : 'New Target Position'}
                 </span>
               )}
@@ -282,10 +282,10 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
 
             <div className="space-y-3 md:space-y-4">
               <div className="flex justify-between items-baseline gap-2">
-                <span className="text-[11px] md:text-xs text-brand-purple dark:text-brand-purple font-semibold">
+                <span className="text-[11px] md:text-xs text-emerald-400 dark:text-emerald-400 font-semibold">
                   {language === 'id' ? 'Harga Rata-Rata Baru' : 'New Average Price'}
                 </span>
-                <span className="text-base md:text-lg font-black text-brand-purple dark:text-brand-purple">{formatIDR(result.avgPriceBaru)}</span>
+                <span className="text-base md:text-lg font-black text-emerald-400 dark:text-emerald-400">{formatIDR(result.avgPriceBaru)}</span>
               </div>
               <div className="flex justify-between items-baseline gap-2 border-t border-slate-200/50 dark:border-white/5 pt-2.5 md:pt-3">
                 <span className="text-[11px] md:text-xs text-slate-500">
@@ -329,10 +329,10 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         transition={{ duration: 0.4, delay: 0.2 }}
         className="glass-card p-4 md:p-6 border-slate-200 dark:border-white/5 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-36 h-36 bg-brand-purple/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
         
         <h4 className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-500 mb-4.5 md:mb-6 flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-3">
-          <ShieldCheck className="h-4.5 w-4.5 text-brand-purple" />
+          <ShieldCheck className="h-4.5 w-4.5 text-emerald-400" />
           {language === 'id' ? `Rangkuman Perbaikan Posisi (${ticker})` : `Position Improvement Summary (${ticker})`}
         </h4>
 
@@ -344,7 +344,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
               <span className="text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {language === 'id' ? 'Harga Rata-Rata (Avg Price)' : 'Average Price (Avg Price)'}
               </span>
-              <span className="text-sm md:text-base font-bold text-brand-purple dark:text-brand-purple shrink-0 text-right">
+              <span className="text-sm md:text-base font-bold text-emerald-400 dark:text-emerald-400 shrink-0 text-right">
                 -{result.avgPriceReductionPct.toFixed(2)}%
               </span>
             </div>
@@ -355,7 +355,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, result.avgPriceReductionPct)}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="h-full bg-brand-purple rounded-full"
+                className="h-full bg-emerald-500 rounded-full"
               />
             </div>
 
@@ -367,9 +367,9 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 </span>
                 <span className="font-semibold text-slate-600 dark:text-slate-300 text-xs md:text-sm block truncate">{formatIDR(result.avgPriceAwal)}</span>
               </div>
-              <ArrowRight className="h-4 w-4 text-brand-purple shrink-0 drop-shadow-[0_0_4px_rgba(0,177,91,0.2)]" />
+              <ArrowRight className="h-4 w-4 text-emerald-400 shrink-0 drop-shadow-[0_0_4px_rgba(16,185,129,0.2)]" />
               <div className="flex flex-col text-right min-w-0">
-                <span className="text-[9px] md:text-[10px] text-brand-purple dark:text-brand-purple uppercase font-semibold tracking-wider mb-0.5 block truncate">
+                <span className="text-[9px] md:text-[10px] text-emerald-400 dark:text-emerald-400 uppercase font-semibold tracking-wider mb-0.5 block truncate">
                   {language === 'id' ? 'Harga Baru' : 'New Price'}
                 </span>
                 <span className="font-bold text-slate-800 dark:text-white text-xs md:text-sm block truncate">{formatIDR(result.avgPriceBaru)}</span>

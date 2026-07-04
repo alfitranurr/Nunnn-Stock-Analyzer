@@ -4,10 +4,10 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   
-  --color-brand-purple: #00b15b;
-  --color-brand-indigo: #008f47;
-  --color-bullish-green: #00b15b;
-  --color-bullish-neon: #05fa7b;
+  --color-brand-purple: #10b981;
+  --color-brand-indigo: #059669;
+  --color-bullish-green: #10b981;
+  --color-bullish-neon: #34d399;
   --color-bearish-red: #ff4545;
   --color-bearish-crimson: #e13c3c;
   
@@ -32,7 +32,7 @@
   --input-bg: #1e2226;
   --sidebar-bg: #121518;
   
-  --glow-color: rgba(0, 177, 91, 0.08);
+  --glow-color: rgba(16, 185, 129, 0.08);
 }
 
 body {
@@ -54,7 +54,7 @@ body {
 }
 
 .glass-card:hover {
-  border-color: rgba(0, 177, 91, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
   box-shadow: 0 4px 16px 0 var(--glow-color);
 }
 
@@ -68,7 +68,7 @@ body {
 .glass-input:focus {
   outline: none;
   border-color: var(--color-brand-purple);
-  box-shadow: 0 0 0 2px rgba(0, 177, 91, 0.2);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 /* Custom Scrollbar */

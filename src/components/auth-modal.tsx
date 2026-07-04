@@ -187,8 +187,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
 
         {/* Title */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-1.5 text-brand-purple font-black text-2xl tracking-wider mb-1">
-            <Sparkles className="h-5 w-5 text-brand-purple" />
+          <div className="inline-flex items-center gap-1.5 text-emerald-400 font-black text-2xl tracking-wider mb-1">
+            <Sparkles className="h-5 w-5 text-emerald-400" />
             NUNNN STOCK
           </div>
           <p className="text-xs text-slate-400">
@@ -252,7 +252,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 disabled:opacity-50 text-white font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
           >
             {loading ? (
               <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -301,7 +301,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           <button
             onClick={() => setIsSignUp(!isSignUp)}
             type="button"
-            className="text-brand-purple hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+            className="text-emerald-400 hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
           >
             {isSignUp ? 'Masuk sekarang' : 'Daftar sekarang'}
           </button>

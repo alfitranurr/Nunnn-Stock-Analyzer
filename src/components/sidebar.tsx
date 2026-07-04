@@ -69,7 +69,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           onClick={onLogoClick}
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
         >
-          <span className="font-extrabold text-xl text-brand-purple tracking-wider font-sans">
+          <span className="font-extrabold text-xl text-emerald-400 tracking-wider font-sans">
             NUNNN STOCK
           </span>
         </button>
@@ -109,7 +109,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   }}
                   className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
                 >
-                  <span className="font-extrabold text-2xl text-brand-purple tracking-wider font-sans">
+                  <span className="font-extrabold text-2xl text-emerald-400 tracking-wider font-sans">
                     NUNNN STOCK
                   </span>
                 </button>
@@ -135,13 +135,13 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                     className={cn(
                       "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer text-left",
                       currentTab === item.id && item.active
-                        ? "bg-brand-purple/10 border-brand-purple/30 text-brand-purple"
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                         : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-input-bg",
                       !item.active && "opacity-50 cursor-not-allowed"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <item.icon className={cn("h-5 w-5", currentTab === item.id && "text-brand-purple")} />
+                      <item.icon className={cn("h-5 w-5", currentTab === item.id && "text-emerald-400")} />
                       <span className="font-medium text-sm text-left">{item.label}</span>
                     </div>
                     {item.labelBadge && (
@@ -167,7 +167,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       onClick={() => setLanguage('id')}
                       className={cn(
                         "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                        language === 'id' ? "bg-brand-purple text-white shadow" : "text-slate-400 hover:text-white"
+                        language === 'id' ? "bg-emerald-500 text-white shadow" : "text-slate-400 hover:text-white"
                       )}
                     >
                       Indonesia
@@ -177,7 +177,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       onClick={() => setLanguage('en')}
                       className={cn(
                         "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                        language === 'en' ? "bg-brand-purple text-white shadow" : "text-slate-400 hover:text-white"
+                        language === 'en' ? "bg-emerald-500 text-white shadow" : "text-slate-400 hover:text-white"
                       )}
                     >
                       English
@@ -189,8 +189,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 {user ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-9 h-9 rounded-full bg-brand-purple/20 flex items-center justify-center shrink-0 border border-brand-purple/40">
-                        <User className="h-4 w-4 text-brand-purple" />
+                      <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/40">
+                        <User className="h-4 w-4 text-emerald-400" />
                       </div>
                       <div className="overflow-hidden">
                         <p className="text-xs text-slate-400 truncate">{t('sidebar.user')}</p>
@@ -213,7 +213,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       onSignInClick();
                       setIsMobileOpen(false);
                     }}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-sm transition-all duration-300 shadow-md"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm transition-all duration-300 shadow-md"
                   >
                     <User className="h-4 w-4" />
                     <span>{t('sidebar.login')}</span>
@@ -240,11 +240,11 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
           >
             {!isCollapsed ? (
-              <span className="font-extrabold text-lg text-brand-purple tracking-wider font-sans select-none">
+              <span className="font-extrabold text-lg text-emerald-400 tracking-wider font-sans select-none">
                 NUNNN STOCK
               </span>
             ) : (
-              <span className="font-black text-xl text-brand-purple select-none">
+              <span className="font-black text-xl text-emerald-400 select-none">
                 N
               </span>
             )}
@@ -267,14 +267,14 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 "w-full flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 border relative group/item cursor-pointer text-left",
                 isCollapsed ? "justify-center px-0" : "justify-between px-3.5",
                 currentTab === item.id && item.active
-                  ? "bg-brand-purple/10 border-brand-purple/20 text-brand-purple dark:text-brand-purple font-semibold"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 dark:text-emerald-400 font-semibold"
                   : "bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-input-bg",
                 !item.active && "opacity-45 cursor-not-allowed"
               )}
               title={isCollapsed ? item.label : undefined}
             >
               <div className="flex items-center gap-3">
-                <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/item:scale-110", currentTab === item.id && "text-brand-purple")} />
+                <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/item:scale-110", currentTab === item.id && "text-emerald-400")} />
                 {!isCollapsed && <span className="text-[13px] font-semibold text-left whitespace-nowrap">{item.label}</span>}
               </div>
               {!isCollapsed && item.labelBadge && (
@@ -301,7 +301,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   onClick={() => setLanguage('id')}
                   className={cn(
                     "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'id' ? "bg-brand-purple text-white shadow" : "text-slate-450 hover:text-white"
+                    language === 'id' ? "bg-emerald-500 text-white shadow" : "text-slate-450 hover:text-white"
                   )}
                 >
                   ID
@@ -311,7 +311,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   onClick={() => setLanguage('en')}
                   className={cn(
                     "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'en' ? "bg-brand-purple text-white shadow" : "text-slate-450 hover:text-white"
+                    language === 'en' ? "bg-emerald-500 text-white shadow" : "text-slate-450 hover:text-white"
                   )}
                 >
                   EN
@@ -323,7 +323,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               <button
                 type="button"
                 onClick={() => setLanguage(language === 'id' ? 'en' : 'id')}
-                className="w-9 h-9 rounded-xl border border-border-color bg-input-bg flex items-center justify-center text-xs font-black text-brand-purple hover:bg-glass-border hover:text-white transition-all cursor-pointer"
+                className="w-9 h-9 rounded-xl border border-border-color bg-input-bg flex items-center justify-center text-xs font-black text-emerald-400 hover:bg-glass-border hover:text-white transition-all cursor-pointer"
                 title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
               >
                 {language.toUpperCase()}
@@ -335,8 +335,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           {user ? (
             <div className={cn("flex items-center justify-between gap-2.5 overflow-hidden", isCollapsed ? "justify-center" : "px-2.5")}>
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-8.5 h-8.5 rounded-full bg-brand-purple/10 flex items-center justify-center shrink-0 border border-brand-purple/20 shadow-md">
-                  <User className="h-4.5 w-4.5 text-brand-purple" />
+                <div className="w-8.5 h-8.5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-md">
+                  <User className="h-4.5 w-4.5 text-emerald-400" />
                 </div>
                 {!isCollapsed && (
                   <div className="overflow-hidden">
@@ -359,7 +359,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             <button
               onClick={onSignInClick}
               className={cn(
-                "flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
+                "flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
                 isCollapsed ? "w-9 h-9 px-0" : "w-full px-3.5"
               )}
               title={t('sidebar.login')}

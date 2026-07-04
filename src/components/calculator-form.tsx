@@ -218,7 +218,7 @@ function FormEmitenLogo({ symbol }: { symbol: string }) {
           onError={() => setHasError(true)}
         />
       ) : (
-        <span className="font-black text-[10px] md:text-[11px] text-brand-purple">
+        <span className="font-black text-[10px] md:text-[11px] text-emerald-400">
           {cleanSymbol.slice(0, 2)}
         </span>
       )}
@@ -499,7 +499,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200/50 dark:border-white/5 pb-3">
         <div>
           <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-4.5 w-4.5 text-brand-purple" />
+            <Sparkles className="h-4.5 w-4.5 text-emerald-400" />
             {t('calculator.title')}
           </h2>
         </div>
@@ -538,7 +538,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder={t('calculator.placeholderCompany')}
                 className={`w-full glass-input px-2.5 py-2 text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
-                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(0,177,91,0.15)]' : ''
+                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
                 }`}
               />
             </div>
@@ -582,7 +582,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
                   placeholder="Harga Sekarang"
                   className={`w-full glass-input pl-1 pr-6 py-2 text-xs text-center font-semibold transition-all duration-300 ${
-                    isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(139,92,246,0.15)]' : ''
+                    isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
                   }`}
                   required
                 />
@@ -590,7 +590,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   type="button"
                   onClick={handleRefreshPrice}
                   disabled={isFetchingTicker || ticker.toUpperCase().trim().length < 4}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-brand-purple hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Refresh Harga Sekarang"
                 >
                   <RefreshCw className={`h-3 w-3 ${isFetchingTicker ? 'animate-spin' : ''}`} />
@@ -608,7 +608,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 id="avgPriceAwalIncludesFee"
                 checked={avgPriceAwalIncludesFee}
                 onChange={(e) => setAvgPriceAwalIncludesFee(e.target.checked)}
-                className="rounded border-white/10 text-brand-purple focus:ring-brand-purple bg-black/40 h-3.5 w-3.5 cursor-pointer"
+                className="rounded border-white/10 text-emerald-500 focus:ring-emerald-500 bg-black/40 h-3.5 w-3.5 cursor-pointer"
               />
               <label 
                 htmlFor="avgPriceAwalIncludesFee" 
@@ -655,7 +655,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
                       onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
                       placeholder={t('calculator.trancheLot')}
-                      className="w-full glass-input px-1 py-1.5 text-xs text-center font-semibold border-brand-purple/10 focus:border-brand-purple bg-black/20"
+                      className="w-full glass-input px-1 py-1.5 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
                       required
                     />
                   </div>
@@ -667,14 +667,14 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
                       onBlur={() => handleTrancheBlur(tranche.id, 'price')}
                       placeholder={t('calculator.tranchePrice')}
-                      className="w-full glass-input pl-1.5 pr-6 py-1.5 text-xs text-center font-semibold border-brand-purple/10 focus:border-brand-purple bg-black/20"
+                      className="w-full glass-input pl-1.5 pr-6 py-1.5 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => handleRefreshTranchePrice(tranche.id)}
                       disabled={fetchingTrancheId !== null || isFetchingTicker || ticker.toUpperCase().trim().length < 4}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-brand-purple hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Set / Refresh Harga saat ini"
                     >
                       <RefreshCw className={`h-2.5 w-2.5 ${(fetchingTrancheId === tranche.id || isFetchingTicker) ? 'animate-spin' : ''}`} />
@@ -699,7 +699,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           <button
             type="button"
             onClick={handleAddTranche}
-            className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-dashed border-brand-purple/30 hover:border-brand-purple bg-brand-purple/5 hover:bg-brand-purple/10 text-brand-purple dark:text-brand-purple font-bold text-[9px] transition-all cursor-pointer select-none"
+            className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-dashed border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 dark:text-emerald-400 font-bold text-[9px] transition-all cursor-pointer select-none"
           >
             <Plus className="h-3 w-3" />
             {t('calculator.addTranche')}
@@ -772,7 +772,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             parseFormattedNumber(avgPriceAwal) <= 0 ||
             tranches.some(t => parseFormattedNumber(t.lot) <= 0 || parseFormattedNumber(t.price) <= 0)
           }
-          className="py-2 px-5 rounded-lg bg-brand-purple hover:bg-brand-purple/90 hover:opacity-90 disabled:opacity-50 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-9 xl:mb-3.5"
+          className="py-2 px-5 rounded-lg bg-emerald-500 hover:bg-emerald-600 hover:opacity-90 disabled:opacity-50 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-9 xl:mb-3.5"
         >
           {isSaving ? (
             <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />

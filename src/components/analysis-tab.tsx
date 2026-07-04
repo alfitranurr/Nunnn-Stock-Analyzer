@@ -373,10 +373,10 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   if (!user) {
     return (
       <div className="relative overflow-hidden border border-border-color p-8 md:p-12 text-center bg-card-bg rounded-2xl max-w-2xl mx-auto my-12 shadow-xl animate-fadeIn">
-        <div className="absolute top-0 left-0 w-full h-1 bg-brand-purple" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
         <div className="flex justify-center mb-6">
-          <div className="p-4 bg-brand-purple/10 border border-brand-purple/20 rounded-full animate-pulse">
-            <ShieldAlert className="w-12 h-12 text-brand-purple" />
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-full animate-pulse">
+            <ShieldAlert className="w-12 h-12 text-emerald-400" />
           </div>
         </div>
         <h2 className="mb-3 text-2xl font-bold tracking-tight text-white md:text-3xl">
@@ -387,7 +387,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         </p>
         <button
           onClick={onSignInClick}
-          className="px-8 py-3.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-medium rounded-xl transition-all duration-300 shadow-md hover:scale-[1.02]"
+          className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-all duration-300 shadow-md hover:scale-[1.02]"
         >
           {t('analysis.loginButton')}
         </button>
@@ -717,7 +717,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   <button
                     key={item.symbol}
                     onClick={() => handleSelectSuggestion(item.symbol)}
-                    className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 transition-colors flex items-center justify-between"
                   >
                     <span className="font-bold text-white text-sm">{item.symbol}</span>
                     <span className="text-xs text-slate-400 truncate max-w-[180px]">{cleanCompanyName(item.name)}</span>
@@ -728,9 +728,9 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 {tickerQuery.trim().length > 0 && !suggestions.some(item => item.symbol.toUpperCase() === tickerQuery.toUpperCase().trim()) && (
                   <button
                     onClick={() => handleSelectSuggestion(tickerQuery)}
-                    className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center gap-2 text-brand-purple font-medium"
+                    className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 transition-colors flex items-center gap-2 text-emerald-400 font-medium"
                   >
-                    <Search className="w-4 h-4 text-brand-purple" />
+                    <Search className="w-4 h-4 text-emerald-400" />
                     <span className="text-sm">{language === 'id' ? 'Analisis Saham' : 'Analyze Stock'} &quot;{tickerQuery.toUpperCase().trim()}&quot;</span>
                   </button>
                 )}
@@ -764,7 +764,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <button
                 key={symbol}
                 onClick={() => handleSelectSuggestion(symbol)}
-                className="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-900 border border-slate-800 hover:border-brand-purple/40 hover:text-white rounded-lg transition-all duration-200 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 hover:text-white rounded-lg transition-all duration-200 cursor-pointer"
               >
                 {symbol}
               </button>
@@ -780,13 +780,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             {fundamentals && (
               <div className="relative overflow-hidden border border-border-color bg-card-bg rounded-2xl p-6 w-full animate-fadeIn">
                 {/* Top gradient strip */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-brand-purple" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
                 
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                   {/* Left Side: Summary & Sinyal Utama */}
                   <div className="flex-1 space-y-4 w-full">
                     <div className="flex items-center gap-2">
-                      <Compass className="w-5 h-5 text-brand-purple animate-pulse" />
+                      <Compass className="w-5 h-5 text-emerald-400 animate-pulse" />
                       <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">{t('analysis.consensusTitle')}</span>
                     </div>
                     
@@ -807,7 +807,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       </span>
                     </div>
   
-                    <p className="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-3xl border-l-2 border-brand-purple/40 pl-3">
+                    <p className="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-3xl border-l-2 border-emerald-500/40 pl-3">
                       {language === 'id' ? (
                         <>
                           Sinyal utama gabungan untuk <span className="font-bold text-white">{activeTicker.split('.')[0]}</span> menyimpulkan rekomendasi <span className={`font-black uppercase ${recs.unified.rating.includes('BUY') ? 'text-emerald-400' : recs.unified.rating.includes('SELL') ? 'text-rose-400' : 'text-yellow-400'}`}>{recs.unified.rating}</span> (Skor: {recs.unified.score}%).
@@ -910,7 +910,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   
                   {/* Right Side: Speedometer/Gauge bar */}
                   <div className="w-full lg:w-72 flex flex-col items-center justify-center p-4 bg-slate-900/30 border border-slate-900 rounded-2xl relative overflow-hidden shrink-0">
-                    <div className="absolute inset-0 bg-gradient-to-br from-brand-purple/5 to-transparent opacity-30 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-30 pointer-events-none" />
                     
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{language === 'id' ? 'Sinyal Konsensus Meter' : 'Consensus Signal Meter'}</span>
                     
@@ -1041,7 +1041,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                           ? 'bg-emerald-500' 
                           : (technicals?.rsi?.value || 50) > 70 
                           ? 'bg-rose-500' 
-                          : 'bg-brand-purple'
+                          : 'bg-emerald-500'
                       }`}
                     />
                   </div>
@@ -1114,13 +1114,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-brand-purple" /> Support & Resistance
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" /> Support & Resistance
                 </h4>
                 <div className="flex bg-slate-900 p-0.5 rounded border border-slate-800 text-[9px] font-bold">
                   <button
                     onClick={() => setPivotMethod('standard')}
                     className={`px-2 py-0.5 rounded transition-colors ${
-                      pivotMethod === 'standard' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
+                      pivotMethod === 'standard' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     {language === 'id' ? 'Standar' : 'Standard'}
@@ -1128,7 +1128,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   <button
                     onClick={() => setPivotMethod('fibonacci')}
                     className={`px-2 py-0.5 rounded transition-colors ${
-                      pivotMethod === 'fibonacci' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
+                      pivotMethod === 'fibonacci' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     Fibonacci
@@ -1416,7 +1416,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           {/* Bottom narrative for Technical */}
           <div className="px-5 pb-5">
             <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
-              <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+              <span className="font-bold text-emerald-400 flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
                 <Activity className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Teknikal' : 'Technical Analysis Conclusion'}
               </span>
               {language === 'id' ? (
@@ -1438,7 +1438,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg flex flex-col h-auto w-full">
         <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-brand-purple" />
+            <Compass className="w-4 h-4 text-emerald-400" />
             <span className="text-sm font-semibold">{language === 'id' ? 'Analisis Bandarmology & Arus Kas Transaksi' : 'Bandarmology & Transaction Cash Flow Analysis'}</span>
           </div>
           {technicals?.bandarmologySummary && (
@@ -1514,7 +1514,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                           ? 'bg-emerald-500' 
                           : (technicals?.moneyFlow?.mfi || 50) > 70 
                           ? 'bg-rose-500' 
-                          : 'bg-brand-purple'
+                          : 'bg-emerald-500'
                       }`}
                     />
                   </div>
@@ -1623,7 +1623,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         {/* Bottom narrative */}
         <div className="px-5 pb-5">
           <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
-            <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+            <span className="font-bold text-emerald-400 flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
               <Compass className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Bandarmology' : 'Bandarmology Analysis Conclusion'}
             </span>
             {language === 'id' ? (
@@ -1661,7 +1661,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         <div className="border border-border-color rounded-2xl bg-card-bg flex flex-col h-auto w-full">
           <div className="px-5 py-4 border-b border-border-color bg-card-bg flex items-center justify-between text-white">
             <span className="text-sm font-semibold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-brand-purple" /> {language === 'id' ? 'Sentimen & Narasi Terkini' : 'Current Sentiment & Narratives'}
+              <Sparkles className="w-4 h-4 text-emerald-400" /> {language === 'id' ? 'Sentimen & Narasi Terkini' : 'Current Sentiment & Narratives'}
             </span>
             {fundamentals && (
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -1695,7 +1695,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
               {/* AI Summary Text */}
               <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-purple">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>
                     {language === 'id' ? 'Analisis AI' : 'AI Analysis'} {
@@ -1738,7 +1738,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block p-3 bg-slate-900/30 hover:bg-slate-900/80 border border-slate-900 hover:border-brand-purple/20 rounded-xl transition-all duration-200 group"
+                      className="block p-3 bg-slate-900/30 hover:bg-slate-900/80 border border-slate-900 hover:border-emerald-500/20 rounded-xl transition-all duration-200 group"
                     >
                       <h4 className="text-xs font-medium text-slate-200 group-hover:text-white line-clamp-2 transition-colors">
                         {item.title}
@@ -1757,7 +1757,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
           {/* Bottom narrative for Sentiment */}
           <div className="px-5 pb-5">
             <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
-              <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+              <span className="font-bold text-emerald-400 flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
                 <Sparkles className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Sentimen & Narasi' : 'Sentiment & Narrative Summary Analysis'}
               </span>
               {language === 'id' ? (
@@ -1895,7 +1895,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 <button
                   onClick={() => setHistoryType('annual')}
                   className={`px-3 py-1 rounded-md font-semibold transition-colors ${
-                    historyType === 'annual' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
+                    historyType === 'annual' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   {language === 'id' ? 'Tahunan' : 'Annual'}
@@ -1903,7 +1903,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 <button
                   onClick={() => setHistoryType('quarterly')}
                   className={`px-3 py-1 rounded-md font-semibold transition-colors ${
-                    historyType === 'quarterly' ? 'bg-brand-purple text-white' : 'text-slate-400 hover:text-white'
+                    historyType === 'quarterly' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   {language === 'id' ? 'Kuartalan' : 'Quarterly'}
@@ -1915,7 +1915,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="flex-1 flex flex-col justify-center">
               {loading ? (
                 <div className="flex h-[200px] items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : history ? (
                 <FinancialBarChart
@@ -1936,7 +1936,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             {/* Chart Legend */}
             <div className="flex justify-center gap-6 mt-4 text-[10px] font-semibold text-slate-400 border-t border-border-color pt-3">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-brand-purple rounded-sm" />
+                <span className="w-3 h-3 bg-emerald-500 rounded-sm" />
                 <span>{language === 'id' ? 'Pendapatan' : 'Revenue'}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -1948,7 +1948,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
           {/* Bottom narrative for Fundamental */}
           <div className="text-[11px] text-slate-300 bg-slate-950/60 p-4 rounded-xl border border-slate-900 leading-relaxed font-sans font-medium">
-            <span className="font-bold text-brand-purple flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
+            <span className="font-bold text-emerald-400 flex items-center gap-1.5 mb-1.5 uppercase tracking-wider text-[10px]">
               <Building className="w-3.5 h-3.5" /> {language === 'id' ? 'Analisis Kesimpulan Fundamental' : 'Fundamental Analysis Conclusion'}
             </span>
             {language === 'id' ? (

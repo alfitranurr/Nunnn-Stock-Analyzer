@@ -42,7 +42,7 @@ export function ConfirmModal({
       case 'warning':
         return <LogOut className="h-6 w-6 text-amber-500 animate-pulse" />;
       default:
-        return <AlertTriangle className="h-6 w-6 text-brand-purple" />;
+        return <AlertTriangle className="h-6 w-6 text-emerald-400" />;
     }
   };
 
@@ -53,7 +53,7 @@ export function ConfirmModal({
       case 'warning':
         return 'bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_12px_rgba(217,119,6,0.2)] hover:shadow-[0_0_16px_rgba(217,119,6,0.4)]';
       default:
-        return 'bg-brand-purple hover:bg-brand-purple/90 text-white shadow-[0_0_12px_rgba(0,177,91,0.2)]';
+        return 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.2)]';
     }
   };
 
@@ -64,7 +64,7 @@ export function ConfirmModal({
       case 'warning':
         return 'bg-amber-500/10 border border-amber-500/20';
       default:
-        return 'bg-brand-purple/10 border border-brand-purple/20';
+        return 'bg-emerald-500/10 border border-emerald-500/20';
     }
   };
 

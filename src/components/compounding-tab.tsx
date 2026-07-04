@@ -708,8 +708,8 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
       {/* Database Tip Alert */}
       {!isSupabaseConfigured && (
-        <div className="p-4.5 rounded-2xl bg-brand-purple/5 border border-brand-purple/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm no-print">
-          <Info className="h-5 w-5 text-brand-purple shrink-0 mt-0.5" />
+        <div className="p-4.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm no-print">
+          <Info className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
           <div>
             <span className="font-bold text-slate-800 dark:text-white">
               {language === 'id' ? 'Tips Mode Uji Coba:' : 'Trial Mode Tips:'}
@@ -732,7 +732,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             if (contributionAmountStr === '1,000,000') setContributionAmountStr('0');
           }}
           className={`flex-1 py-2 rounded-xl transition-all cursor-pointer text-center ${
-            calcMode === 'daily' ? 'bg-brand-purple text-white shadow-md' : 'text-slate-400 hover:text-white'
+            calcMode === 'daily' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
           {t('compounding.modeTrading')}
@@ -744,7 +744,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             if (contributionAmountStr === '0') setContributionAmountStr('1,000,000');
           }}
           className={`flex-1 py-2 rounded-xl transition-all cursor-pointer text-center ${
-            calcMode === 'standard' ? 'bg-brand-purple text-white shadow-md' : 'text-slate-400 hover:text-white'
+            calcMode === 'standard' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
           {t('compounding.modeLongTerm')}
@@ -754,7 +754,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       {/* Parameter Form Box (Full Width, Horizontal Layout) */}
       <div className="glass-card p-5 md:p-6 space-y-4 no-print w-full">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-2">
-          <Calendar className="h-4.5 w-4.5 text-brand-purple" />
+          <Calendar className="h-4.5 w-4.5 text-emerald-400" />
           {t('compounding.inputHeader')} ({isDaily ? t('compounding.modeTrading') : t('compounding.modeLongTerm')})
         </h2>
 
@@ -1025,12 +1025,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
         {isDaily ? (
           <>
-            <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20 overflow-hidden">
-              <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
+            <div className="glass-card p-4.5 bg-emerald-500/5 border-emerald-500/20 overflow-hidden">
+              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">
                 {language === 'id' ? `Modal Akhir (Hari ke-${durationDaysStr})` : `Ending Capital (Day ${durationDaysStr})`}
               </span>
               <h3 
-                className="text-lg md:text-xl font-black text-brand-purple mt-1 tracking-tight truncate"
+                className="text-lg md:text-xl font-black text-emerald-400 mt-1 tracking-tight truncate"
                 title={formatIDR(dailyResults.nominalEndingBalance, false)}
               >
                 {formatIDR(dailyResults.nominalEndingBalance, true)}
@@ -1085,12 +1085,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
           </>
         ) : (
           <>
-            <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20 overflow-hidden">
-              <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
+            <div className="glass-card p-4.5 bg-emerald-500/5 border-emerald-500/20 overflow-hidden">
+              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">
                 {t('compounding.totalEndingBalance')}
               </span>
               <h3 
-                className="text-lg md:text-xl font-black text-brand-purple mt-1 tracking-tight truncate"
+                className="text-lg md:text-xl font-black text-emerald-400 mt-1 tracking-tight truncate"
                 title={formatIDR(results.nominalEndingBalance, false)}
               >
                 {formatIDR(results.nominalEndingBalance, true)}
@@ -1140,12 +1140,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       <div className="glass-card p-5 md:p-6 space-y-4 print-full-width">
         <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/5 pb-2.5 no-print">
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <TrendingUp className="h-4.5 w-4.5 text-brand-purple" />
+            <TrendingUp className="h-4.5 w-4.5 text-emerald-400" />
             {language === 'id' ? 'Visualisasi Proyeksi Pertumbuhan Dana' : 'Growth Projection Visualization'}
           </h2>
           <div className="flex gap-4 text-[10px] font-semibold text-slate-500 dark:text-slate-400 select-none">
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded bg-brand-purple" />
+              <div className="w-2.5 h-2.5 rounded bg-emerald-500" />
               <span>{language === 'id' ? 'Saldo Nominal' : 'Nominal Balance'}</span>
             </div>
             {!isDaily && (
@@ -1334,7 +1334,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         {/* Table Controls (Title and switch layout) */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3">
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <FileText className="h-4.5 w-4.5 text-brand-purple" />
+            <FileText className="h-4.5 w-4.5 text-emerald-400" />
             {language === 'id' ? 'Tabel Rincian Akumulasi Saldo' : 'Balance Accumulation Details Table'}
           </h2>
           
@@ -1343,7 +1343,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               <button
                 onClick={() => setTableType('yearly')}
                 className={`py-1.5 px-3 rounded-lg transition-all cursor-pointer text-center ${
-                  tableType === 'yearly' ? 'bg-brand-purple text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  tableType === 'yearly' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 {language === 'id' ? 'Tahunan' : 'Yearly'}
@@ -1351,7 +1351,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               <button
                 onClick={() => setTableType('monthly')}
                 className={`py-1.5 px-3 rounded-lg transition-all cursor-pointer text-center ${
-                  tableType === 'monthly' ? 'bg-brand-purple text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  tableType === 'monthly' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 {language === 'id' ? 'Bulanan' : 'Monthly'} ({results.monthlyDetails.length})
@@ -1372,7 +1372,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                   <th className="py-3 px-2 text-right text-emerald-400">Profit ({annualReturnRateStr}%)</th>
                   <th className="py-3 px-2 text-right text-blue-400">{language === 'id' ? 'Akumulasi %' : 'Cumulative %'}</th>
                   {parseFloat(taxRateStr) > 0 && <th className="py-3 px-2 text-right text-rose-400">{language === 'id' ? 'Pajak' : 'Tax'}</th>}
-                  <th className="py-3 px-2 text-right text-brand-purple">{language === 'id' ? 'Modal Akhir Hari' : 'End Balance'}</th>
+                  <th className="py-3 px-2 text-right text-emerald-400">{language === 'id' ? 'Modal Akhir Hari' : 'End Balance'}</th>
                 </tr>
               ) : (
                 <tr className="border-b border-border-color text-slate-500 font-bold uppercase tracking-wider text-[9px]">
@@ -1381,7 +1381,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                   <th className="py-3 px-2 text-right">{language === 'id' ? 'Total Setoran' : 'Total Deposit'}</th>
                   <th className="py-3 px-2 text-right">{language === 'id' ? 'Bunga Kotor' : 'Gross Interest'}</th>
                   {input.taxRate > 0 && <th className="py-3 px-2 text-right text-rose-400">{language === 'id' ? 'Pajak' : 'Tax'}</th>}
-                  <th className="py-3 px-2 text-right text-brand-purple">{language === 'id' ? 'Saldo Akhir' : 'Ending Balance'}</th>
+                  <th className="py-3 px-2 text-right text-emerald-400">{language === 'id' ? 'Saldo Akhir' : 'Ending Balance'}</th>
                   {input.inflationRate > 0 && <th className="py-3 px-2 text-right text-blue-400">{language === 'id' ? 'Saldo Riil' : 'Real Balance'}</th>}
                 </tr>
               )}
@@ -1452,7 +1452,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       {/* Saved Compounding Plans List */}
       <div className="glass-card p-5 md:p-6 no-print">
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-3 mb-4">
-          <Database className="h-4.5 w-4.5 text-brand-purple" />
+          <Database className="h-4.5 w-4.5 text-emerald-400" />
           {language === 'id' ? 'Rencana Compounding Tersimpan' : 'Saved Compounding Plans'}
         </h2>
 
@@ -1469,10 +1469,10 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             {savedPlans.map((plan: any) => (
               <div 
                 key={plan.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border-color bg-black/10 hover:border-brand-purple/40 hover:bg-black/20 transition-all group"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border-color bg-black/10 hover:border-emerald-500/40 hover:bg-black/20 transition-all group"
               >
                 <div className="space-y-1">
-                  <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 group-hover:text-brand-purple transition-colors">
+                  <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 group-hover:text-emerald-400 transition-colors">
                     {plan.title}
                   </h4>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400">
@@ -1486,7 +1486,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
                     onClick={() => handleLoadPlan(plan)}
-                    className="py-1.5 px-3 rounded-lg bg-brand-purple/10 border border-brand-purple/20 hover:bg-brand-purple/20 text-brand-purple font-extrabold text-[10px] transition-colors cursor-pointer select-none"
+                    className="py-1.5 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-extrabold text-[10px] transition-colors cursor-pointer select-none"
                   >
                     {language === 'id' ? 'Muat' : 'Load'}
                   </button>
@@ -1524,7 +1524,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               className="fixed inset-x-4 top-[25%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[420px] bg-sidebar-bg border border-border-color rounded-2xl p-6 z-50 shadow-2xl text-white no-print"
             >
               <h3 className="text-base font-extrabold flex items-center gap-2 mb-2">
-                <Save className="h-5 w-5 text-brand-purple" />
+                <Save className="h-5 w-5 text-emerald-400" />
                 {language === 'id' ? 'Simpan Rencana Simulasi' : 'Save Simulation Plan'}
               </h3>
               <p className="text-xs text-slate-400 mb-5">
@@ -1559,7 +1559,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                   <button
                     type="submit"
                     disabled={isSaving || !planTitle.trim()}
-                    className="px-5 py-2 text-xs font-bold rounded-xl bg-brand-purple text-white hover:bg-brand-purple/95 transition-all shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1.5"
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1.5"
                   >
                     {isSaving ? (
                       <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
