@@ -1,70 +1,95 @@
 # 📈 Nunnn-Stock-Analyzer
 
-**Nunnn-Stock-Analyzer** adalah platform web finansial modern, interaktif, dan premium yang dirancang khusus untuk mempermudah investor serta trader saham (terutama di Bursa Efek Indonesia / BEI) dalam melakukan analisis fundamental, teknikal, sentimen pasar berbasis kecerdasan buatan (AI), serta mengoptimalkan strategi alokasi dana investasi lewat kalkulator finansial canggih dan pelacakan portofolio real-time.
+[![Next.js](https://img.shields.io/badge/Next.js-16.2.6-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.4-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![Google Gemini AI](https://img.shields.io/badge/Google_Gemini-AI_Analysis-8E75B2?style=for-the-badge&logo=google-gemini)](https://deepmind.google/technologies/gemini/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-Platform ini menyajikan data pasar real-time dari Yahoo Finance API, memproses aggregator berita Google News RSS, mendekode URL redirect Google News, mengekstrak artikel penuh (*full-text scraping*), dan memanfaatkan kemampuan analisis bahasa alami canggih dari **Google Gemini API** (dengan model *fallback chain* otomatis) untuk menghasilkan ringkasan sentimen terstruktur dan obyektif.
+**Nunnn-Stock-Analyzer** adalah platform finansial modern, profesional, dan premium yang dirancang khusus untuk mempermudah investor serta trader saham di **Bursa Efek Indonesia (BEI / IDX)** dalam melakukan analisis fundamental, teknikal, analisis sentimen pasar berbasis AI (*Artificial Intelligence*), serta mengoptimalkan alokasi strategi investasi melalui kalkulator finansial presisi tinggi dan pelacakan portofolio *real-time*.
 
-Aplikasi ini mendukung mode online terhubung dengan cloud database **Supabase** (PostgreSQL & Auth), serta mode offline cerdas (*local-first*) berbasis **localStorage** browser bagi pengguna yang ingin langsung mencoba fitur kalkulator secara lokal tanpa konfigurasi awal.
+Platform ini mengintegrasikan data harga real-time dari **Yahoo Finance API**, agregasi berita keuangan **Google News RSS**, *decoding redirection protocol* otomatis, serta teknologi analisis bahasa alami (*Natural Language Processing*) mutakhir dari **Google Gemini AI SDK** (dengan arsitektur *Multi-Model Fallback Chain* otomatis) untuk menyajikan ringkasan sentimen pasar terstruktur dan obyektif.
+
+Antarmuka dirancang menggunakan filosofi **Card-in-Card Design System** yang ultra-konsisten, responsif di seluruh resolusi layar (dari seluler, tablet, hingga layar monitor full-screen ultra-wide), serta dilengkapi animasi mikro dinamis berbasis **Framer Motion**.
 
 ---
 
-## 🚀 Fitur Utama
+## 🚀 Fitur Utama & Modul Finansial
 
 ### 1. 🧮 Kalkulator Average Down (Rata-Rata Turun)
-*   **Simulasi Multi-Pembelian**: Mendukung simulasi pembelian saham bertahap (baik input tunggal maupun multi-tranche pembelian) untuk menghitung rata-rata harga beli baru, total modal terkumpul, dan persentase kenaikan harga yang dibutuhkan agar mencapai titik impas (BEP).
-*   **Penyegaran Harga Real-time**: Dilengkapi tombol refresh harga terkini yang langsung menembak Yahoo Finance API untuk menarik harga saham terkini emiten BEI.
-*   **Perhitungan Broker Fee Presisi**: Menyediakan preset biaya transaksi (beli & jual) untuk broker populer (Stockbit/Ajaib: `0.15% / 0.25%`, IPOT: `0.19% / 0.29%`, None, atau Custom sesuai preferensi pengguna).
-*   **Penyimpanan Riwayat Rencana**: Pengguna terautentikasi dapat menyimpan perhitungan rencana investasi secara permanen ke cloud database Supabase atau disimpan secara lokal di browser.
+*   **Simulasi Multi-Tranche Pembelian**: Mendukung perhitungan pembelian bertahap (multi-tahap) untuk memproyeksikan harga rata-rata baru, modal tambahan yang diperlukan, dan persentase kenaikan harga yang dibutuhkan untuk mencapai titik impas (*Break-Even Point / BEP*).
+*   **Penyegaran Harga Real-Time**: Terintegrasi langsung dengan Yahoo Finance API untuk menarik harga emiten BEI terkini dalam satu klik.
+*   **Kalkulasi Broker Fee Presisi**: Pilihan preset biaya transaksi saham (beli & jual) untuk broker terkemuka di Indonesia:
+    *   **Stockbit**: Beli `0.15%` / Jual `0.25%`
+    *   **Ajaib**: Beli `0.15%` / Jual `0.25%`
+    *   **IPOT**: Beli `0.19%` / Jual `0.29%`
+    *   **Custom Rate & None**: Mengatur komisi secara fleksibel.
+*   **Opsi Penyesuaian Fee Beli Awal**: Opsi perhitungan apakah harga *avg price* awal sudah mencakup pemotongan *broker fee* atau belum.
+*   **Penyimpanan Riwayat Rencana**: Penyimpanan riwayat simulasi secara permanen ke cloud database **Supabase** (untuk user terautentikasi) atau simulasi otomatis berbasis **localStorage** browser.
 
-### 2. 💰 Kalkulator Compounding (Bunga Berbunga)
-*   **Standard Compounding Mode**: Menghitung pertumbuhan investasi jangka panjang dengan opsi kontribusi berkala (harian, mingguan, bulanan, tahunan), frekuensi pemajemukan bunga (harian, bulanan, kuartalan, tahunan), serta penyesuaian laju inflasi tahunan dan tarif pajak untuk mengetahui nilai riil daya beli di masa depan.
-*   **Daily Compounding Mode**: Dirancang khusus bagi pelaku *day trading* atau *scalping* saham yang menargetkan persentase profit harian konsisten (compounding profit harian). Mendukung simulasi pemotongan biaya broker transaksi harian (beli & jual) dan menampilkan hasil proyeksi saldo kumulatif secara mendetail.
-*   **Visualisasi Grafik & Log Detail**: Grafik pertumbuhan interaktif dinamis dan tabel amortisasi bulanan/tahunan yang dapat diekspor langsung ke file Excel (.xlsx) menggunakan SheetJS.
+### 2. 🪙 Kalkulator Dividen Saham & Passive Income (`DividendTab`)
+*   **Proyeksi Dividen 1 Tahun**: Menghitung estimasi imbal hasil dividen kotor (*Gross Dividend*), potongan pajak, hingga nilai bersih (*Net Dividend*) dan *Effective Net Yield (%)* berdasarkan jumlah lot atau nominal modal investasi.
+*   **Opsi Pajak Dividen Indonesia**:
+    *   `0% Tax-Free`: Insentif dividen dalam negeri yang diinvestasikan kembali (UU HPP).
+    *   `10% Final Tax`: PPh Final dividen WPOPS standar.
+    *   `Custom Tax Rate`: Penyesuaian persentase pajak kustom.
+*   **Simulasi DRIP (Dividend Reinvestment Plan)**: Memproyeksikan efek pemajemukan dividen yang dibelikan kembali ke lembar saham emiten secara otomatis.
+*   **Jadwal Cashflow Bulanan & Historis**: Menampilkan riwayat pembayaran dividen historis emiten BEI (Interim, Final, Spesial) serta jadwal estimasi bulan cairnya dividen.
+*   **Ekspor Laporan Excel & Salin Ringkasan**: Ekspor laporan simulasi lengkap ke file Excel (`.xlsx`) via SheetJS serta fitur salin teks laporan terformat.
 
-### 3. 🪙 Kalkulator Alokasi E-IPO (IDX Allotment)
-*   **Estimasi Allotment Realistis**: Memproyeksikan alokasi jumlah lot saham perdana (E-IPO) yang akan didapatkan investor ritel berdasarkan nilai pesanan (personal order), total lot yang ditawarkan, faktor kelebihan permintaan (*oversubscription factor*), jumlah partisipan, dan porsi ritel.
-*   **Klasifikasi Golongan Otomatis (Golongan I - IV)**: Secara dinamis mengklasifikasikan investor ke dalam Golongan I (≤ Rp 100M), Golongan II (Rp 100M - Rp 250M), Golongan III (Rp 250M - Rp 500M), atau Golongan IV (> Rp 500M) berdasarkan aturan prospektus alokasi E-IPO Bursa Efek Indonesia terbaru.
-*   **Rasio Refund & Estimasi Dana Kembali**: Menghitung secara instan sisa saldo kas yang dikembalikan (*refund*) setelah penjatahan selesai dilakukan.
-*   **Auto-Suggestion Emiten Populer**: Memiliki database emiten BEI populer bawaan untuk mempermudah pengisian profil harga dan nama perusahaan secara otomatis.
+### 3. 💰 Kalkulator Compounding Investasi (Bunga Berbunga)
+*   **Standard Compounding Mode**: Menghitung pertumbuhan modal jangka panjang dengan opsi kontribusi berkala (harian, mingguan, bulanan, tahunan), frekuensi pemajemukan, serta penyesuaian inflasi tahunan dan pajak untuk mengetahui estimasi daya beli riil (*real purchasing power*).
+*   **Daily Compounding Mode (Scalping / Day Trading)**: Khusus bagi *day trader* yang mematok target persentase profit harian konsisten. Mendukung pemotongan biaya broker transaksi harian (beli & jual) dan menyajikan tabel pertumbuhan harian secara mendetail.
+*   **Visualisasi Grafik SVG & Amortisasi**: Grafik proyeksi saldo kumulatif interaktif dan tabel rincian saldo per bulan/tahun yang dapat diekspor langsung ke spreadsheet Excel.
 
-### 4. 💼 Manajemen Portofolio Saya & Kas RDN
-*   **Live Asset Tracker**: Menampilkan daftar kepemilikan saham riil (simbol emiten, jumlah lot, harga beli rata-rata) lengkap dengan perhitungan keuntungan/kerugian belum terealisasi (*Unrealized Profit & Loss*) dan persentase imbal hasil berdasarkan harga pasar Yahoo Finance terbaru.
-*   **Simulasi Saldo Kas RDN**: Mendukung pencatatan saldo Kas (Buying Power) untuk memantau dana menganggur dan menyimulasikan transaksi pembelian portofolio.
-*   **Integrasi Aksi Cepat**: Tombol pintas untuk langsung mengirim aset portofolio ke kalkulator Average Down atau memicu analisis emiten secara instan.
+### 4. 🎰 Kalkulator Alokasi E-IPO (IDX Allotment)
+*   **Estimasi Allotment Realistis**: Memproyeksikan alokasi jumlah lot saham perdana (E-IPO) yang akan diperoleh investor ritel berdasarkan total nilai pesanan, faktor *oversubscription*, jumlah partisipan, dan rasio porsi ritel.
+*   **Klasifikasi Golongan Penjatahan (Golongan I - IV)**: Mengklasifikasikan investor secara otomatis sesuai aturan prospektus Bursa Efek Indonesia:
+    *   **Golongan I**: Pesanan $\le \text{Rp } 100\text{ Juta}$
+    *   **Golongan II**: Pesanan $\text{Rp } 100\text{ Juta} - \text{Rp } 250\text{ Juta}$
+    *   **Golongan III**: Pesanan $\text{Rp } 250\text{ Juta} - \text{Rp } 500\text{ Juta}$
+    *   **Golongan IV**: Pesanan $> \text{Rp } 500\text{ Juta}$
+*   **Rasio Refund & Saldo Kembali**: Menghitung estimasi saldo kas RDN yang dikembalikan (*refund*) secara otomatis setelah proses penjatahan selesai.
 
-### 5. 📊 Analisis Saham Komprehensif (3-in-1)
-*   **Analisis Fundamental**: Menampilkan metrik valuasi, efisiensi, dan kesehatan emiten secara lengkap (seperti Market Cap, P/E Ratio, PBV Ratio, EPS, ROE, Debt to Equity Ratio, Dividend Yield, Profit Margin, dll.).
-*   **Analisis Teknikal**: Grafik candlestick dan garis interaktif menggunakan library Recharts dengan opsi rentang waktu fleksibel (1D, 5D, 1M, 6M, 1Y) untuk membaca tren harga historis.
-*   **Analisis Sentimen Terkumpul**: Mengumpulkan dan menganalisis 10-15 berita terhangat terkait emiten secara agregat untuk menghitung sentimen pasar keseluruhan (Bullish, Bearish, Netral) beserta skor kepercayaan (*confidence score*).
+### 5. 💼 Manajemen Portofolio Saya & Kas RDN
+*   **Live Asset Tracker**: Memantau kepemilikan saham riil (lot, avg price, harga pasar real-time Yahoo Finance) lengkap dengan kalkulasi nilai pasar, *Unrealized Profit & Loss (Rp & %)*.
+*   **Simulasi Rekening Dana Nasabah (RDN)**: Pencatatan saldo kas (*Buying Power*) menganggur dan pemantauan total ekuitas portofolio.
+*   **Pintasan Aksi Cepat**: Mengirim saham portofolio ke kalkulator Average Down atau memicu analisis emiten secara langsung.
 
-### 6. 📰 Feed Berita & AI Summary (Google Gemini)
-*   **RSS Aggregator & Redirection Decoder**: Menarik berita pasar terkini berdasarkan topik emiten spesifik atau kategori ekonomi (Domestik, Global, Valas, Politik). Dilengkapi modul decoder untuk mendekode URL redirect terenkripsi dari Google News RSS (`batchexecute` protocol) agar bisa mengunduh konten orisinal berita.
-*   **AI Smart Summarizer**: Menggunakan Gemini AI SDK untuk membaca teks lengkap artikel dan mengekstrak ringkasan berita terstruktur dalam format JSON schema (Highlight Utama, Konteks Singkat, Key Findings, dan Key Takeaways) dalam Bahasa Indonesia.
-*   **Mekanisme Fallback Chain Multi-Model**: Sistem ketahanan berlapis dari Google Gemini API. Jika model utama terkena *rate limit* (429) atau server sibuk (503), sistem akan otomatis berganti ke model cadangan sesuai urutan:
+### 6. 📊 Analisis Saham Komprehensif (3-in-1)
+*   **Analisis Fundamental**: Menyajikan metrik valuasi dan kinerja keuangan lengkap (Market Cap, P/E Ratio, PBV Ratio, EPS, ROE, Debt to Equity, Dividend Yield, Profit Margin).
+*   **Analisis Teknikal**: Grafik harga candlestick & garis interaktif berbantu **Recharts** dengan rentang waktu fleksibel (1D, 5D, 1M, 6M, 1Y).
+*   **Analisis Sentimen Terkumpul**: Mengagregasi 10–15 berita terkini emiten untuk mengkalkulasi skor sentimen pasar (*Bullish / Bearish / Neutral*) dan tingkat kepercayaan (*confidence score*).
+
+### 7. 📰 Feed Berita Pasar & AI Summary (Google Gemini)
+*   **RSS Aggregator & Redirection Decoder**: Mengambil berita keuangan terhangat via Google News RSS Feed (topik emiten & kategori ekonomi: Domestik, Global, Valas, Politik). Dilengkapi modul decoder untuk mendekode URL redirect terenkripsi (`batchexecute` protocol) guna mengambil teks berita orisinal.
+*   **AI Smart Summarizer**: Menggunakan Google Gemini AI SDK untuk mengekstrak ringkasan berita terstruktur dalam format JSON Schema (Highlight Utama, Konteks Singkat, Key Findings, dan Key Takeaways).
+*   **Multi-Model Fallback Chain**: Arsitektur ketahanan API otomatis dari Google Gemini. Jika model utama mengalami *Rate Limit (429)* atau *Server Busy (503)*, sistem otomatis berpindah secara mulus ke model cadangan:
     $$\text{gemini-2.5-flash} \rightarrow \text{gemini-2.5-flash-lite} \rightarrow \text{gemini-3.1-flash-lite} \rightarrow \text{gemini-flash-lite-latest} \rightarrow \text{gemini-3-flash-preview}$$
-    Jika koneksi API gagal sepenuhnya, sistem beralih ke mesin ekstraksi sentimen berbasis kata kunci lokal (*local keyword matching*).
+    Jika jaringan API terputus sepenuhnya, sistem mengaktifkan ekstraksi sentimen berbasis kata kunci lokal (*local keyword matching*).
 
-### 7. 🌐 Sistem Multi-Bahasa & Tema Premium
-*   **Dukungan Bilingual**: Transisi mulus seluruh teks dan label antarmuka antara Bahasa Indonesia dan English menggunakan React Context (`lib/language-context.tsx`).
-*   **Aesthetics Gelap Modern**: Desain antarmuka eksklusif dengan tema gelap premium (Harmonious Dark Theme), efek glassmorphism, visual mikro-animasi menggunakan Framer Motion, dan confetti visual meriah menggunakan Canvas Confetti saat perhitungan profit selesai dihitung.
+### 8. 🎨 Card-in-Card Design System & Multi-Bahasa
+*   **Desain Card-in-Card Konsisten**: Seluruh form parameter kalkulator dibungkus dalam modul sub-card `rounded-2xl bg-white/[0.03] border border-white/10` dengan tata letak grid responsif (`grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 items-stretch`) yang mencegah elemen terpotong saat layar di-fullscreen.
+*   **Dukungan Bilingual (ID & EN)**: Transisi bahasa instan seluruh antarmuka antara Bahasa Indonesia dan English menggunakan React Context (`lib/language-context.tsx`).
+*   **Tema Gelap Harmonized & Animasi**: Efek glassmorphism modern, visual mikro-animasi Framer Motion, dan confetti visual Canvas Confetti saat proyeksi profit tercapai.
 
-### 8. ⚙️ Panel Administrasi & Keamanan
-*   **Whitelisting User System**: Admin dapat mengontrol pendaftaran user baru. Setiap user yang mendaftar melalui Supabase Auth (baik Email-Password maupun Google OAuth) harus disetujui terlebih dahulu oleh administrator agar dapat masuk ke dasbor utama aplikasi.
-*   **Monitor Aktivitas & Log**: Menampilkan ringkasan total pengguna terdaftar, pengguna aktif, riwayat rencana yang disimpan di cloud database, serta log aktivitas sistem.
+### 9. ⚙️ Panel Administrasi & System Security
+*   **Whitelisting User System**: Admin dapat mengontrol pendaftaran pengguna baru. Setiap akun yang terdaftar melalui Supabase Auth (Email/Password atau Google OAuth) harus mendapatkan persetujuan admin sebelum dapat mengakses dasbor utama.
+*   **Auditing & Log Activity**: Pemantauan pengguna aktif, statistik riwayat tersimpan, dan catatan aktivitas sistem.
 
 ---
 
 ## 🛠️ Tech Stack & Arsitektur
 
-Platform ini dirancang dengan arsitektur modern Next.js App Router (Full-stack Server & Client components) untuk performa responsif:
-
-*   **Framework Utama**: Next.js 16.2.6 (React 19.2.4) dengan App Router dan optimasi kompilasi Turbopack.
-*   **Styling & UI**: Tailwind CSS v4 untuk styling modern, dikombinasikan dengan Custom CSS (`globals.css`) dan ikon dari Lucide React.
-*   **Manajemen Animasi**: Framer Motion untuk transisi tab dan transisi layout, serta Canvas Confetti untuk efek sukses.
-*   **Database & Autentikasi**: Supabase (PostgreSQL database & Supabase Auth) untuk penanganan data persisten dan perlindungan login akun.
-*   **Integrasi AI**: Google Gemini AI API (v1beta SDK) dengan konfigurasi JSON Schema output terstruktur.
-*   **Pemrosesan File**: Library SheetJS (`xlsx`) untuk mengekspor kalkulasi portofolio dan compounding ke format spreadsheet.
-*   **Data Pasar & Berita**: Yahoo Finance API & Google News RSS Search Feed.
+*   **Core Framework**: Next.js 16.2.6 (React 19.2.4) dengan App Router & Turbopack Compiler.
+*   **Styling & UI**: Tailwind CSS v4, Custom CSS (`globals.css`), dan Ikonografi Lucide React.
+*   **Animasi & Interaktivitas**: Framer Motion & Canvas Confetti.
+*   **Database & Auth**: Supabase (PostgreSQL Database & Supabase Auth).
+*   **AI Engine**: Google Gemini AI (v1beta SDK) dengan Structured JSON Outputs.
+*   **Visualisasi Data**: Recharts (Grafik Teknikal) & Custom SVG (Grafik Compounding).
+*   **Data Processing & Export**: SheetJS (`xlsx`) untuk ekspor spreadsheet Excel.
+*   **Data Sources**: Yahoo Finance API & Google News RSS Feed.
 
 ---
 
@@ -73,54 +98,56 @@ Platform ini dirancang dengan arsitektur modern Next.js App Router (Full-stack S
 ```text
 Nunnn-Stock-Analyzer/
 ├── src/
-│   ├── app/                        # Next.js App Router Pages & API Handlers
+│   ├── app/                        # Next.js App Router Pages & API Endpoints
 │   │   ├── api/
-│   │   │   ├── analysis/           # API Analisis Saham BEI
-│   │   │   │   ├── fundamentals/   # GET: Mengambil metrik fundamental emiten
-│   │   │   │   ├── news/           # GET: Analisis sentimen berita emiten agregatif
-│   │   │   │   └── technical/      # GET: Mengambil data historis harga chart
-│   │   │   ├── news/               # API Manajemen Feed Berita
-│   │   │   │   ├── route.ts        # GET: Fetch berita dari Google News RSS
-│   │   │   │   └── summary/        # POST: Ekstraksi teks & AI Summary Gemini
+│   │   │   ├── analysis/           # API Analisis Saham BEI (Fundamental, Technical, News)
+│   │   │   │   ├── fundamentals/   # GET: Metrik keuangan & valuasi emiten
+│   │   │   │   ├── news/           # GET: Analisis sentimen berita agregatif
+│   │   │   │   └── technical/      # GET: Data historis harga chart Recharts
+│   │   │   ├── dividend/           # API Dividen Saham
+│   │   │   │   └── route.ts        # GET: Data historis & proyeksi dividen emiten BEI
+│   │   │   ├── news/               # API Management Feed Berita
+│   │   │   │   ├── route.ts        # GET: Fetch berita Google News RSS
+│   │   │   │   └── summary/        # POST: Scraping teks asli & AI Summary Gemini
 │   │   │   └── ticker/
 │   │   │       └── route.ts        # GET: Pencarian emiten & harga real-time Yahoo Finance
 │   │   ├── favicon.ico             # Aset Ikon Aplikasi
-│   │   ├── globals.css             # Styling Global & Kustomisasi Variabel CSS Tailwind v4
-│   │   ├── layout.tsx              # Root Layout, Theme Provider, & Context Language
-│   │   └── page.tsx                # Dasbor Utama (Tab Switcher & Main Layout)
-│   ├── components/                 # Komponen Antarmuka Pengguna (UI Components)
+│   │   ├── globals.css             # Styling Global & Variabel CSS Tailwind v4
+│   │   ├── layout.tsx              # Root Layout, Providers (Theme & Language)
+│   │   └── page.tsx                # Dasbor Utama (Tab Switcher & Layout Container)
+│   ├── components/                 # Modul Komponen Antarmuka (UI Components)
 │   │   ├── admin-panel-tab.tsx     # Tab Admin: Whitelist pengguna & Audit Logs
-│   │   ├── analysis-tab.tsx        # Tab Analisis: Grafik Recharts & Metrik Keuangan
-│   │   ├── auth-modal.tsx          # Modal Login, Signup, & Opsi Google OAuth
-│   │   ├── calculator-form.tsx     # Form Kalkulator Average Down & Tombol Refresh
-│   │   ├── compounding-tab.tsx     # Tab Compounding: Standard & Daily Mode dengan visual grafik SVG
-│   │   ├── confirm-modal.tsx       # Modal Dialog Konfirmasi Aksi (Logout/Hapus)
+│   │   ├── analysis-tab.tsx        # Tab Analisis: Recharts Technical & Fundamental Cards
+│   │   ├── auth-modal.tsx          # Modal Login, Signup, & Google OAuth
+│   │   ├── calculator-form.tsx     # Form Kalkulator Average Down (Card-in-Card Design)
+│   │   ├── compounding-tab.tsx     # Tab Compounding: Standard & Scalping Trading Mode
+│   │   ├── confirm-modal.tsx       # Modal Dialog Konfirmasi Aksi
+│   │   ├── dividend-tab.tsx        # Tab Dividen: Proyeksi, Opsi Pajak & Simulasi DRIP
 │   │   ├── history-table.tsx       # Tabel Riwayat Rencana Average Down
 │   │   ├── ipo-tab.tsx             # Tab E-IPO: Kalkulator Allotment Golongan I-IV
-│   │   ├── news-tab.tsx            # Tab Feed Berita & AI Summary Modals
-│   │   ├── portfolio-tab.tsx       # Tab Portofolio: Tracker Aset, PnL & RDN Cash
-│   │   ├── results-display.tsx     # Visualisasi Output Kalkulasi Average Down
-│   │   ├── sidebar.tsx             # Sidebar Navigasi Utama dengan toggle collapse
-│   │   └── theme-provider.tsx      # Provider Tema untuk Next-Themes
-│   └── lib/                        # Utilitas, Helper, & Konfigurasi Modul
-│       ├── calculator.ts           # Logika rumus matematika Average Down & BEP
-│       ├── compounding.ts          # Logika rumus bunga majemuk standard & daily trading
-│       ├── e-ipo.ts                # Logika estimasi alokasi penjatahan e-IPO IDX
+│   │   ├── news-tab.tsx            # Tab Feed Berita & AI Summary Gemini Modal
+│   │   ├── portfolio-tab.tsx       # Tab Portofolio: Tracker Asset, PnL & RDN Cash
+│   │   ├── results-display.tsx     # Output Visualisasi Hasil Kalkulasi Average Down
+│   │   ├── sidebar.tsx             # Sidebar Navigasi Utama (Expand/Collapse)
+│   │   └── theme-provider.tsx      # Provider Tema Next-Themes
+│   └── lib/                        # Modul Logika Finansial, Helper & Utilities
+│       ├── calculator.ts           # Algoritma matematika Average Down & BEP
+│       ├── compounding.ts          # Algoritma bunga majemuk standard & daily trading
+│       ├── e-ipo.ts                # Logika estimasi alokasi penjatahan E-IPO IDX
 │       ├── language-context.tsx    # Context Provider sistem multi-bahasa (ID/EN)
-│       ├── polyfills.ts            # Polyfill untuk ketahanan API & penanganan error
-│       ├── supabase.ts             # Inisialisasi Klien database Supabase & status check
+│       ├── polyfills.ts            # Polyfill ketahanan API & penanganan error
+│       ├── supabase.ts             # Inisialisasi Klien Supabase & status check
 │       ├── translations.ts         # Kamus terjemahan Bahasa Indonesia & English
-│       └── utils.ts                # Helper pembersihan nama emiten & formatting
-├── public/                         # Aset gambar statis, logo, dan ikon
-├── supabase/                       # Konfigurasi Database Supabase lokal
+│       └── utils.ts                # Helper pembersihan nama emiten & formatting angka
+├── supabase/                       # Schema Migrasi Database Supabase PostgreSQL
 │   └── migrations/                 # Migrasi SQL PostgreSQL & RLS Policies
 │       ├── 20260531000000_create_calculations.sql  # Tabel avg_down_plans
 │       ├── 20260531000001_create_portfolio.sql     # Tabel portfolio_holdings & cash
 │       ├── 20260612000002_create_compounding_plans.sql # Tabel compounding_plans
 │       └── 20260613000003_create_ipo_plans.sql         # Tabel ipo_plans
-├── package.json                    # Dependensi dependencies & scripts
+├── package.json                    # Package Manifest & Scripts
 ├── next.config.ts                  # Konfigurasi Next.js
-├── tsconfig.json                   # Konfigurasi TypeScript compiler
+├── tsconfig.json                   # Konfigurasi Compiler TypeScript
 └── README.md                       # Dokumentasi Utama Proyek
 ```
 
@@ -128,11 +155,10 @@ Nunnn-Stock-Analyzer/
 
 ## 💾 Skema Database Supabase
 
-Seluruh tabel dilengkapi dengan aturan **Row Level Security (RLS)** untuk memastikan setiap pengguna hanya dapat membaca, menambah, mengubah, dan menghapus data milik mereka sendiri berdasarkan ID pengguna (`user_id`).
+Seluruh tabel dilindungi dengan **Row Level Security (RLS)** untuk menjamin keamanan data antar pengguna berdasarkan `user_id`.
 
-### 1. Tabel `public.avg_down_plans`
-Menyimpan parameter perhitungan kalkulator Average Down.
 ```sql
+-- 1. Tabel avg_down_plans
 create table public.avg_down_plans (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -148,11 +174,8 @@ create table public.avg_down_plans (
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
 );
-```
 
-### 2. Tabel `public.portfolio_holdings`
-Menyimpan kepemilikan aset saham portofolio pengguna saat ini.
-```sql
+-- 2. Tabel portfolio_holdings
 create table public.portfolio_holdings (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -164,22 +187,16 @@ create table public.portfolio_holdings (
   updated_at timestamptz default now() not null,
   unique (user_id, ticker)
 );
-```
 
-### 3. Tabel `public.portfolio_cash`
-Menyimpan saldo uang tunai (buying power) di simulasi rekening dana nasabah (RDN).
-```sql
+-- 3. Tabel portfolio_cash
 create table public.portfolio_cash (
   user_id uuid references auth.users(id) on delete cascade primary key,
   cash_balance numeric default 0 not null check (cash_balance >= 0),
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
 );
-```
 
-### 4. Tabel `public.compounding_plans`
-Menyimpan data rencana kalkulasi pertumbuhan compounding investasi.
-```sql
+-- 4. Tabel compounding_plans
 create table public.compounding_plans (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -196,11 +213,8 @@ create table public.compounding_plans (
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
 );
-```
 
-### 5. Tabel `public.ipo_plans`
-Menyimpan parameter kalkulasi alokasi E-IPO IDX.
-```sql
+-- 5. Tabel ipo_plans
 create table public.ipo_plans (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -215,11 +229,8 @@ create table public.ipo_plans (
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
 );
-```
 
-### 6. Tabel `public.user_approvals`
-Digunakan oleh Whitelist System untuk membatasi hak akses masuk aplikasi dasbor sebelum disetujui administrator.
-```sql
+-- 6. Tabel user_approvals
 create table public.user_approvals (
   id uuid default gen_random_uuid() primary key,
   email varchar(255) unique not null,
@@ -235,155 +246,88 @@ create table public.user_approvals (
 
 ### 1. `/api/ticker`
 *   **Method**: `GET`
-*   **Deskripsi**: Mendukung pencarian emiten BEI (`q` parameter) atau penarikan harga real-time emiten spesifik (`symbol` parameter).
-*   **Query Params**:
-    *   `q=[Pencarian Nama/Kode Ticker]` (contoh: `/api/ticker?q=Bumi`)
-    *   `symbol=[Kode Ticker]` (contoh: `/api/ticker?symbol=BBCA`)
-*   **Response (`q`)**:
-    ```json
-    {
-      "quotes": [
-        { "symbol": "BUMI", "name": "Bumi Resources Tbk" }
-      ]
-    }
-    ```
-*   **Response (`symbol`)**:
-    ```json
-    {
-      "symbol": "BBCA",
-      "name": "Bank Central Asia Tbk",
-      "price": 10250
-    }
-    ```
+*   **Deskripsi**: Pencarian emiten BEI atau penarikan harga pasar real-time Yahoo Finance.
+*   **Params**: `q=[Keyword]` atau `symbol=[Ticker]` (contoh: `/api/ticker?symbol=BBCA`).
 
-### 2. `/api/news`
+### 2. `/api/dividend`
 *   **Method**: `GET`
-*   **Deskripsi**: Mengambil berita terbaru dari Google News RSS Feed.
-*   **Query Params**:
-    *   `q=[Kode Ticker / Topik]` (contoh: `/api/news?q=BBRI`)
-    *   `category=[Kategori]` (pilihan: `saham`, `domestik`, `foreign`, `global`, `politik`)
-*   **Response**:
-    ```json
-    {
-      "news": [
-        {
-          "title": "BBRI Catatkan Kinerja Gemilang Kuartal Ini...",
-          "link": "https://news.google.com/rss/articles/...",
-          "pubDate": "Wed, 24 Jun 2026 12:00:00 GMT",
-          "source": "CNBC Indonesia"
-        }
-      ]
-    }
-    ```
+*   **Deskripsi**: Mengambil data historis dividen dan jadwal pembayaran dividen emiten BEI.
+*   **Params**: `symbol=[Ticker]` (contoh: `/api/dividend?symbol=BBRI`).
 
-### 3. `/api/news/summary`
+### 3. `/api/news`
+*   **Method**: `GET`
+*   **Deskripsi**: Menarik berita pasar keuangan terkini dari Google News RSS Feed.
+*   **Params**: `q=[Topic/Ticker]` & `category=[saham|domestik|foreign|global|politik]`.
+
+### 4. `/api/news/summary`
 *   **Method**: `POST`
-*   **Deskripsi**: Mengunduh teks penuh dari link berita asli, mendekode url Google News redirect, dan memproses rangkuman sentimen menggunakan AI Gemini.
-*   **Request Body**:
-    ```json
-    {
-      "title": "Judul Berita",
-      "source": "Penerbit Berita",
-      "link": "https://news.google.com/rss/articles/..."
-    }
-    ```
-*   **Response**:
-    ```json
-    {
-      "highlight": "Highlight utama dari berita emiten",
-      "context": "Konteks singkat dari berita terkait",
-      "keyFindings": [
-        "Temuan penting 1",
-        "Temuan penting 2"
-      ],
-      "takeaway": "Rekomendasi bagi investor"
-    }
-    ```
+*   **Deskripsi**: Mengunduh teks penuh berita asli, mendekode url Google News redirect, dan memproses AI Summary sentimen Gemini.
 
-### 4. `/api/analysis/fundamentals`
+### 5. `/api/analysis/fundamentals`
 *   **Method**: `GET`
-*   **Deskripsi**: Menarik data keuangan fundamental dari Yahoo Finance untuk emiten BEI.
-*   **Query Params**: `symbol=[Kode Ticker]` (contoh: `/api/analysis/fundamentals?symbol=TLKM`)
-*   **Response**: Menyediakan metrik P/E ratio, Market Cap, PBV, Debt to Equity Ratio, Dividend Yield, ROE, dll.
+*   **Deskripsi**: Mengambil metrik fundamental & valuasi emiten (P/E, PBV, ROE, DER, Market Cap).
 
-### 5. `/api/analysis/technical`
+### 6. `/api/analysis/technical`
 *   **Method**: `GET`
-*   **Deskripsi**: Mengambil riwayat harga saham historis untuk rendering grafik visual harga.
-*   **Query Params**:
-    *   `symbol=[Kode Ticker]` (contoh: `/api/analysis/technical?symbol=ADRO`)
-    *   `range=[Rentang Waktu]` (pilihan: `1d`, `5d`, `1m`, `6m`, `1y`)
+*   **Deskripsi**: Mengambil data grafik teknikal historis untuk rendering Recharts (1D, 5D, 1M, 6M, 1Y).
 
-### 6. `/api/analysis/news`
+### 7. `/api/analysis/news`
 *   **Method**: `GET`
-*   **Deskripsi**: Menganalisis sentimen agregat dari 10 berita terhangat terkait kode emiten tertentu.
-*   **Query Params**: `symbol=[Kode Ticker]` (contoh: `/api/analysis/news?symbol=GOTO`)
-*   **Response**: Menghasilkan sentimen agregat (Bullish / Bearish / Neutral) beserta *confidence score*.
+*   **Deskripsi**: Menganalisis sentimen agregat dari 10–15 berita emiten secara otomatis.
 
 ---
 
 ## ⚙️ Panduan Instalasi & Jalankan Lokal
 
-Ikuti langkah-langkah di bawah untuk memasang dan menjalankan aplikasi ini pada komputer lokal Anda:
-
 ### 1. Prasyarat
-Pastikan sistem Anda telah memiliki:
-*   [Node.js](https://nodejs.org/) (Versi LTS sangat direkomendasikan, versi ≥ 18.x)
+*   [Node.js](https://nodejs.org/) (Versi LTS $\ge 18.x$)
 *   [Git](https://git-scm.com/)
 
 ### 2. Kloning Repositori
-Kloning repositori dengan nama baru ini dan arahkan terminal ke dalam folder proyek:
 ```bash
 git clone https://github.com/alfitranurr/Nunnn-Stock-Analyzer.git
 cd Nunnn-Stock-Analyzer
 ```
 
 ### 3. Pasang Dependensi
-Gunakan Node Package Manager (`npm`) untuk memasang semua modul pustaka yang dibutuhkan:
 ```bash
 npm install
 ```
 
-### 4. Setup Environment Variables
-Buat file baru bernama `.env.local` pada direktori utama (root) proyek Anda dan isi konfigurasi kunci berikut:
+### 4. Setup Environment Variables (`.env.local`)
+Buat file `.env.local` pada direktori root:
 
 ```env
-# Supabase Configuration (opsional - jika dikosongkan, web akan otomatis menggunakan fallback Local Storage browser)
+# Supabase Configuration (opsional - jika dikosongkan, web otomatis menggunakan fallback Local Storage browser)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
-# Google OAuth Credentials (untuk login Google cepat)
+# Google OAuth Credentials
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-# Google Gemini API Key (wajib jika menggunakan analisis AI Summary sentimen)
+# Google Gemini API Key (wajib untuk analisis AI Summary & sentimen)
 GEMINI_API_KEY=your-gemini-api-key
 
-# Konfigurasi Email Akun Administrator Utama (untuk whitelist system)
+# Email Administrator Utama (untuk Whitelist System)
 NEXT_PUBLIC_ADMIN_EMAIL=alfitranurr@gmail.com
 ```
 
 ### 5. Jalankan Development Server
-Jalankan perintah berikut untuk mengaktifkan server lokal dalam mode pengembangan:
 ```bash
 npm run dev
 ```
 
-Buka peramban (browser) Anda dan arahkan alamat ke **[http://localhost:3000](http://localhost:3000)**. Dasbor Nunnn-Stock-Analyzer siap dijalankan.
+Buka browser Anda di **[http://localhost:3000](http://localhost:3000)**.
 
 ---
 
 ## 🤝 Kontribusi
 
-Kami sangat menyambut kontribusi dari komunitas! Jika Anda ingin mengoptimalkan perhitungan kalkulator, memperbaiki rendering grafik teknikal, menyempurnakan prompt rekayasa Gemini AI, atau meningkatkan lokalisasi terjemahan:
-
-1. Lakukan **Fork** pada repositori ini.
-2. Buat branch fitur baru (`git checkout -b fitur/fitur-keren-baru`).
-3. Commit kontribusi Anda (`git commit -m 'Menambahkan fitur keren baru'`).
-4. Push branch ke akun Anda (`git push origin fitur/fitur-keren-baru`).
-5. Kirimkan **Pull Request (PR)** pada repositori utama untuk ditinjau oleh pembuat proyek.
+Kontribusi dari komunitas sangat diterima! Silakan buka **Issue** atau kirimkan **Pull Request (PR)** untuk penyempurnaan fitur finansial, rendering grafik, atau lokalisasi terjemahan.
 
 ---
 
 ## 📄 Lisensi
 
-Proyek ini berada di bawah lisensi resmi [MIT License](LICENSE). Hak Cipta © 2026 **alfitranurr**.
+Proyek ini terlisensi di bawah [MIT License](LICENSE). Hak Cipta © 2026 **alfitranurr**.
