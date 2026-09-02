@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { getErrorMessage } from '@/lib/utils';
 
 // Always run dynamically — this route fetches live news and calls AI providers.
 export const dynamic = 'force-dynamic';
@@ -91,13 +92,21 @@ async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | nul
     const response = await fetch(googleRssUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
+      },
+      signal: AbortSignal.timeout(8000)
     });
+    if (!response.ok) {
+      console.warn('Google News RSS fetch failed:', response.status);
+      return null;
+    }
     const html = await response.text();
     const match = html.match(/data-p="([^"]+)"/);
-    if (!match) return null;
+    if (!match) {
+      console.warn('No data-p attribute found in Google News page');
+      return null;
+    }
     const dataP = match[1];
-    
+
     // Decode HTML entities
     const cleanDataP = dataP
       .replace(/&quot;/g, '"')
@@ -105,8 +114,19 @@ async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | nul
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/%\.@\./g, '["garturlreq",');
-      
-    const obj = JSON.parse(cleanDataP);
+
+    let obj: unknown[];
+    try {
+      obj = JSON.parse(cleanDataP);
+    } catch {
+      console.warn('Failed to parse data-p JSON from Google News page');
+      return null;
+    }
+
+    if (!Array.isArray(obj) || obj.length < 8) {
+      console.warn('Unexpected data-p structure from Google News');
+      return null;
+    }
 
     const payload = {
       'f.req': JSON.stringify([[
@@ -119,17 +139,46 @@ async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | nul
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
       },
-      body: new URLSearchParams(payload).toString()
+      body: new URLSearchParams(payload).toString(),
+      signal: AbortSignal.timeout(8000)
     });
-    
+
+    if (!postResponse.ok) {
+      console.warn('Google News batchexecute failed:', postResponse.status);
+      return null;
+    }
+
     const resText = await postResponse.text();
-    const cleanResText = resText.replace(/^\)\]\}\'\n/, '');
-    const responseData = JSON.parse(cleanResText);
-    const arrayString = responseData[0][2];
-    const finalUrl = JSON.parse(arrayString)[1];
+    const cleanResText = resText.replace(/^\)\]\}'\n/, '');
+
+    let responseData: unknown;
+    try {
+      responseData = JSON.parse(cleanResText);
+    } catch {
+      console.warn('Failed to parse batchexecute response JSON');
+      return null;
+    }
+
+    // Navigate the nested response structure safely.
+    const outer = Array.isArray(responseData) ? responseData[0] : null;
+    if (!Array.isArray(outer) || typeof outer[2] !== 'string') {
+      console.warn('Unexpected batchexecute response structure');
+      return null;
+    }
+    const arrayString = outer[2];
+
+    let finalUrl: string | null = null;
+    try {
+      const parsed = JSON.parse(arrayString);
+      finalUrl = Array.isArray(parsed) && typeof parsed[1] === 'string' ? parsed[1] : null;
+    } catch {
+      console.warn('Failed to parse final URL from batchexecute inner JSON');
+      return null;
+    }
+
     return finalUrl;
   } catch (err) {
-    console.error('Error decoding Google News URL:', err);
+    console.error('Error decoding Google News URL:', getErrorMessage(err));
     return null;
   }
 }
@@ -373,11 +422,11 @@ Pastikan data dan format JSON valid.`;
     const mockData = generateMockSummary(title, source);
     return NextResponse.json({ ...mockData, isMock: true });
 
-  } catch (error: any) {
-    console.error('Error generating AI news summary:', error.message);
+  } catch (error: unknown) {
+    console.error('Error generating AI news summary:', getErrorMessage(error));
     return NextResponse.json({
       error: 'Failed to generate summary',
-      details: error.message
+      details: getErrorMessage(error)
     }, { status: 500 });
   }
 }

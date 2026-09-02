@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Trash2, ExternalLink, Calendar, Calculator, Info, Sparkles } from 'lucide-react';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser } from '@/lib/types';
 import { cleanCompanyName } from '@/lib/utils';
 

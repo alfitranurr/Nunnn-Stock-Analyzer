@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { getErrorMessage } from '@/lib/utils';
 import { 
   Search, 
   BookOpen, 
@@ -113,7 +114,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
       setNews(data.news || []);
     } catch (err: unknown) {
       console.error(err);
-      const msg = err instanceof Error ? err.message : (language === 'id' ? 'Gagal memuat berita finansial.' : 'Failed to load financial news.');
+      const msg = err instanceof Error ? getErrorMessage(err) : (language === 'id' ? 'Gagal memuat berita finansial.' : 'Failed to load financial news.');
       setError(msg);
     } finally {
       setLoading(false);
@@ -176,11 +177,11 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
           ...prev,
           [articleKey]: data
         }));
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
         setSummaryError(prev => ({
           ...prev,
-          [articleKey]: err.message || (language === 'id' ? 'Terjadi kesalahan jaringan.' : 'Network error occurred.')
+          [articleKey]: getErrorMessage(err) || (language === 'id' ? 'Terjadi kesalahan jaringan.' : 'Network error occurred.')
         }));
       } finally {
         setSummaryLoading(prev => ({ ...prev, [articleKey]: false }));

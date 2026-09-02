@@ -1,15 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { 
-  Sparkles, 
-  Info, 
-  Save, 
-  Trash2, 
+import {
+  Sparkles,
+  Info,
+  Trash2,
   Coins,
-  TrendingUp,
   User,
-  HelpCircle,
   ChevronDown,
   ChevronUp,
   Percent,
@@ -17,7 +14,7 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
-import { calculateEIpoAllotment, getGolongan, getInitialAllocationConfig, EIpoInput, EIpoResult } from '@/lib/e-ipo';
+import { calculateEIpoAllotment, EIpoInput } from '@/lib/e-ipo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -62,7 +59,7 @@ function IpoEmitenLogo({ symbol }: { symbol: string }) {
   );
 }
 
-export function IpoTab({ user, onSignInClick }: IpoTabProps) {
+export function IpoTab({ user }: IpoTabProps) {
   const { language, t } = useLanguage();
 
   // Input States
@@ -114,7 +111,6 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   }, [ticker, fetchRemoteTicker]);
 
   // Saving state
-  const [isSaving, setIsSaving] = React.useState(false);
   const [savedPlans, setSavedPlans] = React.useState<any[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = React.useState(false);
 
@@ -201,75 +197,6 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
     }, 0);
     return () => clearTimeout(timer);
   }, [fetchSavedPlans]);
-
-  // Save Plan Action
-  const handleSavePlan = async () => {
-    if (!ticker.trim()) {
-      showToast(t('ipo.simEnterTicker'), 'error');
-      return;
-    }
-    setIsSaving(true);
-
-    const planData = {
-      ticker: ticker.toUpperCase(),
-      company_name: companyName || 'Emiten IPO',
-      price: price,
-      total_lots: totalLots,
-      oversubscription: oversubscription,
-      total_subscribers: totalSubscribers,
-      retail_ratio: retailRatio,
-      personal_order_lots: personalOrderLots
-    };
-
-    const saveToLocalStorage = () => {
-      const newPlan = {
-        id: crypto.randomUUID(),
-        ...planData,
-        created_at: new Date().toISOString()
-      };
-      const updated = [newPlan, ...savedPlans];
-      localStorage.setItem('nunnn_stock_ipo_plans', JSON.stringify(updated));
-      setSavedPlans(updated);
-      showToast(
-        language === 'id'
-          ? `Simulasi E-IPO ${ticker.toUpperCase()} disimpan secara lokal.`
-          : `E-IPO simulation for ${ticker.toUpperCase()} saved locally.`
-      );
-    };
-
-    if (isSupabaseConfigured && user && !user.isMock) {
-      try {
-        const { error } = await supabase
-          .from('ipo_plans')
-          .insert({
-            ...planData,
-            user_id: user.id
-          });
-        
-        if (error) {
-          if (error.message.includes('Could not find') || error.message.includes('does not exist')) {
-            saveToLocalStorage();
-            return;
-          }
-          throw error;
-        }
-        showToast(
-          language === 'id'
-            ? `Simulasi E-IPO ${ticker.toUpperCase()} berhasil disimpan ke cloud!`
-            : `E-IPO simulation for ${ticker.toUpperCase()} saved to cloud successfully!`
-        );
-        fetchSavedPlans();
-      } catch (err: any) {
-        console.error('Error saving E-IPO plan:', err.message);
-        saveToLocalStorage();
-      } finally {
-        setIsSaving(false);
-      }
-    } else {
-      saveToLocalStorage();
-      setIsSaving(false);
-    }
-  };
 
   // Delete Plan Action
   const handleDeletePlan = async (id: string, planTicker: string) => {

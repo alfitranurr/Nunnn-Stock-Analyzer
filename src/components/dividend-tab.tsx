@@ -1,36 +1,20 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
-import { 
-  Sparkles, 
-  Info, 
-  Download, 
-  Printer, 
-  Trash2, 
-  Save, 
-  FileText, 
-  Database,
+import {
+  Sparkles,
   TrendingUp,
-  Percent,
   Calendar,
-  DollarSign,
-  AlertCircle,
   Coins,
   RefreshCw,
   Search,
-  Check,
-  CheckCircle2,
-  Copy,
-  ChevronDown,
-  ArrowRight
+  CheckCircle2
 } from 'lucide-react';
-import { calculateDividend, DividendInput, DividendResult, MonthlyDividendBreakdown } from '@/lib/dividend';
-import { cleanCompanyName } from '@/lib/utils';
+import { calculateDividend, DividendInput, DividendResult } from '@/lib/dividend';
 import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as XLSX from 'xlsx';
 import { useLanguage } from '@/lib/language-context';
-import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput, formatIDR as _formatIDR } from '@/lib/format';
+import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput } from '@/lib/format';
 
 // Local wrapper preserves the original max-fraction-digits (2) for this tab.
 const formatNumberForInput = (num: number | string | undefined | null): string =>
@@ -122,8 +106,9 @@ function CompanyLogo({ symbol }: { symbol: string }) {
   );
 }
 
-export function DividendTab({ user, onSignInClick }: DividendTabProps) {
-  const { t, language } = useLanguage();
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function DividendTab(_props: DividendTabProps) {
+  const { language } = useLanguage();
   const isEn = language === 'en';
   
   // Ticker state & search
@@ -166,15 +151,8 @@ export function DividendTab({ user, onSignInClick }: DividendTabProps) {
     yieldPercent?: number;
   }>>([]);
 
-  // Copy report state
-  const [isCopied, setIsCopied] = React.useState(false);
-
   // Toast notification
-  const [toast, setToast] = React.useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [toast] = React.useState<string | null>(null);
 
   // Fetch dividend history & real-time price from API
   const fetchDividendData = React.useCallback(async (symbol: string) => {
@@ -238,15 +216,6 @@ export function DividendTab({ user, onSignInClick }: DividendTabProps) {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  const formatLiveInput = (valStr: string): string => {
-    if (!valStr) return '';
-    const endsWithDot = valStr.endsWith('.') || valStr.endsWith(',');
-    const parsed = parseFormattedNumber(valStr);
-    if (parsed === 0 && !valStr.includes('0')) return valStr;
-    const formatted = formatNumberForInput(parsed);
-    return endsWithDot ? `${formatted}.` : formatted;
-  };
 
   // Sync Investment Amount & Lot Count
   const handleInvestmentAmountChange = (valStr: string) => {
@@ -339,123 +308,6 @@ export function DividendTab({ user, onSignInClick }: DividendTabProps) {
     isDripEnabled,
     language,
   ]);
-
-  // Export report to Excel (.xlsx)
-  const handleExportExcel = () => {
-    try {
-      const wb = XLSX.utils.book_new();
-
-      // Sheet 1: Rangkuman Simulasi
-      const summaryData = [
-        [isEn ? 'DIVIDEND CALCULATOR SIMULATION SUMMARY' : 'RANGKUMAN SIMULASI KALKULATOR DIVIDEN'],
-        [isEn ? 'Stock Symbol' : 'Emiten Saham', `${result.ticker} - ${result.companyName}`],
-        [isEn ? 'Buy Price (Rp)' : 'Harga Saham Beli', result.buyPrice],
-        [isEn ? 'Total Investment (Rp)' : 'Total Modal Investasi (Rp)', result.totalInvestmentRp],
-        [isEn ? 'Total Lots' : 'Total Kepemilikan (Lot)', result.totalLots],
-        [isEn ? 'Total Shares' : 'Total Kepemilikan (Lembar)', result.totalShares],
-        [isEn ? 'Dividend per Share / Yr (Rp)' : 'Dividen per Saham / Tahun (Rp)', result.annualDividendPerShare],
-        [isEn ? 'Est. Gross Dividend 1 Yr (Rp)' : 'Estimasi Dividen Kotor 1 Tahun (Rp)', result.grossAnnualDividendRp],
-        [isEn ? 'Tax Rate (%)' : 'Tarif Pajak Dividen (%)', `${result.taxRatePercent}%`],
-        [isEn ? 'Tax Deduction (Rp)' : 'Potongan Pajak (Rp)', result.taxAnnualAmountRp],
-        [isEn ? 'Est. Net Dividend 1 Yr (Rp)' : 'Estimasi Dividen Bersih 1 Tahun (Rp)', result.netAnnualDividendRp],
-        [isEn ? 'Effective Net Yield (%)' : 'Effective Net Yield (%)', `${result.effectiveNetYield.toFixed(2)}%`],
-        [isEn ? 'Avg. Net Dividend / Month (Rp)' : 'Rata-rata Dividen Bersih per Bulan (Rp)', result.averageMonthlyNetIncomeRp],
-      ];
-      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(wb, wsSummary, isEn ? 'Simulation Summary' : 'Ringkasan Simulasi');
-
-      // Sheet 2: Jadwal Rincian per Bulan
-      const monthlyHeaders = [[
-        isEn ? 'Month' : 'Bulan',
-        isEn ? 'Payment Status' : 'Status Pembayaran',
-        isEn ? 'Dividend Label' : 'Label Dividen',
-        isEn ? 'Gross Dividend (Rp)' : 'Dividen Kotor (Rp)',
-        isEn ? 'Tax (Rp)' : 'Pajak (Rp)',
-        isEn ? 'Net Dividend (Rp)' : 'Dividen Bersih (Rp)'
-      ]];
-      const monthlyRows = result.monthlyBreakdown.map(m => [
-        m.monthName,
-        m.isPayoutMonth ? (isEn ? 'Paid' : 'Cair') : '-',
-        m.payoutLabel || '-',
-        m.grossAmount,
-        m.taxAmount,
-        m.netAmount,
-      ]);
-      const wsMonthly = XLSX.utils.aoa_to_sheet([...monthlyHeaders, ...monthlyRows]);
-      XLSX.utils.book_append_sheet(wb, wsMonthly, isEn ? 'Monthly Breakdown' : 'Rincian Per Bulan');
-
-      // Sheet 3: Historis Dividen
-      if (dividendHistory.length > 0) {
-        const histHeaders = [[
-          isEn ? 'Year' : 'Tahun',
-          isEn ? 'Cum Date' : 'Tanggal Cum',
-          isEn ? 'Payment Date' : 'Tanggal Bayar',
-          isEn ? 'Dividend Type' : 'Tipe Dividen',
-          isEn ? 'Dividend / Share (Rp)' : 'Dividen per Lembar (Rp)'
-        ]];
-        const histRows = dividendHistory.map(h => [
-          h.year,
-          h.cumDate,
-          h.paymentDate || h.cumDate,
-          h.type,
-          h.amount,
-        ]);
-        const wsHist = XLSX.utils.aoa_to_sheet([...histHeaders, ...histRows]);
-        XLSX.utils.book_append_sheet(wb, wsHist, isEn ? 'Dividend History' : 'Historis Dividen');
-      }
-
-      XLSX.writeFile(wb, `Dividend_${result.ticker}_Simulation.xlsx`);
-      showToast(isEn ? 'Successfully exported Excel report.' : 'Berhasil mengunduh laporan Excel.');
-    } catch (err) {
-      console.error('Export Excel failed:', err);
-    }
-  };
-
-  // Copy Summary to Clipboard
-  const handleCopyReport = () => {
-    const text = isEn ? `
-📊 IDX STOCK DIVIDEND CALCULATOR SIMULATION
-------------------------------------------
-Stock Symbol    : ${result.ticker} (${result.companyName})
-Buy Price       : ${formatIDR(result.buyPrice)}
-Total Capital   : ${formatIDR(result.totalInvestmentRp)} (${result.totalLots} Lots / ${result.totalShares.toLocaleString('en-US')} shares)
-Dividend/Share  : Rp ${result.annualDividendPerShare}/year
-
-💰 ESTIMATED 1-YEAR DIVIDEND PROJECTION:
-- Gross Dividend: ${formatIDR(result.grossAnnualDividendRp)}
-- Tax (${result.taxRatePercent}%)     : ${formatIDR(result.taxAnnualAmountRp)}
-- Net Dividend  : ${formatIDR(result.netAnnualDividendRp)}
-- Net Yield     : ${result.effectiveNetYield.toFixed(2)}%
-
-🗓️ MONTHLY PASSIVE CASHFLOW:
-- Average/Month : ${formatIDR(result.averageMonthlyNetIncomeRp)} / month
-
-Generated via NUNNN STOCK ANALYZER
-`.trim() : `
-📊 SIMULASI KALKULATOR DIVIDEN SAHAM BEI
-------------------------------------------
-Emiten          : ${result.ticker} (${result.companyName})
-Harga Beli      : ${formatIDR(result.buyPrice)}
-Total Modal     : ${formatIDR(result.totalInvestmentRp)} (${result.totalLots} Lot / ${result.totalShares.toLocaleString('id-ID')} lembar)
-Dividen/Saham   : Rp ${result.annualDividendPerShare}/tahun
-
-💰 ESTIMASI PROYEKSI DIVIDEN 1 TAHUN:
-- Dividen Kotor : ${formatIDR(result.grossAnnualDividendRp)}
-- Pajak (${result.taxRatePercent}%)  : ${formatIDR(result.taxAnnualAmountRp)}
-- Dividen Bersih: ${formatIDR(result.netAnnualDividendRp)}
-- Net Yield     : ${result.effectiveNetYield.toFixed(2)}%
-
-🗓️ CASHFLOW PASIF PER BULAN:
-- Rata-rata/Bulan : ${formatIDR(result.averageMonthlyNetIncomeRp)} / bulan
-
-Dibuat via NUNNN STOCK ANALYZER
-`.trim();
-
-    navigator.clipboard.writeText(text);
-    setIsCopied(true);
-    showToast(isEn ? 'Summary report copied to clipboard!' : 'Laporan ringkas disalin ke clipboard!');
-    setTimeout(() => setIsCopied(false), 2500);
-  };
 
   return (
     <div className="space-y-6 w-full">
@@ -751,11 +603,11 @@ Dibuat via NUNNN STOCK ANALYZER
               <span className="text-[11px] text-slate-400 font-semibold block">
                 {inputMode === 'amount'
                   ? (isEn 
-                      ? `Equivalent ≈ ${lotCountStr} Lots (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('en-US')} shares)`
-                      : `Setara ≈ ${lotCountStr} Lot (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('id-ID')} lembar)`)
+                      ? `Equivalent â‰ˆ ${lotCountStr} Lots (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('en-US')} shares)`
+                      : `Setara â‰ˆ ${lotCountStr} Lot (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('id-ID')} lembar)`)
                   : (isEn
-                      ? `Capital ≈ ${formatIDR(parseFormattedNumber(investmentAmountStr))} (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('en-US')} shares)`
-                      : `Modal ≈ ${formatIDR(parseFormattedNumber(investmentAmountStr))} (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('id-ID')} lembar)`)}
+                      ? `Capital â‰ˆ ${formatIDR(parseFormattedNumber(investmentAmountStr))} (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('en-US')} shares)`
+                      : `Modal â‰ˆ ${formatIDR(parseFormattedNumber(investmentAmountStr))} (${(parseFormattedNumber(lotCountStr) * 100).toLocaleString('id-ID')} lembar)`)}
               </span>
             </div>
           </div>
@@ -990,7 +842,7 @@ Dibuat via NUNNN STOCK ANALYZER
               </p>
             </div>
             <span className="sm:hidden text-[10px] text-slate-500 font-medium self-end">
-              {isEn ? '← Scroll table →' : '← Geser tabel →'}
+              {isEn ? 'â† Scroll table â†’' : 'â† Geser tabel â†’'}
             </span>
           </div>
 

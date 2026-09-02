@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, DollarSign, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
 import type { AppUser } from '@/lib/types';
 import { cleanCompanyName } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
 
 // Popular BEI Tickers for suggestions
@@ -282,9 +282,9 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       setTechnicals(techData);
       setNews(newsData.news || []);
       setAnalysis(newsData.analysis || null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching stock analysis:', err);
-      setErrorMsg(err.message || (language === 'id' ? 'Terjadi kesalahan saat memuat data analisis.' : 'An error occurred while loading analysis data.'));
+      setErrorMsg(getErrorMessage(err) || (language === 'id' ? 'Terjadi kesalahan saat memuat data analisis.' : 'An error occurred while loading analysis data.'));
     } finally {
       setLoading(false);
     }
@@ -976,6 +976,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(tradingViewSymbol)}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=1e293b&theme=dark&style=1&timezone=Asia%2FJakarta&studies=%5B%22RSI%40tv-basicstudies%22%2C%22MACD%40tv-basicstudies%22%2C%22PivotPointsStandard%40tv-basicstudies%22%5D&locale=${language === 'id' ? 'id' : 'en'}`}
               className="w-full h-full border-0 absolute inset-0"
               allowFullScreen
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
             />
           </div>
         </div>
@@ -1394,7 +1395,6 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 {(() => {
                   const w = technicals?.multiTimeframe?.weekly || '';
                   const d = technicals?.multiTimeframe?.daily || '';
-                  const h = technicals?.multiTimeframe?.hourly || '';
                   
                   if (w === 'BULLISH' && d === 'BULLISH') {
                     return language === 'id'

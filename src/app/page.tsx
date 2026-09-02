@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { getErrorMessage } from '@/lib/utils';
 import { Sidebar } from '@/components/sidebar';
 import { CalculatorForm } from '@/components/calculator-form';
 import { ResultsDisplay } from '@/components/results-display';
@@ -17,7 +18,7 @@ import { DividendTab } from '@/components/dividend-tab';
 import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser } from '@/lib/types';
-import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight, Percent, TrendingUp, FileText, Coins, Home, Calculator } from 'lucide-react';
+import { Sparkles, AlertCircle, Info, ChevronUp, ArrowRight, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
@@ -248,7 +249,7 @@ export default function Dashboard() {
         } else {
           setUser(null);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Unhandled error during Supabase session recovery:', err);
         clearSupabaseAuthKeys();
       }
@@ -290,8 +291,8 @@ export default function Dashboard() {
 
         if (error) throw error;
         setPlans(data || []);
-      } catch (err: any) {
-        console.error('Error fetching plans:', err.message);
+      } catch (err: unknown) {
+        console.error('Error fetching plans:', getErrorMessage(err));
         showToast('Gagal memuat rencana dari cloud database', 'error');
       }
     } else {
@@ -324,7 +325,7 @@ export default function Dashboard() {
     setCalculatorResult(res);
   }, []);
 
-  const handleSavePlan = async (title: string) => {
+  const handleSavePlan = async () => {
     if (!calculatorInput || !calculatorResult) return;
     setIsSaving(true);
 
@@ -371,11 +372,11 @@ export default function Dashboard() {
             : `Plan ${calculatorInput.ticker} successfully saved to cloud database!`
         );
         fetchPlans();
-      } catch (err: any) {
+      } catch (err: unknown) {
         showToast(
           language === 'id'
-            ? `Gagal menyimpan: ${err.message}`
-            : `Failed to save: ${err.message}`,
+            ? `Gagal menyimpan: ${getErrorMessage(err)}`
+            : `Failed to save: ${getErrorMessage(err)}`,
           'error'
         );
       } finally {
@@ -425,7 +426,7 @@ export default function Dashboard() {
             : 'Plan deleted successfully.'
         );
         fetchPlans();
-      } catch (err: any) {
+      } catch {
         showToast(
           language === 'id'
             ? 'Gagal menghapus rencana.'

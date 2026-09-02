@@ -1,26 +1,22 @@
 'use client';
 
 import * as React from 'react';
-import { 
-  Sparkles, 
-  Info, 
-  Download, 
-  Printer, 
-  Trash2, 
-  Save, 
-  FileText, 
+import { getErrorMessage } from '@/lib/utils';
+import {
+  Sparkles,
+  Info,
+  Trash2,
+  Save,
+  FileText,
   Database,
   TrendingUp,
-  Percent,
   Calendar,
-  DollarSign,
   AlertCircle
 } from 'lucide-react';
-import { calculateCompounding, CompoundingInput, CompoundingResult, calculateDailyCompounding, DailyCompoundingInput, DailyCompoundingResult } from '@/lib/compounding';
+import { calculateCompounding, CompoundingInput, calculateDailyCompounding, DailyCompoundingInput } from '@/lib/compounding';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as XLSX from 'xlsx';
 import { useLanguage } from '@/lib/language-context';
 import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput } from '@/lib/format';
 
@@ -34,7 +30,7 @@ interface CompoundingTabProps {
 }
 
 // Helpers for parsing and formatting numbers
-export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
+export function CompoundingTab({ user }: CompoundingTabProps) {
   const { t, language } = useLanguage();
   // Input States
   const [calcMode, setCalcMode] = React.useState<'standard' | 'daily'>('daily');
@@ -146,8 +142,8 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
           .order('created_at', { ascending: false });
         if (error) throw error;
         setSavedPlans(data || []);
-      } catch (err: any) {
-        console.error('Error fetching compounding plans:', err.message);
+      } catch (err: unknown) {
+        console.error('Error fetching compounding plans:', getErrorMessage(err));
         showToast('Gagal memuat rencana dari cloud database', 'error');
       } finally {
         setIsLoadingPlans(false);
@@ -219,9 +215,9 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         fetchSavedPlans();
         setIsSaveModalOpen(false);
         setPlanTitle('');
-      } catch (err: any) {
-        console.error('Error saving compounding plan:', err.message);
-        showToast(`Gagal menyimpan: ${err.message}`, 'error');
+      } catch (err: unknown) {
+        console.error('Error saving compounding plan:', getErrorMessage(err));
+        showToast(`Gagal menyimpan: ${getErrorMessage(err)}`, 'error');
       } finally {
         setIsSaving(false);
       }
@@ -253,8 +249,8 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         if (error) throw error;
         showToast(`Rencana "${title}" berhasil dihapus.`);
         fetchSavedPlans();
-      } catch (err: any) {
-        console.error('Error deleting plan:', err.message);
+      } catch (err: unknown) {
+        console.error('Error deleting plan:', getErrorMessage(err));
         showToast('Gagal menghapus rencana.', 'error');
       }
     } else {
@@ -402,68 +398,6 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       maximumFractionDigits: 2,
     }).format(absVal);
     return `${val >= 0 ? '+' : '-'}${formatted}%`;
-  };
-
-  // Excel Export
-  const handleExportExcel = () => {
-    const wb = XLSX.utils.book_new();
-    let ws;
-    let fileName = '';
-
-    if (isDaily) {
-      const headers = [
-        "Hari", "Modal Awal Hari (Rp)", "Setoran Harian (Rp)", 
-        "Profit (Rp)", "Pajak (Rp)", "Modal Akhir Hari (Rp)",
-        "Akumulasi Setoran (Rp)", "Akumulasi Profit (Rp)"
-      ];
-      
-      const rows = dailyResults.details.map(d => [
-        d.period,
-        Math.round(d.startingBalance),
-        Math.round(d.deposit),
-        Math.round(d.interestEarned),
-        Math.round(d.taxDeducted),
-        Math.round(d.endingBalance),
-        Math.round(d.cumulativeDeposits),
-        Math.round(d.cumulativeInterest)
-      ]);
-
-      ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      fileName = `Rencana_Trading_Harian_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.utils.book_append_sheet(wb, ws, "Trading Harian");
-    } else {
-      const headers = [
-        "Bulan", "Tahun", "Bulan Ke", "Saldo Awal (Rp)", 
-        "Setoran (Rp)", "Bunga Kotor (Rp)", "Pajak (Rp)", 
-        "Saldo Akhir Nominal (Rp)", "Saldo Akhir Riil (Rp)", 
-        "Akumulasi Setoran (Rp)", "Akumulasi Bunga (Rp)"
-      ];
-      
-      const rows = results.monthlyDetails.map(d => [
-        d.period,
-        d.year,
-        d.month,
-        Math.round(d.startingBalance),
-        Math.round(d.deposit),
-        Math.round(d.interestEarned),
-        Math.round(d.taxDeducted),
-        Math.round(d.endingBalance),
-        Math.round(d.realEndingBalance),
-        Math.round(d.cumulativeDeposits),
-        Math.round(d.cumulativeInterest)
-      ]);
-
-      ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      fileName = `Simulasi_Compounding_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.utils.book_append_sheet(wb, ws, "Compounding");
-    }
-
-    XLSX.writeFile(wb, fileName);
-  };
-
-  // Print PDF Trigger
-  const handlePrint = () => {
-    window.print();
   };
 
   // Custom Chart Calculations

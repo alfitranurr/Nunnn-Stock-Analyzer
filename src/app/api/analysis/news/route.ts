@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getErrorMessage } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -179,12 +180,12 @@ Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
         isAI: true,
         modelUsed: model
       };
-    } catch (err: any) {
-      console.warn(`Failed to get Gemini summary for model ${model}:`, err.message);
+    } catch (err: unknown) {
+      console.warn(`Failed to get Gemini summary for model ${model}:`, getErrorMessage(err));
       lastError = err;
     }
   }
-  console.error('All Gemini models failed in getGeminiSummary, last error:', lastError?.message);
+  console.error('All Gemini models failed in getGeminiSummary, last error:', lastError ? getErrorMessage(lastError) : 'none');
   return null;
 }
 
@@ -239,8 +240,8 @@ Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
       isAI: true,
       modelUsed: 'llama-3.3-70b-versatile'
     };
-  } catch (err: any) {
-    console.error('Failed to get Groq summary, checking OpenAI:', err.message);
+  } catch (err: unknown) {
+    console.error('Failed to get Groq summary, checking OpenAI:', getErrorMessage(err));
     return null;
   }
 }
@@ -292,8 +293,8 @@ Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output An
       summary: textResult || '',
       isAI: true
     };
-  } catch (err: any) {
-    console.error('Failed to get OpenAI summary, falling back to local analysis:', err.message);
+  } catch (err: unknown) {
+    console.error('Failed to get OpenAI summary, falling back to local analysis:', getErrorMessage(err));
     return null;
   }
 }
@@ -345,7 +346,6 @@ export async function GET(request: NextRequest) {
     const feedUrl = `https://news.google.com/rss/search?q=${query}&hl=id&gl=ID&ceid=ID:id`;
 
     let newsItems: any[] = [];
-    let fetchErrorMsg = '';
 
     try {
       const response = await fetch(feedUrl, {
@@ -358,11 +358,9 @@ export async function GET(request: NextRequest) {
       if (response.ok) {
         const xmlText = await response.text();
         newsItems = parseRss(xmlText);
-      } else {
-        fetchErrorMsg = `HTTP ${response.status} Service Unavailable`;
       }
-    } catch (e: any) {
-      fetchErrorMsg = e.message;
+    } catch (e: unknown) {
+      console.warn('Failed to fetch news from Google News RSS:', getErrorMessage(e));
     }
 
     // Secondary fallback: Try Yahoo Finance RSS
@@ -379,8 +377,8 @@ export async function GET(request: NextRequest) {
           const xmlText = await yResponse.text();
           newsItems = parseRss(xmlText);
         }
-      } catch (yErr: any) {
-        console.warn('Failed to fetch news from Yahoo Finance RSS:', yErr.message);
+      } catch (yErr: unknown) {
+        console.warn('Failed to fetch news from Yahoo Finance RSS:', getErrorMessage(yErr));
       }
     }
 
@@ -435,14 +433,14 @@ export async function GET(request: NextRequest) {
       news: newsItems,
       analysis: analysisResult
     });
-  } catch (error: any) {
-    console.error(`Error fetching news for ${rawSymbol}:`, error.message);
+  } catch (error: unknown) {
+    console.error(`Error fetching news for ${rawSymbol}:`, getErrorMessage(error));
     return NextResponse.json({
       symbol: rawSymbol,
       news: [],
       analysis: {
         sentiment: 'Netral',
-        summary: `Gagal memuat berita: ${error.message}. Sentimen diestimasi Netral.`,
+        summary: `Gagal memuat berita: ${getErrorMessage(error)}. Sentimen diestimasi Netral.`,
         isAI: false
       }
     });

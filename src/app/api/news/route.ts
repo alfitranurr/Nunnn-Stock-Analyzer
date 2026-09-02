@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getErrorMessage } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,11 +97,11 @@ export async function GET(request: NextRequest) {
     const newsItems = parsedItems.slice(0, 15);
 
     return NextResponse.json({ news: newsItems });
-  } catch (error: any) {
-    console.error(`Error fetching news feed:`, error.message);
+  } catch (error: unknown) {
+    console.error(`Error fetching news feed:`, getErrorMessage(error));
     return NextResponse.json({
       news: [],
-      error: error.message
+      error: getErrorMessage(error)
     });
   }
 }

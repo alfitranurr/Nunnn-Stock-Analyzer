@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { getErrorMessage } from '@/lib/utils';
 import { 
   ShieldCheck, 
   Users, 
@@ -100,7 +101,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
       setSuccessMsg(language === 'id' ? 'Data simulasi lokal berhasil dibersihkan.' : 'Local simulated data cleared successfully.');
       fetchLocalStats();
       fetchUsers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError(language === 'id' ? 'Gagal membersihkan data simulasi.' : 'Failed to clear simulated data.');
     } finally {
@@ -142,9 +143,9 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         if (dbError) throw dbError;
         setUsers(data || []);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || (language === 'id' ? 'Gagal mengambil data user approvals.' : 'Failed to retrieve user approval data.'));
+      setError(getErrorMessage(err) || (language === 'id' ? 'Gagal mengambil data user approvals.' : 'Failed to retrieve user approval data.'));
     } finally {
       setLoading(false);
     }
@@ -230,9 +231,9 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
             : t('admin.toastRevoked').replace('{email}', userToUpdate.email)
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || (language === 'id' ? 'Gagal mengubah status persetujuan.' : 'Failed to change approval status.'));
+      setError(getErrorMessage(err) || (language === 'id' ? 'Gagal mengubah status persetujuan.' : 'Failed to change approval status.'));
     }
   };
 
@@ -268,9 +269,9 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
             : `User ${userToDelete.email} has been deleted successfully.`
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || (language === 'id' ? 'Gagal menghapus user.' : 'Failed to delete user.'));
+      setError(getErrorMessage(err) || (language === 'id' ? 'Gagal menghapus user.' : 'Failed to delete user.'));
     }
   };
 

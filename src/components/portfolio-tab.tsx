@@ -1,20 +1,16 @@
 'use client';
 
 import * as React from 'react';
-import { 
-  Briefcase, 
-  Plus, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Trash2, 
-  Edit3, 
-  Calculator, 
-  Lock, 
-  UserPlus, 
-  Info, 
-  Coins, 
-  ArrowRight,
+import {
+  Briefcase,
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  Trash2,
+  Edit3,
+  Calculator,
+  Lock,
+  UserPlus,
   Loader2,
   RefreshCw,
   LineChart,
@@ -77,7 +73,7 @@ function PortfolioEmitenLogo({ symbol }: { symbol: string }) {
 export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeClick }: PortfolioTabProps) {
   const { language, t } = useLanguage();
   const [holdings, setHoldings] = React.useState<Holding[]>([]);
-  const [cashBalance, setCashBalance] = React.useState<number>(0);
+  const [, setCashBalance] = React.useState<number>(0);
   const [currentPrices, setCurrentPrices] = React.useState<Record<string, number>>({});
   const [loading, setLoading] = React.useState(true);
   const [isLocalMode, setIsLocalMode] = React.useState(false);

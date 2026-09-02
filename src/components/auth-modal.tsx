@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { getErrorMessage } from '@/lib/utils';
 import { X, Mail, Lock, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { AppUser } from '@/lib/types';
@@ -137,8 +138,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           onClose();
         }
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Terjadi kesalahan sistem.');
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err) || 'Terjadi kesalahan sistem.');
     } finally {
       setLoading(false);
     }
@@ -169,8 +170,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         }
       });
       if (error) throw error;
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Terjadi kesalahan saat otentikasi Google.');
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err) || 'Terjadi kesalahan saat otentikasi Google.');
     }
   };
 

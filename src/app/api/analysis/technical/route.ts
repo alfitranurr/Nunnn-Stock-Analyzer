@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getErrorMessage } from '@/lib/utils';
 
 // Always run dynamically — this route proxies Yahoo Finance real-time data.
 export const dynamic = 'force-dynamic';
@@ -585,8 +586,8 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
-    console.error(`Error calculating technicals for ${querySymbol}:`, error.message);
+  } catch (error: unknown) {
+    console.error(`Error calculating technicals for ${querySymbol}:`, getErrorMessage(error));
     return NextResponse.json({
       symbol: querySymbol,
       ...getDeterministicTechnicalData(ticker, 5000)

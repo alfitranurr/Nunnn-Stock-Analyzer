@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { TrendingDown, ArrowRight, ShieldCheck, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
+import { TrendingDown, ArrowRight, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
 import { AvgDownResult } from '@/lib/calculator';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { cleanCompanyName } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
@@ -40,7 +40,7 @@ function ResultsEmitenLogo({ symbol }: { symbol: string }) {
 }
 
 export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayProps) {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   // Suppress confetti on initial mount/reload — only fire when the user
   // actively changes inputs to turn a loss into a profit.
   const [hasConfettiFired, setHasConfettiFired] = React.useState(

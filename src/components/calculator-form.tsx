@@ -1,8 +1,8 @@
 ﻿'use client';
 
 import * as React from 'react';
-import { Sparkles, Info, Plus, Trash2, RefreshCw } from 'lucide-react';
-import { AvgDownInput, PurchaseTranche } from '@/lib/calculator';
+import { Sparkles, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { AvgDownInput } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
