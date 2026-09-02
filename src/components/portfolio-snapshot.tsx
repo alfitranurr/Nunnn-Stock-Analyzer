@@ -4,6 +4,7 @@ import * as React from 'react';
 import { TrendingUp, TrendingDown, Wallet, Briefcase, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { AppUser } from '@/lib/types';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface Holding {
   id: string;
@@ -17,9 +18,11 @@ interface PortfolioSnapshotProps {
   user: AppUser | null;
   language: 'id' | 'en';
   onOpenPortfolio: () => void;
+  /** Bump this to force a re-fetch (e.g. when returning from portfolio tab). */
+  refreshKey?: number;
 }
 
-export function PortfolioSnapshot({ user, language, onOpenPortfolio }: PortfolioSnapshotProps) {
+export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey = 0 }: PortfolioSnapshotProps) {
   const [holdings, setHoldings] = React.useState<Holding[]>([]);
   const [cashBalance, setCashBalance] = React.useState(0);
   const [currentPrices, setCurrentPrices] = React.useState<Record<string, number>>({});
@@ -35,35 +38,74 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio }: Portfolio
     return `Rp ${value.toFixed(0)}`;
   };
 
-  // Load holdings from localStorage (demo) or Supabase
-  React.useEffect(() => {
+  const loadFromLocalStorage = React.useCallback(() => {
+    if (!user) return;
+    try {
+      const storedHoldings = localStorage.getItem(`nunnn_stock_portfolio_holdings_${user.id}`);
+      const storedCash = localStorage.getItem(`nunnn_stock_portfolio_cash_${user.id}`);
+
+      if (storedHoldings) {
+        setHoldings(JSON.parse(storedHoldings));
+      }
+      setCashBalance(storedCash ? parseFloat(storedCash) : 100000000);
+    } catch {
+      // ignore
+    }
+  }, [user]);
+
+  // Load holdings + cash from Supabase (if configured) or localStorage.
+  // Mirrors the logic in PortfolioTab.fetchData so the snapshot stays in sync.
+  const loadData = React.useCallback(async () => {
     if (!user) return;
 
-    const timer = setTimeout(async () => {
+    if (isSupabaseConfigured && !user.isMock) {
       try {
-        // Try localStorage first (works for both mock and as cache)
-        const storedHoldings = localStorage.getItem(`nunnn_stock_portfolio_holdings_${user.id}`);
-        const storedCash = localStorage.getItem(`nunnn_stock_portfolio_cash_${user.id}`);
+        // Fetch cash
+        const { data: cashDataArray } = await supabase
+          .from('portfolio_cash')
+          .select('cash_balance')
+          .eq('user_id', user.id);
 
-        if (storedHoldings) {
-          setHoldings(JSON.parse(storedHoldings));
-        }
-        if (storedCash) {
-          setCashBalance(parseFloat(storedCash));
+        if (cashDataArray && cashDataArray.length > 0) {
+          setCashBalance(Number(cashDataArray[0].cash_balance));
         } else {
           setCashBalance(100000000); // Default Rp 100M
         }
+
+        // Fetch holdings
+        const { data: holdingsData } = await supabase
+          .from('portfolio_holdings')
+          .select('*')
+          .order('ticker');
+
+        setHoldings(
+          (holdingsData || []).map((h: Record<string, unknown>) => ({
+            id: h.id as string,
+            ticker: h.ticker as string,
+            company_name: h.company_name as string | undefined,
+            lot: h.lot as number,
+            avg_price: Number(h.avg_price),
+          }))
+        );
       } catch {
-        // ignore
-      } finally {
-        setLoading(false);
+        // Fall back to localStorage on error
+        loadFromLocalStorage();
       }
+    } else {
+      loadFromLocalStorage();
+    }
+
+    setLoading(false);
+  }, [user, loadFromLocalStorage]);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      loadData();
     }, 0);
-
     return () => clearTimeout(timer);
-  }, [user]);
+  }, [loadData, refreshKey]);
 
-  // Fetch current prices for holdings
+  // Fetch current prices for holdings (batched, same pattern as portfolio-tab).
   React.useEffect(() => {
     if (holdings.length === 0) return;
 
@@ -75,19 +117,25 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio }: Portfolio
     if (missing.length === 0) return;
 
     (async () => {
-      for (const symbol of missing) {
+      const CONCURRENCY = 4;
+      for (let i = 0; i < missing.length; i += CONCURRENCY) {
         if (cancelled) break;
-        try {
-          const res = await fetch(`/api/ticker?symbol=${symbol}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (!cancelled && data.price) {
-              setCurrentPrices((prev) => ({ ...prev, [symbol]: data.price }));
+        const batch = missing.slice(i, i + CONCURRENCY);
+        await Promise.all(
+          batch.map(async (symbol) => {
+            try {
+              const res = await fetch(`/api/ticker?symbol=${symbol}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (!cancelled && data.price) {
+                  setCurrentPrices((prev) => ({ ...prev, [symbol]: data.price }));
+                }
+              }
+            } catch {
+              // ignore
             }
-          }
-        } catch {
-          // ignore
-        }
+          })
+        );
       }
     })();
 

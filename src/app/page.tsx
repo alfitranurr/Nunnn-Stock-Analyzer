@@ -48,9 +48,21 @@ function MarqueeLogo({ symbol }: { symbol: string }) {
 }
 
 export default function Dashboard() {
-  const [currentTab, setCurrentTab] = React.useState('home');
+  const [currentTab, setCurrentTabRaw] = React.useState('home');
   const [user, setUser] = React.useState<AppUser | null>(null);
+  const [portfolioRefreshKey, setPortfolioRefreshKey] = React.useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Wrap setCurrentTab to detect when user returns from portfolio to home,
+  // triggering a portfolio snapshot refresh so numbers stay in sync.
+  const setCurrentTab = React.useCallback((tab: string) => {
+    setCurrentTabRaw((prev) => {
+      if (prev === 'portfolio' && tab === 'home') {
+        setPortfolioRefreshKey((k) => k + 1);
+      }
+      return tab;
+    });
+  }, []);
   const { language, t } = useLanguage();
 
   const languageRef = React.useRef(language);
@@ -132,6 +144,7 @@ export default function Dashboard() {
         setCurrentTab(savedTab);
       }, 0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
@@ -727,6 +740,7 @@ export default function Dashboard() {
                       user={user}
                       language={language}
                       onOpenPortfolio={() => setCurrentTab('portfolio')}
+                      refreshKey={portfolioRefreshKey}
                     />
                   </div>
                 )}
