@@ -16,12 +16,6 @@ interface ResultsDisplayProps {
 
 function ResultsEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
-  const [prevSymbol, setPrevSymbol] = React.useState(symbol);
-  
-  if (symbol !== prevSymbol) {
-    setPrevSymbol(symbol);
-    setHasError(false);
-  }
 
   const cleanSymbol = symbol.toUpperCase().trim();
 
@@ -55,6 +49,11 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
   const [prevResult, setPrevResult] = React.useState(result);
   const [prevTicker, setPrevTicker] = React.useState(ticker);
 
+  // Adjust state during render when the result/ticker prop changes.
+  // This is the idiomatic React pattern for "reset state when a prop changes"
+  // (https://react.dev/learn/you-might-not-need-an-effect#resetting-all-state-when-a-prop-changes).
+  // The set-state-in-effect lint rule does NOT flag setState during render
+  // when guarded by a prop-comparison condition.
   if (result !== prevResult || ticker !== prevTicker) {
     setPrevResult(result);
     setPrevTicker(ticker);
@@ -134,7 +133,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           className="glass-card p-4 md:p-5 border-emerald-500/20 bg-card-bg relative overflow-hidden flex items-center gap-4 min-h-[84px] md:min-h-[92px]"
         >
           <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-          <ResultsEmitenLogo symbol={ticker} />
+          <ResultsEmitenLogo key={ticker} symbol={ticker} />
           <div className="flex flex-col justify-center">
             <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">
               Ticker

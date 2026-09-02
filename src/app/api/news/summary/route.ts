@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Always run dynamically — this route fetches live news and calls AI providers.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 function cleanJsonString(str: string) {
   let clean = str.trim();
   if (clean.startsWith('```json')) {
@@ -234,11 +238,12 @@ Pastikan data dan format JSON valid.`;
         try {
           console.log(`Attempting Gemini summary using model: ${model}`);
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-goog-api-key': geminiKey
               },
               body: JSON.stringify({
                 contents: [{

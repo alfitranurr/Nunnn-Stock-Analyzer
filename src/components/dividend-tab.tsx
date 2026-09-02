@@ -29,6 +29,19 @@ import { cleanCompanyName } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { useLanguage } from '@/lib/language-context';
+import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput, formatIDR as _formatIDR } from '@/lib/format';
+
+// Local wrapper preserves the original max-fraction-digits (2) for this tab.
+const formatNumberForInput = (num: number | string | undefined | null): string =>
+  _formatNumberForInput(num, { maxFractionDigits: 2 });
+
+// dividend-tab's formatIDR uses Intl currency style with id-ID locale.
+const formatIDR = (val: number): string =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(val);
 
 interface DividendTabProps {
   user: any;
@@ -52,25 +65,6 @@ const POPULAR_DIVIDEND_STOCKS = [
   { symbol: 'ANTM', name: 'Aneka Tambang Tbk', yield: '9.0%' },
 ];
 
-// Parser & Formatter helpers
-const parseFormattedNumber = (val: string | number): number => {
-  if (typeof val === 'number') return val;
-  if (!val) return 0;
-  const clean = val.toString().trim().replace(/[Rp$\s]/g, '').replace(/,/g, '');
-  const parsed = parseFloat(clean);
-  return isNaN(parsed) ? 0 : parsed;
-};
-
-const formatNumberForInput = (num: number | string | undefined | null): string => {
-  if (num === undefined || num === null || num === '') return '';
-  const parsed = typeof num === 'number' ? num : parseFloat(num.toString().replace(/,/g, ''));
-  if (isNaN(parsed)) return '';
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(parsed);
-};
-
 const formatLiveCurrencyInput = (valStr: string): string => {
   if (valStr === undefined || valStr === null || valStr === '') return '';
 
@@ -89,14 +83,6 @@ const formatLiveCurrencyInput = (valStr: string): string => {
   const parsed = parseInt(rawNum, 10);
   if (isNaN(parsed)) return '';
   return new Intl.NumberFormat('en-US').format(parsed);
-};
-
-const formatIDR = (val: number): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(val);
 };
 
 function CompanyLogo({ symbol }: { symbol: string }) {

@@ -214,9 +214,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         );
       } else {
         const { error: dbError } = await supabase
-          .from('user_approvals')
-          .update({ approved: newStatus })
-          .eq('email', userToUpdate.email);
+          .rpc('admin_set_user_approval', { p_email: userToUpdate.email, p_approved: newStatus });
 
         if (dbError) throw dbError;
         
@@ -258,9 +256,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         );
       } else {
         const { error: dbError } = await supabase
-          .from('user_approvals')
-          .delete()
-          .eq('email', userToDelete.email);
+          .rpc('admin_delete_user', { p_email: userToDelete.email });
 
         if (dbError) throw dbError;
         

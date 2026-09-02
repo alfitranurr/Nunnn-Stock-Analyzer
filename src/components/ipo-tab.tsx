@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { 
@@ -23,75 +23,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
+import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput, type Language } from '@/lib/format';
+
+// Local wrapper preserves the original language-aware, 0-fraction-digits behavior.
+const formatNumberForInput = (num: number | string | undefined | null, language: Language = 'id'): string =>
+  _formatNumberForInput(num, { maxFractionDigits: 0, language });
 
 interface IpoTabProps {
   user: any;
   onSignInClick: () => void;
 }
 
-// Helpers for parsing and formatting numbers
-const parseFormattedNumber = (val: string | number, language = 'id'): number => {
-  if (typeof val === 'number') return val;
-  if (!val) return 0;
-  let clean = val.toString().trim();
-  
-  // Remove currency symbols, spaces, and other non-numeric formatting characters
-  clean = clean.replace(/[Rp$\s]/g, '');
-
-  const hasComma = clean.includes(',');
-  const hasPeriod = clean.includes('.');
-
-  if (hasComma && !hasPeriod) {
-    // If there is a comma and no period, and it ends with a comma followed by 3 digits (e.g. "700,000")
-    // or has multiple commas (e.g. "1,250,000")
-    if (/,\d{3}(?:,\d{3})*$/.test(clean) || (clean.match(/,/g) || []).length > 1) {
-      clean = clean.replace(/,/g, '');
-    } else {
-      // Otherwise treat as decimal separator (e.g. "12,5")
-      clean = clean.replace(/,/g, '.');
-    }
-  } else if (hasPeriod && !hasComma) {
-    // If there is a period and no comma, and it ends with a period followed by 3 digits (e.g. "700.000")
-    // or has multiple periods (e.g. "1.250.000")
-    if (/\.\d{3}(?:\.\d{3})*$/.test(clean) || (clean.match(/\./g) || []).length > 1) {
-      clean = clean.replace(/\./g, '');
-    }
-  } else if (hasComma && hasPeriod) {
-    // Both exist (e.g., "1,250.50" or "1.250,50")
-    const commaIndex = clean.lastIndexOf(',');
-    const periodIndex = clean.lastIndexOf('.');
-    if (commaIndex > periodIndex) {
-      // Comma is the decimal separator (e.g., "1.250,50")
-      clean = clean.replace(/\./g, '').replace(/,/g, '.');
-    } else {
-      // Period is the decimal separator (e.g., "1,250.50")
-      clean = clean.replace(/,/g, '');
-    }
-  }
-
-  const parsed = parseFloat(clean);
-  return isNaN(parsed) ? 0 : parsed;
-};
-
-const formatNumberForInput = (num: number | string | undefined | null, language = 'id'): string => {
-  if (num === undefined || num === null || num === '') return '';
-  const parsed = typeof num === 'number' ? num : parseFormattedNumber(num, language);
-  if (isNaN(parsed)) return '';
-  return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(parsed);
-};
 
 
 function IpoEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
-  const [prevSymbol, setPrevSymbol] = React.useState(symbol);
-  
-  if (symbol !== prevSymbol) {
-    setPrevSymbol(symbol);
-    setHasError(false);
-  }
 
   const cleanSymbol = symbol.toUpperCase().trim();
 
@@ -180,11 +126,11 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   };
 
   // Convert inputs to numbers
-  const price = parseFormattedNumber(priceStr, language);
-  const totalLots = parseFormattedNumber(totalLotsStr, language);
+  const price = parseFormattedNumber(priceStr);
+  const totalLots = parseFormattedNumber(totalLotsStr);
   const oversubscription = parseFloat(oversubscriptionStr) || 1;
-  const totalSubscribers = parseFormattedNumber(totalSubscribersStr, language);
-  const personalOrderLots = parseFormattedNumber(personalOrderAmountStr, language);
+  const totalSubscribers = parseFormattedNumber(totalSubscribersStr);
+  const personalOrderLots = parseFormattedNumber(personalOrderAmountStr);
   const pricePerLot = price * 100;
   const personalOrderAmount = personalOrderLots * pricePerLot;
 
@@ -472,28 +418,28 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                     </thead>
                     <tbody className="divide-y divide-border-color">
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'I (â‰¤ Rp100 Miliar)' : 'I (â‰¤ 100 Billion IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'I (≤ Rp100 Miliar)' : 'I (≤ 100 Billion IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 20% / Rp10 Miliar' : 'Min 20% / 10 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '22,5%' : '22.5%'}</td>
                         <td className="p-3 whitespace-nowrap">25%</td>
                         <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">30%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'II (> Rp100M - â‰¤ Rp250M)' : 'II (> 100M - â‰¤ 250M IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'II (> Rp100M - ≤ Rp250M)' : 'II (> 100M - ≤ 250M IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 15% / Rp20 Miliar' : 'Min 15% / 20 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '17,5%' : '17.5%'}</td>
                         <td className="p-3 whitespace-nowrap">20%</td>
                         <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">25%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'III (> Rp250M - â‰¤ Rp500M)' : 'III (> 250M - â‰¤ 500M IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'III (> Rp250M - ≤ Rp500M)' : 'III (> 250M - ≤ 500M IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 10% / Rp37.5 Miliar' : 'Min 10% / 37.5 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
                         <td className="p-3 whitespace-nowrap">15%</td>
                         <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">20%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'IV (> Rp500M - â‰¤ Rp1 Triliun)' : 'IV (> 500M - â‰¤ 1 Trillion IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'IV (> Rp500M - ≤ Rp1 Triliun)' : 'IV (> 500M - ≤ 1 Trillion IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 7,5% / Rp50 Miliar' : 'Min 7.5% / 50 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '10%' : '10%'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
@@ -537,7 +483,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('ipo.labelTicker')}</label>
             <div className="flex gap-2 items-center">
-              <IpoEmitenLogo symbol={ticker} />
+              <IpoEmitenLogo key={ticker} symbol={ticker} />
               <input
                 type="text"
                 maxLength={6}
@@ -859,8 +805,8 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
           }`}>
             {language === 'id' 
-              ? `Kategori: ${personalOrderAmount <= 100_000_000 ? 'Ritel (â‰¤ Rp100jt)' : 'Non-Ritel (> Rp100jt)'}` 
-              : `Category: ${personalOrderAmount <= 100_000_000 ? 'Retail (â‰¤ 100M IDR)' : 'Non-Retail (> 100M IDR)'}`}
+              ? `Kategori: ${personalOrderAmount <= 100_000_000 ? 'Ritel (≤ Rp100jt)' : 'Non-Ritel (> Rp100jt)'}` 
+              : `Category: ${personalOrderAmount <= 100_000_000 ? 'Retail (≤ 100M IDR)' : 'Non-Retail (> 100M IDR)'}`}
           </span>
         </div>
 
@@ -1009,7 +955,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                   <tr key={plan.id} className="hover:bg-white/5">
                     <td className="p-3">
                       <div className="flex items-center gap-2.5">
-                        <IpoEmitenLogo symbol={plan.ticker} />
+                        <IpoEmitenLogo key={plan.ticker} symbol={plan.ticker} />
                         <div className="flex flex-col">
                           <div className="font-extrabold text-white leading-tight">{plan.ticker}</div>
                           <div className="text-[10px] text-slate-400 truncate max-w-[150px] leading-tight">
@@ -1057,7 +1003,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               >
                 {/* Logo & Ticker & Company Name */}
                 <div className="flex items-center gap-2.5 border-b border-border-color pb-2">
-                  <IpoEmitenLogo symbol={plan.ticker} />
+                  <IpoEmitenLogo key={plan.ticker} symbol={plan.ticker} />
                   <div className="flex flex-col">
                     <span className="font-extrabold text-sm text-emerald-400 tracking-wider leading-none">
                       {plan.ticker}

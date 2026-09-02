@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Always run dynamically — this route proxies Yahoo Finance real-time data.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Math helpers
 function calculateRSI(closes: number[], period = 14): number {
   if (closes.length <= period) return 50;

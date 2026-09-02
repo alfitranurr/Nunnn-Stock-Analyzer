@@ -2,6 +2,10 @@
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
 
+// Always run dynamically — this route proxies Yahoo Finance real-time data.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface YahooQuote {
   symbol?: string;
   exchange?: string;

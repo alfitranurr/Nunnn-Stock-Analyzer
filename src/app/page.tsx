@@ -120,7 +120,8 @@ export default function Dashboard() {
 
   // Check user session on mount
   React.useEffect(() => {
-    let subscription: any = null;
+    let subscription: { unsubscribe: () => void } | null = null;
+    let isMounted = true;
 
     const clearSupabaseAuthKeys = () => {
       try {
@@ -204,15 +205,20 @@ export default function Dashboard() {
           if (sessionUser.email?.toLowerCase() === adminEmail) {
             const { data: adminApprovalArray } = await supabase
               .from('user_approvals')
-              .select('approved')
+              .select('approved, is_admin')
               .eq('email', sessionUser.email);
-              
+               
             const adminApproval = adminApprovalArray && adminApprovalArray.length > 0 ? adminApprovalArray[0] : null;
-              
+               
             if (!adminApproval) {
+              // First-run: insert own row (self-insert allowed by RLS), then claim admin.
               await supabase.from('user_approvals').insert({ email: sessionUser.email, approved: true });
+              await supabase.rpc('claim_first_admin', { p_email: sessionUser.email });
             } else if (!adminApproval.approved) {
-              await supabase.from('user_approvals').update({ approved: true }).eq('email', sessionUser.email);
+              await supabase.rpc('claim_first_admin', { p_email: sessionUser.email });
+            } else if (!adminApproval.is_admin) {
+              // Admin row exists but not promoted — attempt to claim (no-op if another admin exists).
+              await supabase.rpc('claim_first_admin', { p_email: sessionUser.email });
             }
           } else {
             const { data: approvalDataArray, error: dbError } = await supabase
@@ -249,6 +255,7 @@ export default function Dashboard() {
       // Listen for auth state changes
       try {
         const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (!isMounted) return;
           if (session) {
             setUser(session.user);
           } else {
@@ -264,6 +271,7 @@ export default function Dashboard() {
     checkSession();
 
     return () => {
+      isMounted = false;
       if (subscription) {
         subscription.unsubscribe();
       }

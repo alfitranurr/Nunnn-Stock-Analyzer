@@ -1,5 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { cleanCompanyName } from '@/lib/utils';
+
+// Always run dynamically — this route proxies Yahoo Finance real-time data.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // High-Fidelity Historical Dividend Data for popular BEI stocks
 const POPULAR_DIVIDENDS: Record<string, {
@@ -261,8 +265,9 @@ export async function GET(request: NextRequest) {
         if (meta.longName || meta.shortName) companyName = cleanCompanyName(meta.longName || meta.shortName);
       }
     }
-  } catch (e: any) {
-    console.warn(`Live quote fetch error for ${querySymbol}:`, e.message);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(`Live quote fetch error for ${querySymbol}:`, msg);
   }
 
   // 2. Fetch dividend events from Yahoo Finance chart
@@ -291,7 +296,7 @@ export async function GET(request: NextRequest) {
       const events = divJson.chart?.result?.[0]?.events?.dividends;
 
       if (events && typeof events === 'object') {
-        const divArray = Object.values(events).map((item: any, idx: number) => {
+        const divArray = (Object.values(events) as Array<{ date: number; amount: number }>).map((item, idx) => {
           const dateObj = new Date(item.date * 1000);
           const year = dateObj.getFullYear();
           const formattedDate = dateObj.toISOString().split('T')[0];
@@ -314,8 +319,9 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-  } catch (e: any) {
-    console.warn(`Live dividend events fetch error for ${querySymbol}:`, e.message);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(`Live dividend events fetch error for ${querySymbol}:`, msg);
   }
 
   // Combine live dividends with fallback dictionary

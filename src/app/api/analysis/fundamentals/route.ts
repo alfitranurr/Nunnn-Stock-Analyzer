@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Always run dynamically — this route proxies Yahoo Finance real-time data.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Local High-Fidelity Dictionary for popular BEI stocks
 const POPULAR_FUNDAMENTALS: Record<string, any> = {
   'BBCA': {

@@ -21,6 +21,11 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { useLanguage } from '@/lib/language-context';
+import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput } from '@/lib/format';
+
+// Local wrapper preserves the original max-fraction-digits (4) for this tab.
+const formatNumberForInput = (num: number | string | undefined | null): string =>
+  _formatNumberForInput(num, { maxFractionDigits: 4 });
 
 interface CompoundingTabProps {
   user: any;
@@ -28,59 +33,6 @@ interface CompoundingTabProps {
 }
 
 // Helpers for parsing and formatting numbers
-const parseFormattedNumber = (val: string | number): number => {
-  if (typeof val === 'number') return val;
-  if (!val) return 0;
-  let clean = val.toString().trim();
-  
-  // Remove currency symbols, spaces, and other non-numeric formatting characters
-  clean = clean.replace(/[Rp$\s]/g, '');
-
-  const hasComma = clean.includes(',');
-  const hasPeriod = clean.includes('.');
-
-  if (hasComma && !hasPeriod) {
-    // If there is a comma and no period, and it ends with a comma followed by 3 digits (e.g. "700,000")
-    // or has multiple commas (e.g. "1,250,000")
-    if (/,\d{3}(?:,\d{3})*$/.test(clean) || (clean.match(/,/g) || []).length > 1) {
-      clean = clean.replace(/,/g, '');
-    } else {
-      // Otherwise treat as decimal separator (e.g. "12,5")
-      clean = clean.replace(/,/g, '.');
-    }
-  } else if (hasPeriod && !hasComma) {
-    // If there is a period and no comma, and it ends with a period followed by 3 digits (e.g. "700.000")
-    // or has multiple periods (e.g. "1.250.000")
-    if (/\.\d{3}(?:\.\d{3})*$/.test(clean) || (clean.match(/\./g) || []).length > 1) {
-      clean = clean.replace(/\./g, '');
-    }
-  } else if (hasComma && hasPeriod) {
-    // Both exist (e.g., "1,250.50" or "1.250,50")
-    const commaIndex = clean.lastIndexOf(',');
-    const periodIndex = clean.lastIndexOf('.');
-    if (commaIndex > periodIndex) {
-      // Comma is the decimal separator (e.g., "1.250,50")
-      clean = clean.replace(/\./g, '').replace(/,/g, '.');
-    } else {
-      // Period is the decimal separator (e.g., "1,250.50")
-      clean = clean.replace(/,/g, '');
-    }
-  }
-
-  const parsed = parseFloat(clean);
-  return isNaN(parsed) ? 0 : parsed;
-};
-
-const formatNumberForInput = (num: number | string | undefined | null): string => {
-  if (num === undefined || num === null || num === '') return '';
-  const parsed = typeof num === 'number' ? num : parseFloat(num.toString().replace(/,/g, ''));
-  if (isNaN(parsed)) return '';
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
-  }).format(parsed);
-};
-
 export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
   const { t, language } = useLanguage();
   // Input States
