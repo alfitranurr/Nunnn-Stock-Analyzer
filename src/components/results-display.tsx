@@ -47,7 +47,11 @@ function ResultsEmitenLogo({ symbol }: { symbol: string }) {
 
 export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayProps) {
   const { t, language } = useLanguage();
-  const [hasConfettiFired, setHasConfettiFired] = React.useState(false);
+  // Suppress confetti on initial mount/reload — only fire when the user
+  // actively changes inputs to turn a loss into a profit.
+  const [hasConfettiFired, setHasConfettiFired] = React.useState(
+    () => Boolean(result?.turnedIntoProfit)
+  );
   const [prevResult, setPrevResult] = React.useState(result);
   const [prevTicker, setPrevTicker] = React.useState(ticker);
 
@@ -79,7 +83,9 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
     return 'text-lg';
   };
 
-  // Efek Confetti ketika berhasil mengubah Loss jadi Profit
+  // Efek Confetti ketika berhasil mengubah Loss jadi Profit.
+  // Tidak meledak pada initial mount/reload karena hasConfettiFired
+  // sudah diinisialisasi ke true bila result awal sudah turnedIntoProfit.
   React.useEffect(() => {
     if (result && result.turnedIntoProfit && !hasConfettiFired) {
       confetti({
