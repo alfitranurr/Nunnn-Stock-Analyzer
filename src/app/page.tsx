@@ -5,6 +5,7 @@ import { getErrorMessage } from '@/lib/utils';
 import { Sidebar } from '@/components/sidebar';
 import { CalculatorForm } from '@/components/calculator-form';
 import { ResultsDisplay } from '@/components/results-display';
+import { MarketSummary } from '@/components/market-summary';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
@@ -689,6 +690,11 @@ export default function Dashboard() {
                       <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
                     </button>
                   </div>
+                </div>
+
+                {/* Market Summary (IHSG + Top Movers) */}
+                <div className="pt-4">
+                  <MarketSummary language={language} />
                 </div>
 
                 {/* Horizontal Ticker Marquee */}
