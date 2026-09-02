@@ -5,6 +5,7 @@ import { getErrorMessage } from '@/lib/utils';
 import { X, Mail, Lock, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
+import { hashUserPassword, verifyUserPassword } from '@/lib/crypto';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -30,10 +31,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     const cleanEmail = email.toLowerCase().trim();
 
     // MOCK MODE FALLBACK — DEMO ONLY, NOT FOR PRODUCTION
-    // Passwords are stored in plaintext in localStorage. This fallback only runs
+    // Passwords are hashed (SHA-256+salt) in localStorage. This fallback only runs
     // when Supabase is not configured. Never use this mode with real user data.
     if (!isSupabaseConfigured) {
-      setTimeout(() => {
+      // Simulate network delay, then run async password hashing/verification.
+      setTimeout(async () => {
         setLoading(false);
         const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
         const simUsers: SimUser[] = storedSimUsers ? JSON.parse(storedSimUsers) : [];
@@ -45,9 +47,10 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             setErrorMsg('Alamat email sudah terdaftar.');
             return;
           }
-          const newUser = {
+          const passwordHash = await hashUserPassword(password);
+          const newUser: SimUser = {
             email: cleanEmail,
-            password: password,
+            passwordHash,
             approved: isCurrentAdmin
           };
           simUsers.push(newUser);
@@ -66,8 +69,9 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             setIsSignUp(false);
           }
         } else {
-          const userObj = simUsers.find((u) => u.email.toLowerCase() === cleanEmail && u.password === password);
-          if (!userObj) {
+          // Find user by email, then verify password hash.
+          const userObj = simUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+          if (!userObj || !(await verifyUserPassword(password, userObj.passwordHash))) {
             setErrorMsg('Email atau password salah.');
             return;
           }

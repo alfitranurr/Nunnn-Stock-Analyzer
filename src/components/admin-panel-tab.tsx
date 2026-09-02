@@ -25,6 +25,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { useLanguage } from '@/lib/language-context';
+import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
 
 interface AdminPanelTabProps {
   user: AppUser | null;
@@ -83,7 +84,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     }
   }, [user]);
 
-  const executeResetSimData = () => {
+  const executeResetSimData = async () => {
     try {
       localStorage.removeItem('nunnn_stock_saved_plans');
       localStorage.removeItem('nunnn_stock_compounding_plans');
@@ -93,12 +94,19 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         localStorage.removeItem(`nunnn_stock_portfolio_cash_${user.id}`);
       }
       
+      // Generate a random admin password (not hardcoded) and hash it.
       const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
-      localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify([
-        { email: adminEmail, password: 'adminpassword', approved: true }
-      ]));
-
-      setSuccessMsg(language === 'id' ? 'Data simulasi lokal berhasil dibersihkan.' : 'Local simulated data cleared successfully.');
+      const randomPassword = generateRandomPassword();
+      const passwordHash = await hashUserPassword(randomPassword);
+      const adminUser: SimUser = { email: adminEmail, passwordHash, approved: true };
+      localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify([adminUser]));
+      
+      // Show the one-time password so the admin can log in after reset.
+      setSuccessMsg(
+        (language === 'id'
+          ? `Data simulasi dibersihkan. Password admin baru: ${randomPassword} (simpan segera!)`
+          : `Simulated data cleared. New admin password: ${randomPassword} (save it now!)`)
+      );
       fetchLocalStats();
       fetchUsers();
     } catch (err: unknown) {

@@ -16,10 +16,11 @@ export interface AppUser {
 
 /**
  * A simulated/demo user record stored in localStorage when Supabase is not
- * configured. Passwords are stored in plaintext — DEMO ONLY, not production.
+ * configured. Passwords are stored as `salt:hash` (SHA-256) — never plaintext.
+ * DEMO ONLY, not production.
  */
 export interface SimUser {
   email: string;
-  password: string;
+  passwordHash: string;
   approved: boolean;
 }

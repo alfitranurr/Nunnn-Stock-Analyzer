@@ -18,6 +18,7 @@ import { DividendTab } from '@/components/dividend-tab';
 import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
+import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
 import { Sparkles, AlertCircle, Info, ChevronUp, ArrowRight, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -159,7 +160,7 @@ export default function Dashboard() {
 
     const checkSession = async () => {
       // MOCK MODE FALLBACK — DEMO ONLY, NOT FOR PRODUCTION.
-      // Passwords stored in plaintext in localStorage. Gated by !isSupabaseConfigured.
+      // Passwords are hashed (SHA-256+salt) in localStorage. Gated by !isSupabaseConfigured.
       if (!isSupabaseConfigured) {
         const storedMockUser = localStorage.getItem('nunnn_stock_mock_user');
         if (storedMockUser) {
@@ -172,8 +173,17 @@ export default function Dashboard() {
               const simUsers: SimUser[] = storedSimUsers ? JSON.parse(storedSimUsers) : [];
               const adminUserIndex = simUsers.findIndex((u) => u.email.toLowerCase() === adminEmail);
               if (adminUserIndex === -1) {
-                simUsers.push({ email: adminEmail, password: 'adminpassword', approved: true });
+                // Auto-create admin with a random hashed password on first run.
+                const randomPassword = generateRandomPassword();
+                const passwordHash = await hashUserPassword(randomPassword);
+                simUsers.push({ email: adminEmail, passwordHash, approved: true });
                 localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
+                console.info(
+                  `%c[Nunnn Demo Mode] Admin account created.\n` +
+                  `Email: ${adminEmail}\nPassword: ${randomPassword}\n` +
+                  `Save this password — it won't be shown again.`,
+                  'color: #05fa7b; font-weight: bold; font-size: 13px;'
+                );
               } else if (!simUsers[adminUserIndex].approved) {
                 simUsers[adminUserIndex].approved = true;
                 localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
