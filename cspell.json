@@ -109,8 +109,20 @@
                   "dari",
                   "dulu",
                   "instan",
-                  "Lokal"
-              ],
+                   "Lokal",
+                   "lalu",
+                   "saja",
+                   "saham",
+                   "Gagal",
+                   "memuat",
+                   "berita",
+                   "terkini",
+                   "Berita",
+                   "Pasar",
+                   "Terkini",
+                   "mnt",
+                   "jam"
+               ],
     "ignorePaths":  [
                         "node_modules/**",
                         ".next/**",
