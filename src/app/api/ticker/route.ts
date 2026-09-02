@@ -2,6 +2,30 @@
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
 
+interface YahooQuote {
+  symbol?: string;
+  exchange?: string;
+  exchDisp?: string;
+  longname?: string;
+  shortname?: string;
+}
+
+interface YahooSearchResponse {
+  quotes?: YahooQuote[];
+}
+
+interface YahooChartMeta {
+  longName?: string;
+  shortName?: string;
+  regularMarketPrice?: number | null;
+}
+
+interface YahooChartResponse {
+  chart?: {
+    result?: Array<{ meta?: YahooChartMeta }>;
+  };
+}
+
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -33,9 +57,9 @@ export async function GET(request: NextRequest) {
             }
           });
           if (res.ok) {
-            const data = await res.json();
+            const data: YahooSearchResponse = await res.json();
             const rawQuotes = data.quotes || [];
-            rawQuotes.forEach((quote: any) => {
+            rawQuotes.forEach((quote: YahooQuote) => {
               const sym = (quote.symbol || '').toUpperCase();
               const exch = (quote.exchange || '').toUpperCase();
               const disp = (quote.exchDisp || '').toUpperCase();
@@ -66,7 +90,7 @@ export async function GET(request: NextRequest) {
             }
           );
           if (chartRes.ok) {
-            const chartData = await chartRes.json();
+            const chartData: YahooChartResponse = await chartRes.json();
             const meta = chartData.chart?.result?.[0]?.meta;
             if (meta) {
               const name = cleanCompanyName(meta.longName || meta.shortName || cleanQ);
@@ -80,8 +104,9 @@ export async function GET(request: NextRequest) {
 
       const quotes = Array.from(resultsMap.values());
       return NextResponse.json({ quotes });
-    } catch (err: any) {
-      console.error('Error in ticker search:', err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('Error in ticker search:', message);
       return NextResponse.json({ error: 'Search failed' }, { status: 500 });
     }
   }
@@ -111,7 +136,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
     }
 
-    const data = await response.json();
+    const data: YahooChartResponse = await response.json();
     const meta = data.chart?.result?.[0]?.meta;
 
     if (meta) {
@@ -122,8 +147,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
-  } catch (error: any) {
-    console.error('Error fetching ticker data from internet:', error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching ticker data from internet:', message);
     const localName = IDX_TICKERS[symbol] || '';
     return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
   }
