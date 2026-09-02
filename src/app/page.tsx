@@ -9,6 +9,7 @@ import { MarketSummary } from '@/components/market-summary';
 import { QuickSearchTicker } from '@/components/quick-search-ticker';
 import { TrendingNewsStrip } from '@/components/trending-news-strip';
 import { PortfolioSnapshot } from '@/components/portfolio-snapshot';
+import { EducationalTipCard } from '@/components/educational-tip-card';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
@@ -725,6 +726,11 @@ export default function Dashboard() {
                 {/* Trending News Strip */}
                 <div className="pt-4">
                   <TrendingNewsStrip language={language} />
+                </div>
+
+                {/* Educational Tip */}
+                <div className="pt-4">
+                  <EducationalTipCard language={language} />
                 </div>
 
                 {/* Horizontal Ticker Marquee */}
