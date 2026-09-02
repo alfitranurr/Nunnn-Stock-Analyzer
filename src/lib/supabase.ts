@@ -9,8 +9,19 @@ export const isSupabaseConfigured =
   supabaseAnonKey !== '' &&
   !supabaseUrl.includes('your-supabase-project');
 
-// When unconfigured, create a no-op client with empty credentials rather than
-// a hardcoded placeholder JWT that could leak into the bundle or trigger warnings.
+// In-memory storage that never reads from / writes to real localStorage.
+// Used by the unconfigured client so Supabase's auth initializer cannot pick
+// up stale `sb-*` tokens from a previous real session and attempt a network
+// refresh against the placeholder URL (which would throw "Failed to fetch").
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+};
+
+// When unconfigured, create a no-op client with in-memory storage rather than
+// a hardcoded placeholder JWT that could leak into the bundle or trigger
+// network errors during the auth recovery flow on init.
 export const supabase: SupabaseClient = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -24,6 +35,7 @@ export const supabase: SupabaseClient = isSupabaseConfigured
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false,
+        storage: noopStorage,
       },
     });
 
