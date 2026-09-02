@@ -689,24 +689,27 @@ export default function Dashboard() {
                 </div>
 
                 {/* Quick Ticker Search + Connection Status */}
-                <div className="pt-4 space-y-3">
-                  <QuickSearchTicker
-                    language={language}
-                    onSelectTicker={(symbol) => {
-                      setSelectedAnalysisTicker(symbol);
-                      setCurrentTab('analysis');
-                    }}
-                  />
+                <div className="pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <QuickSearchTicker
+                      language={language}
+                      onSelectTicker={(symbol) => {
+                        setSelectedAnalysisTicker(symbol);
+                        setCurrentTab('analysis');
+                      }}
+                    />
+                  </div>
                   {user && (
-                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400">
+                    <div className="shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 sm:self-stretch">
                       <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
                       <span className="text-[11px] font-semibold whitespace-nowrap">
-                        {language === 'id'
-                          ? `Terhubung: ${user.email}`
-                          : `Connected: ${user.email}`}
+                        {language === 'id' ? 'Terhubung' : 'Connected'}
                       </span>
-                      <span className="text-[9px] text-emerald-400/60 font-bold uppercase tracking-wider whitespace-nowrap">
-                        · {isSupabaseConfigured && !user.isMock ? 'Cloud DB' : (language === 'id' ? 'Simulasi' : 'Local')}
+                      <span className="text-[10px] text-emerald-300/80 font-medium whitespace-nowrap max-w-[140px] truncate">
+                        {user.email}
+                      </span>
+                      <span className="text-[9px] text-emerald-400/50 font-bold uppercase tracking-wider whitespace-nowrap">
+                        · {isSupabaseConfigured && !user.isMock ? 'Cloud' : 'Local'}
                       </span>
                     </div>
                   )}
