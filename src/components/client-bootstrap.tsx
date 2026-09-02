@@ -22,6 +22,7 @@ export function ClientBootstrap() {
       'refresh token not found',
       'refresh_token not found',
       'authapierror',
+      'failed to fetch',
     ];
 
     function isAuthError(text: string): boolean {
