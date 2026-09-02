@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Trash2, ExternalLink, Calendar, Calculator, Info, Sparkles } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import type { AppUser } from '@/lib/types';
 import { cleanCompanyName } from '@/lib/utils';
 
 export interface SavedPlan {
@@ -25,7 +26,7 @@ interface HistoryTableProps {
   plans: SavedPlan[];
   onDeletePlan: (id: string) => void;
   onLoadPlan: (plan: SavedPlan) => void;
-  user: any;
+  user: AppUser | null;
 }
 
 function HistoryEmitenLogo({ symbol }: { symbol: string }) {
@@ -262,7 +263,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <span className="text-slate-500 text-[10px] block">Posisi Awal</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-350">{plan.lot_awal.toLocaleString('en-US')} Lot</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-400">{plan.lot_awal.toLocaleString('en-US')} Lot</span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">@ {formatIDR(plan.avg_price_awal)}</span>
                   </div>
                   <div>

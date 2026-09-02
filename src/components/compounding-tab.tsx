@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { calculateCompounding, CompoundingInput, CompoundingResult, calculateDailyCompounding, DailyCompoundingInput, DailyCompoundingResult } from '@/lib/compounding';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { useLanguage } from '@/lib/language-context';
@@ -28,7 +29,7 @@ const formatNumberForInput = (num: number | string | undefined | null): string =
   _formatNumberForInput(num, { maxFractionDigits: 4 });
 
 interface CompoundingTabProps {
-  user: any;
+  user: AppUser | null;
   onSignInClick: () => void;
 }
 
@@ -1050,7 +1051,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
             </div>
 
             <div className="glass-card p-4.5 bg-indigo-500/5 border-indigo-500/20 overflow-hidden">
-              <span className="text-[9px] font-bold text-indigo-450 dark:text-indigo-400 uppercase tracking-widest block">
+              <span className="text-[9px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest block">
                 {t('compounding.cumulativeDeposits')}
               </span>
               <h3 
@@ -1073,7 +1074,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20 overflow-hidden border-l-2 border-l-blue-450 dark:border-l-blue-400">
+            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20 overflow-hidden border-l-2 border-l-blue-500 dark:border-l-blue-400">
               <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block">
                 {t('compounding.realEndingBalance')}
               </span>
@@ -1251,7 +1252,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
 
               {/* Dynamic Interactive Tooltip */}
               {hoveredIndex !== null && (
-                <div className="absolute top-2 left-2 md:top-4 md:left-4 p-3 bg-slate-950/95 border border-[#00b15b]/30 rounded-xl shadow-xl z-20 space-y-1 font-mono text-[10px] text-slate-350 max-w-[280px] backdrop-blur-md animate-fadeIn">
+                <div className="absolute top-2 left-2 md:top-4 md:left-4 p-3 bg-slate-950/95 border border-[#00b15b]/30 rounded-xl shadow-xl z-20 space-y-1 font-mono text-[10px] text-slate-400 max-w-[280px] backdrop-blur-md animate-fadeIn">
                   <div className="font-extrabold text-white border-b border-white/5 pb-1 uppercase tracking-wider">
                     {chartData[hoveredIndex].label}
                   </div>

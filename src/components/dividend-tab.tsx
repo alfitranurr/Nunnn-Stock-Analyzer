@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { calculateDividend, DividendInput, DividendResult, MonthlyDividendBreakdown } from '@/lib/dividend';
 import { cleanCompanyName } from '@/lib/utils';
+import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { useLanguage } from '@/lib/language-context';
@@ -44,7 +45,7 @@ const formatIDR = (val: number): string =>
   }).format(val);
 
 interface DividendTabProps {
-  user: any;
+  user: AppUser | null;
   onSignInClick: () => void;
 }
 

@@ -21,13 +21,14 @@ import {
   Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
 interface SidebarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
-  user: any;
+  user: AppUser | null;
   onSignOut: () => void;
   onSignInClick: () => void;
   isCollapsed: boolean;
@@ -202,7 +203,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                         onSignOut();
                         setIsMobileOpen(false);
                       }} 
-                      className="p-2 text-slate-400 hover:text-rose-450 hover:bg-rose-500/10 rounded-lg cursor-pointer"
+                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg cursor-pointer"
                     >
                       <LogOut className="h-5 w-5" />
                     </button>
@@ -309,7 +310,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   onClick={() => setLanguage('id')}
                   className={cn(
                     "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'id' ? "bg-emerald-500 text-white shadow" : "text-slate-450 hover:text-white"
+                    language === 'id' ? "bg-emerald-500 text-white shadow" : "text-slate-500 hover:text-white"
                   )}
                 >
                   ID
@@ -319,7 +320,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   onClick={() => setLanguage('en')}
                   className={cn(
                     "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'en' ? "bg-emerald-500 text-white shadow" : "text-slate-450 hover:text-white"
+                    language === 'en' ? "bg-emerald-500 text-white shadow" : "text-slate-500 hover:text-white"
                   )}
                 >
                   EN
@@ -349,7 +350,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 {!isCollapsed && (
                   <div className="overflow-hidden">
                     <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">{t('sidebar.user')}</p>
-                    <p className="text-xs font-semibold truncate text-slate-700 dark:text-slate-205">{user.email}</p>
+                    <p className="text-xs font-semibold truncate text-slate-700 dark:text-slate-300">{user.email}</p>
                   </div>
                 )}
               </div>

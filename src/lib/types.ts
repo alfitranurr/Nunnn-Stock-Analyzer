@@ -9,9 +9,7 @@
  */
 export interface AppUser {
   id: string;
-  email: string;
+  email?: string;
   /** True when the user originates from the local demo/simulation mode. */
   isMock?: boolean;
-  // Supabase User objects carry many additional fields; allow passthrough.
-  [key: string]: unknown;
 }

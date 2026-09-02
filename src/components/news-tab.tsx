@@ -17,9 +17,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
+import type { AppUser } from '@/lib/types';
 
 interface NewsTabProps {
-  user: any;
+  user: AppUser | null;
   onSignInClick: () => void;
 }
 
@@ -58,13 +59,13 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
   const [showLeftArrow, setShowLeftArrow] = React.useState(false);
   const [showRightArrow, setShowRightArrow] = React.useState(true);
 
-  const checkScroll = () => {
+  const checkScroll = React.useCallback(() => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
       setShowLeftArrow(scrollLeft > 2);
       setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 2);
     }
-  };
+  }, []);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (tabsRef.current) {
@@ -90,13 +91,13 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
       }
       window.removeEventListener('resize', checkScroll);
     };
-  }, []);
+  }, [checkScroll]);
 
   React.useEffect(() => {
     setTimeout(checkScroll, 100);
-  }, [category, news]);
+  }, [category, news, checkScroll]);
 
-  const fetchNews = async (cat: 'saham' | 'foreign' | 'domestik' | 'global' | 'politik', queryStr: string = '') => {
+  const fetchNews = React.useCallback(async (cat: 'saham' | 'foreign' | 'domestik' | 'global' | 'politik', queryStr: string = '') => {
     setLoading(true);
     setError(null);
     try {
@@ -110,20 +111,21 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
       }
       const data = await res.json();
       setNews(data.news || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || (language === 'id' ? 'Gagal memuat berita finansial.' : 'Failed to load financial news.'));
+      const msg = err instanceof Error ? err.message : (language === 'id' ? 'Gagal memuat berita finansial.' : 'Failed to load financial news.');
+      setError(msg);
     } finally {
       setLoading(false);
     }
-  };
+  }, [language]);
 
-  // Fetch news on category change
+  // Fetch news on category change (skip when user has an active search query).
   React.useEffect(() => {
     if (!searchQuery) {
       fetchNews(category);
     }
-  }, [category]);
+  }, [category, searchQuery, fetchNews]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -341,9 +343,9 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
               key={i} 
               className="border border-slate-900/60 bg-slate-950/20 rounded-2xl p-5 space-y-3 animate-pulse"
             >
-              <div className="h-4 bg-slate-850 rounded w-3/4"></div>
-              <div className="h-3 bg-slate-850 rounded w-1/4"></div>
-              <div className="h-8 bg-slate-850 rounded w-32 mt-3"></div>
+              <div className="h-4 bg-slate-800 rounded w-3/4"></div>
+              <div className="h-3 bg-slate-800 rounded w-1/4"></div>
+              <div className="h-8 bg-slate-800 rounded w-32 mt-3"></div>
             </div>
           ))}
         </div>
@@ -463,12 +465,12 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                             </div>
                             
                             <div className="space-y-3">
-                              <div className="h-6 bg-slate-900 rounded w-2/3 animate-pulse border border-slate-850"></div>
+                              <div className="h-6 bg-slate-900 rounded w-2/3 animate-pulse border border-slate-800"></div>
                               <div className="h-4 bg-slate-900 rounded w-full animate-pulse"></div>
                               <div className="h-4 bg-slate-900 rounded w-5/6 animate-pulse"></div>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                                <div className="h-10 bg-slate-900 rounded w-full animate-pulse border border-slate-850"></div>
-                                <div className="h-10 bg-slate-900 rounded w-full animate-pulse border border-slate-850"></div>
+                                <div className="h-10 bg-slate-900 rounded w-full animate-pulse border border-slate-800"></div>
+                                <div className="h-10 bg-slate-900 rounded w-full animate-pulse border border-slate-800"></div>
                               </div>
                             </div>
                           </div>
@@ -553,7 +555,7 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                 {summary.keyFindings.map((finding, fidx) => (
                                   <div 
                                     key={fidx} 
-                                    className="flex items-start gap-3.5 p-3.5 bg-slate-900/30 border border-slate-900 hover:border-slate-850 rounded-xl hover:bg-slate-900/60 transition-all duration-200"
+                                    className="flex items-start gap-3.5 p-3.5 bg-slate-900/30 border border-slate-900 hover:border-slate-800 rounded-xl hover:bg-slate-900/60 transition-all duration-200"
                                   >
                                     <div className="w-5.5 h-5.5 rounded bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center shrink-0 font-mono text-[10px] font-extrabold text-emerald-400 select-none shadow-sm">
                                       {String(fidx + 1).padStart(2, '0')}

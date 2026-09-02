@@ -22,6 +22,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConfirmModal } from './confirm-modal';
 import { cleanCompanyName } from '@/lib/utils';
@@ -36,7 +37,7 @@ interface Holding {
 }
 
 interface PortfolioTabProps {
-  user: any;
+  user: AppUser | null;
   onSignInClick: () => void;
   onAvgDownClick: (ticker: string, lot: number, avgPrice: number) => void;
   onAnalyzeClick: (ticker: string) => void;
@@ -214,27 +215,48 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
     return () => clearTimeout(timer);
   }, [fetchData]);
 
-  // Fetch prices dynamically for each ticker
+  // Fetch prices for all tickers missing a cached price.
+  // Batched to avoid spamming /api/ticker with N parallel requests and to
+  // keep the effect from re-triggering on every currentPrices mutation.
   React.useEffect(() => {
     if (holdings.length === 0) return;
 
-    holdings.forEach(async (h) => {
-      const symbol = h.ticker.toUpperCase();
-      if (currentPrices[symbol] === undefined) {
-        try {
-          const res = await fetch(`/api/ticker?symbol=${symbol}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.price) {
-              setCurrentPrices(prev => ({ ...prev, [symbol]: data.price }));
-            }
-          }
-        } catch (e) {
-          console.error('Error fetching price for', symbol, e);
+    const missing = holdings
+      .map((h) => h.ticker.toUpperCase())
+      .filter((sym) => currentPrices[sym] === undefined);
+
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    const CONCURRENCY = 4;
+
+    const fetchOne = async (symbol: string) => {
+      try {
+        const res = await fetch(`/api/ticker?symbol=${symbol}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.price) {
+          setCurrentPrices((prev) => ({ ...prev, [symbol]: data.price }));
         }
+      } catch (e) {
+        console.error('Error fetching price for', symbol, e);
       }
-    });
-  }, [holdings, currentPrices]);
+    };
+
+    // Simple concurrency limiter: process the missing list in chunks of N.
+    (async () => {
+      for (let i = 0; i < missing.length; i += CONCURRENCY) {
+        if (cancelled) break;
+        const batch = missing.slice(i, i + CONCURRENCY);
+        await Promise.all(batch.map(fetchOne));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [holdings]);
 
   // Fetch company name & price when user types ticker in Form modal
   React.useEffect(() => {
@@ -713,11 +735,11 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-slate-500 text-[10px] block">Avg Price</span>
-                        <span className="font-bold text-slate-350">{formatIDR(h.avg_price)}</span>
+                        <span className="font-bold text-slate-400">{formatIDR(h.avg_price)}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] block">Last Price</span>
-                        <span className="font-bold text-slate-350">{formatIDR(currentPrice)}</span>
+                        <span className="font-bold text-slate-400">{formatIDR(currentPrice)}</span>
                       </div>
                     </div>
 
@@ -729,7 +751,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] block">Market Value</span>
-                        <span className="font-bold text-slate-205">{formatIDR(marketValue)}</span>
+                        <span className="font-bold text-slate-300">{formatIDR(marketValue)}</span>
                       </div>
                     </div>
 

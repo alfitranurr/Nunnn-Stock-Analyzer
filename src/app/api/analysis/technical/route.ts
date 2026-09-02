@@ -142,9 +142,15 @@ function calculateMACD(closes: number[], fastPeriod = 12, slowPeriod = 26, signa
   };
 }
 
-function getDeterministicBrokers(symbol: string, status: string) {
-  const brokers = ['YP', 'CC', 'PD', 'OD', 'DX', 'AK', 'YU', 'GR', 'DH', 'NI', 'LG', 'AZ', 'RX', 'DR', 'XC', 'ZP'];
-  
+const BROKER_CODES = ['YP', 'CC', 'PD', 'OD', 'DX', 'AK', 'YU', 'GR', 'DH', 'NI', 'LG', 'AZ', 'RX', 'DR', 'XC', 'ZP'];
+
+interface BrokerSelection {
+  buyIdxs: number[];
+  sellIdxs: number[];
+  hash: number;
+}
+
+function getBrokerSelection(symbol: string): BrokerSelection {
   let hash = 0;
   for (let i = 0; i < symbol.length; i++) {
     hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
@@ -156,7 +162,7 @@ function getDeterministicBrokers(symbol: string, status: string) {
 
   let seed = hash;
   while (buyIdxs.length < 3) {
-    const idx = seed % brokers.length;
+    const idx = seed % BROKER_CODES.length;
     if (!buyIdxs.includes(idx)) {
       buyIdxs.push(idx);
     }
@@ -165,15 +171,20 @@ function getDeterministicBrokers(symbol: string, status: string) {
 
   seed = hash + 100;
   while (sellIdxs.length < 3) {
-    const idx = seed % brokers.length;
+    const idx = seed % BROKER_CODES.length;
     if (!buyIdxs.includes(idx) && !sellIdxs.includes(idx)) {
       sellIdxs.push(idx);
     }
     seed = Math.floor(seed / 11) + 17;
   }
 
-  const buyers = buyIdxs.map(i => brokers[i]).join(', ');
-  const sellers = sellIdxs.map(i => brokers[i]).join(', ');
+  return { buyIdxs, sellIdxs, hash };
+}
+
+function getDeterministicBrokers(symbol: string, status: string) {
+  const { buyIdxs, sellIdxs } = getBrokerSelection(symbol);
+  const buyers = buyIdxs.map((i) => BROKER_CODES[i]).join(', ');
+  const sellers = sellIdxs.map((i) => BROKER_CODES[i]).join(', ');
 
   if (status.includes('ACCUMULATION')) {
     return `Net Buy (Top Buy: ${buyers} | Top Sell: ${sellers})`;
@@ -184,44 +195,15 @@ function getDeterministicBrokers(symbol: string, status: string) {
   }
 }
 
-function getDetailedBrokers(symbol: string, status: string, totalVolume: number) {
-  const brokers = ['YP', 'CC', 'PD', 'OD', 'DX', 'AK', 'YU', 'GR', 'DH', 'NI', 'LG', 'AZ', 'RX', 'DR', 'XC', 'ZP'];
-  
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  hash = Math.abs(hash);
-
-  const buyIdxs: number[] = [];
-  const sellIdxs: number[] = [];
-
-  let seed = hash;
-  while (buyIdxs.length < 3) {
-    const idx = seed % brokers.length;
-    if (!buyIdxs.includes(idx)) {
-      buyIdxs.push(idx);
-    }
-    seed = Math.floor(seed / 7) + 13;
-  }
-
-  seed = hash + 100;
-  while (sellIdxs.length < 3) {
-    const idx = seed % brokers.length;
-    if (!buyIdxs.includes(idx) && !sellIdxs.includes(idx)) {
-      sellIdxs.push(idx);
-    }
-    seed = Math.floor(seed / 11) + 17;
-  }
+function getDetailedBrokers(symbol: string, _status: string, totalVolume: number) {
+  const { buyIdxs, sellIdxs, hash } = getBrokerSelection(symbol);
 
   const totalLots = Math.max(100, Math.round(totalVolume / 100));
-  
   const buyLots = [
     Math.round(totalLots * (0.08 + (hash % 5) * 0.01)),
     Math.round(totalLots * (0.05 + (hash % 3) * 0.01)),
     Math.round(totalLots * (0.03 + (hash % 2) * 0.01))
   ];
-  
   const sellLots = [
     Math.round(totalLots * (0.07 + ((hash + 2) % 5) * 0.01)),
     Math.round(totalLots * (0.04 + ((hash + 2) % 3) * 0.01)),
@@ -229,8 +211,8 @@ function getDetailedBrokers(symbol: string, status: string, totalVolume: number)
   ];
 
   return {
-    buy: buyIdxs.map((idx, i) => ({ code: brokers[idx], lots: buyLots[i] })),
-    sell: sellIdxs.map((idx, i) => ({ code: brokers[idx], lots: sellLots[i] }))
+    buy: buyIdxs.map((idx, i) => ({ code: BROKER_CODES[idx], lots: buyLots[i] })),
+    sell: sellIdxs.map((idx, i) => ({ code: BROKER_CODES[idx], lots: sellLots[i] }))
   };
 }
 

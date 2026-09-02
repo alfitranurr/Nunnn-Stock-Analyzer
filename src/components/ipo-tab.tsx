@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { calculateEIpoAllotment, getGolongan, getInitialAllocationConfig, EIpoInput, EIpoResult } from '@/lib/e-ipo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
@@ -30,7 +31,7 @@ const formatNumberForInput = (num: number | string | undefined | null, language:
   _formatNumberForInput(num, { maxFractionDigits: 0, language });
 
 interface IpoTabProps {
-  user: any;
+  user: AppUser | null;
   onSignInClick: () => void;
 }
 

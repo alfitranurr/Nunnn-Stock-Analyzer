@@ -5,6 +5,7 @@ import { Sparkles, Info, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { AvgDownInput, PurchaseTranche } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
+import type { AppUser } from '@/lib/types';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
 import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput } from '@/lib/format';
@@ -17,7 +18,7 @@ interface CalculatorFormProps {
   onCalculate: (values: AvgDownInput) => void;
   onSavePlan?: (title: string) => void;
   isSaving?: boolean;
-  user?: any;
+  user?: AppUser | null;
   initialValues?: {
     ticker: string;
     company_name?: string;

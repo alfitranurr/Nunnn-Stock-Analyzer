@@ -42,7 +42,7 @@ function addEnv(key, value, env) {
   return new Promise((resolve) => {
     // Hapus variabel lama terlebih dahulu agar tidak error karena duplikat
     try {
-      execSync(`npx vercel env remove ${key} ${env} -y`, { stdio: 'ignore' });
+      execSync(`npx vercel env remove "${key}" "${env}" -y`, { stdio: 'ignore' });
     } catch (e) {
       // Abaikan jika belum ada
     }

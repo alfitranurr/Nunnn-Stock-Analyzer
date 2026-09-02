@@ -16,6 +16,7 @@ import { CompoundingTab } from '@/components/compounding-tab';
 import { DividendTab } from '@/components/dividend-tab';
 import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import type { AppUser } from '@/lib/types';
 import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight, Percent, TrendingUp, FileText, Coins, Home, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
@@ -24,7 +25,7 @@ const MARQUEE_TICKERS = ['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI',
 
 export default function Dashboard() {
   const [currentTab, setCurrentTab] = React.useState('home');
-  const [user, setUser] = React.useState<any>(null);
+  const [user, setUser] = React.useState<AppUser | null>(null);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const { language, t } = useLanguage();
 
@@ -601,7 +602,7 @@ export default function Dashboard() {
                       </div>
                     ) : (
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-                        <span className="text-[10px] md:text-xs text-slate-450">
+                        <span className="text-[10px] md:text-xs text-slate-500">
                           {language === 'id'
                             ? 'Masuk ke akun Anda untuk menyimpan rencana & memantau portofolio riil.'
                             : 'Sign in to your account to save plans & monitor real portfolio.'}
@@ -781,7 +782,7 @@ export default function Dashboard() {
               </div>
 
               {/* Alert Status Konfigurasi Supabase */}
-              {!isSupabaseConfigured && (
+              {!isSupabaseConfigured && process.env.NODE_ENV !== 'production' && (
                 <div className="p-4.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
                   <Info className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div>

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, DollarSign, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import type { AppUser } from '@/lib/types';
 import { cleanCompanyName } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
 
@@ -25,7 +26,7 @@ const POPULAR_TICKERS = [
 ];
 
 interface AnalysisTabProps {
-  user: any;
+  user: AppUser | null;
   onSignInClick: () => void;
   initialTicker?: string | null;
 }
@@ -807,7 +808,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       </span>
                     </div>
   
-                    <p className="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-3xl border-l-2 border-emerald-500/40 pl-3">
+                    <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-3xl border-l-2 border-emerald-500/40 pl-3">
                       {language === 'id' ? (
                         <>
                           Sinyal utama gabungan untuk <span className="font-bold text-white">{activeTicker.split('.')[0]}</span> menyimpulkan rekomendasi <span className={`font-black uppercase ${recs.unified.rating.includes('BUY') ? 'text-emerald-400' : recs.unified.rating.includes('SELL') ? 'text-rose-400' : 'text-yellow-400'}`}>{recs.unified.rating}</span> (Skor: {recs.unified.score}%).
@@ -916,7 +917,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     
                     {/* Horizontal segmented bar visualizer with highlight cursor */}
                     <div className="w-full space-y-2">
-                       <div className="relative h-4 w-full bg-slate-950 border border-slate-850 rounded-full overflow-hidden flex">
+                       <div className="relative h-4 w-full bg-slate-950 border border-slate-800 rounded-full overflow-hidden flex">
                         {/* Strong Sell (Red) */}
                         <div className="h-full w-[20%] bg-gradient-to-r from-red-600 to-rose-500" />
                         {/* Sell (Orange) */}
@@ -1031,7 +1032,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   </div>
                   <div className="overflow-hidden h-2 text-xs flex rounded bg-slate-950 border border-slate-900 relative">
                     {/* Zone markers */}
-                    <div className="absolute left-[30%] right-[30%] top-0 bottom-0 border-l border-r border-slate-850 bg-slate-800/5" />
+                    <div className="absolute left-[30%] right-[30%] top-0 bottom-0 border-l border-r border-slate-800 bg-slate-800/5" />
                     
                     {/* Progress Fill */}
                     <div
@@ -1544,7 +1545,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     badgeClass = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
                   } else if (rawVal.includes('Neutral')) {
                     statusText = 'NET NEUTRAL';
-                    badgeClass = 'bg-slate-850 text-slate-400 border border-slate-800';
+                    badgeClass = 'bg-slate-800 text-slate-400 border border-slate-800';
                   }
                   return (
                     <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded tracking-wide border ${badgeClass}`}>

@@ -21,11 +21,12 @@ import {
   Sparkles
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import type { AppUser } from '@/lib/types';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { useLanguage } from '@/lib/language-context';
 
 interface AdminPanelTabProps {
-  user: any;
+  user: AppUser | null;
 }
 
 interface UserApproval {
@@ -610,7 +611,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {/* Stat 1: Avg Down */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+              <div className="p-4 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
                 <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Calculator className="w-4 h-4" />
                 </div>
@@ -623,7 +624,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 2: Compounding */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+              <div className="p-4 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
                 <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Percent className="w-4 h-4" />
                 </div>
@@ -636,7 +637,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 3: E-IPO */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+              <div className="p-4 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
                 <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Coins className="w-4 h-4" />
                 </div>
@@ -649,7 +650,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 4: Holdings */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
+              <div className="p-4 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3">
                 <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Briefcase className="w-4 h-4" />
                 </div>
@@ -662,7 +663,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
               </div>
 
               {/* Stat 5: Users */}
-              <div className="p-4 bg-slate-900/40 border border-slate-850 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3 col-span-2 md:col-span-1">
+              <div className="p-4 bg-slate-900/40 border border-slate-800 hover:border-emerald-500/20 transition-all rounded-xl flex items-center gap-3 col-span-2 md:col-span-1">
                 <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
