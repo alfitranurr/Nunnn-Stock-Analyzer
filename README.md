@@ -59,7 +59,7 @@ Antarmuka dirancang menggunakan filosofi **Card-in-Card Design System** yang ult
 
 ### 6. 📊 Analisis Saham Komprehensif (3-in-1)
 *   **Analisis Fundamental**: Menyajikan metrik valuasi dan kinerja keuangan lengkap (Market Cap, P/E Ratio, PBV Ratio, EPS, ROE, Debt to Equity, Dividend Yield, Profit Margin).
-*   **Analisis Teknikal**: Grafik harga candlestick & garis interaktif berbantu **Recharts** dengan rentang waktu fleksibel (1D, 5D, 1M, 6M, 1Y).
+*   **Analisis Teknikal**: Grafik harga candlestick & garis interaktif berbantu **TradingView Widget** (embedded iframe) serta indikator kustom (RSI, MACD, MFI, Pivot Points, Moving Averages) yang dihitung via Custom SVG.
 *   **Analisis Sentimen Terkumpul**: Mengagregasi 10–15 berita terkini emiten untuk mengkalkulasi skor sentimen pasar (*Bullish / Bearish / Neutral*) dan tingkat kepercayaan (*confidence score*).
 
 ### 7. 📰 Feed Berita Pasar & AI Summary (Google Gemini)
@@ -87,7 +87,7 @@ Antarmuka dirancang menggunakan filosofi **Card-in-Card Design System** yang ult
 *   **Animasi & Interaktivitas**: Framer Motion & Canvas Confetti.
 *   **Database & Auth**: Supabase (PostgreSQL Database & Supabase Auth).
 *   **AI Engine**: Google Gemini AI (v1beta SDK) dengan Structured JSON Outputs.
-*   **Visualisasi Data**: Recharts (Grafik Teknikal) & Custom SVG (Grafik Compounding).
+*   **Visualisasi Data**: TradingView Widget (Grafik Teknikal) & Custom SVG (Grafik Fundamental & Compounding).
 *   **Data Processing & Export**: SheetJS (`xlsx`) untuk ekspor spreadsheet Excel.
 *   **Data Sources**: Yahoo Finance API & Google News RSS Feed.
 
@@ -103,7 +103,7 @@ Nunnn-Stock-Analyzer/
 │   │   │   ├── analysis/           # API Analisis Saham BEI (Fundamental, Technical, News)
 │   │   │   │   ├── fundamentals/   # GET: Metrik keuangan & valuasi emiten
 │   │   │   │   ├── news/           # GET: Analisis sentimen berita agregatif
-│   │   │   │   └── technical/      # GET: Data historis harga chart Recharts
+│   │   │   │   └── technical/      # GET: Data historis harga chart TradingView
 │   │   │   ├── dividend/           # API Dividen Saham
 │   │   │   │   └── route.ts        # GET: Data historis & proyeksi dividen emiten BEI
 │   │   │   ├── news/               # API Management Feed Berita
@@ -117,7 +117,7 @@ Nunnn-Stock-Analyzer/
 │   │   └── page.tsx                # Dasbor Utama (Tab Switcher & Layout Container)
 │   ├── components/                 # Modul Komponen Antarmuka (UI Components)
 │   │   ├── admin-panel-tab.tsx     # Tab Admin: Whitelist pengguna & Audit Logs
-│   │   ├── analysis-tab.tsx        # Tab Analisis: Recharts Technical & Fundamental Cards
+│   │   ├── analysis-tab.tsx        # Tab Analisis: TradingView Technical & Custom SVG Fundamental Cards
 │   │   ├── auth-modal.tsx          # Modal Login, Signup, & Google OAuth
 │   │   ├── calculator-form.tsx     # Form Kalkulator Average Down (Card-in-Card Design)
 │   │   ├── compounding-tab.tsx     # Tab Compounding: Standard & Scalping Trading Mode
@@ -269,7 +269,7 @@ create table public.user_approvals (
 
 ### 6. `/api/analysis/technical`
 *   **Method**: `GET`
-*   **Deskripsi**: Mengambil data grafik teknikal historis untuk rendering Recharts (1D, 5D, 1M, 6M, 1Y).
+*   **Deskripsi**: Mengambil data grafik teknikal historis untuk rendering grafik TradingView (1D, 5D, 1M, 6M, 1Y).
 
 ### 7. `/api/analysis/news`
 *   **Method**: `GET`
