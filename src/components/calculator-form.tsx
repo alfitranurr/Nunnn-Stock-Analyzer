@@ -1,10 +1,11 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
 import { Sparkles, Info, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { AvgDownInput, PurchaseTranche } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
+import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
 
 interface CalculatorFormProps {
@@ -27,106 +28,6 @@ interface CalculatorFormProps {
   } | null;
 }
 
-// Database emiten BEI populer untuk deteksi otomatis nama perusahaan secara instan
-const TICKER_DATABASE: Record<string, string> = {
-  // Perbankan
-  'BBCA': 'Bank Central Asia Tbk',
-  'BBRI': 'Bank Rakyat Indonesia Tbk',
-  'BMRI': 'Bank Mandiri Tbk',
-  'BBNI': 'Bank Negara Indonesia Tbk',
-  'BBTN': 'Bank Tabungan Negara Tbk',
-  'BDMN': 'Bank Danamon Indonesia Tbk',
-  'BRIS': 'Bank Syariah Indonesia Tbk',
-  'ARTO': 'Bank Jago Tbk',
-  'BBYB': 'Bank Neo Commerce Tbk',
-  'MEGA': 'Bank Mega Tbk',
-  'PNBN': 'Bank Pan Indonesia Tbk',
-  
-  // Pertambangan & Energi
-  'ANTM': 'Aneka Tambang Tbk',
-  'CUAN': 'Petrindo Jaya Kreasi Tbk',
-  'ADRO': 'Adaro Energy Indonesia Tbk',
-  'ADMR': 'Adaro Minerals Indonesia Tbk',
-  'PTBA': 'Bukit Asam Tbk',
-  'HRUM': 'Harum Energy Tbk',
-  'ITMG': 'Indo Tambangraya Megah Tbk',
-  'INDY': 'Indika Energy Tbk',
-  'MEDC': 'Medco Energi Internasional Tbk',
-  'PGAS': 'Perusahaan Gas Negara Tbk',
-  'BUMI': 'Bumi Resources Tbk',
-  'BRMS': 'Bumi Resources Minerals Tbk',
-  'DOID': 'Delta Dunia Makmur Tbk',
-  'AKRA': 'AKR Corporindo Tbk',
-  'MBMA': 'Merdeka Battery Materials Tbk',
-  'NCKL': 'Trimegah Bangun Persada Tbk',
-  'MDKA': 'Merdeka Copper Gold Tbk',
-  'TPIA': 'Chandra Asri Pacific Tbk',
-  'BRPT': 'Barito Pacific Tbk',
-  'BREN': 'Barito Renewables Energy Tbk',
-  'AMMN': 'Amman Mineral Internasional Tbk',
-  'PGEO': 'Pertamina Geothermal Energy Tbk',
-  
-  // Infrastruktur, Telko & Utilitas
-  'TLKM': 'Telkom Indonesia Tbk',
-  'ISAT': 'Indosat Ooredoo Hutchison Tbk',
-  'EXCL': 'XL Axiata Tbk',
-  'FREN': 'Smartfren Telecom Tbk',
-  'TOWR': 'Sarana Menara Nusantara Tbk',
-  'TBIG': 'Tower Bersama Infrastructure Tbk',
-  'JSMR': 'Jasa Marga Tbk',
-  'WIKA': 'Wijaya Karya Tbk',
-  'PTPP': 'PP (Persero) Tbk',
-  'ADHI': 'Adhi Karya Tbk',
-  
-  // Consumer Goods & Health
-  'UNVR': 'Unilever Indonesia Tbk',
-  'ICBP': 'Indofood CBP Sukses Makmur Tbk',
-  'INDF': 'Indofood Sukses Makmur Tbk',
-  'MYOR': 'Mayora Indah Tbk',
-  'KLBF': 'Kalbe Farma Tbk',
-  'SIDO': 'Industri Jamu dan Farmasi Sido Muncul Tbk',
-  'GGRM': 'Gudang Gram Tbk',
-  'HMSP': 'Hanjaya Mandala Sampoerna Tbk',
-  'CPIN': 'Charoen Pokphand Indonesia Tbk',
-  'JPFA': 'Japfa Comfeed Indonesia Tbk',
-  'MIKA': 'Mitra Keluarga Karyasehat Tbk',
-  'HEAL': 'Medikaloka Hermina Tbk',
-  'SILO': 'Siloam International Hospitals Tbk',
-  
-  // Retail & Perdagangan
-  'MAPI': 'Mitra Adiperkasa Tbk',
-  'MAPA': 'MAP Active Adiperkasa Tbk',
-  'ACES': 'Aspirasi Hidup Indonesia Tbk',
-  'LPPF': 'Matahari Department Store Tbk',
-  'ERAA': 'Erajaya Swasembada Tbk',
-  'AMRT': 'Sumber Alfaria Trijaya Tbk (Alfamart)',
-  
-  // Otomotif & Konglomerasi
-  'ASII': 'Astra International Tbk',
-  'AUTO': 'Astra Otoparts Tbk',
-  'ASSA': 'Adi Sarana Armada Tbk',
-  'MPMX': 'Mitra Pinasthika Mustika Tbk',
-  
-  // Properti & Real Estate
-  'BSDE': 'Bumi Serpong Damai Tbk',
-  'PWON': 'Pakuwon Jati Tbk',
-  'SMRA': 'Summarecon Agung Tbk',
-  'CTRA': 'Ciputra Development Tbk',
-  'ASRI': 'Alam Sutera Realty Tbk',
-  
-  // Teknologi & Media
-  'GOTO': 'GoTo Gojek Tokopedia Tbk',
-  'BUKA': 'Bukalapak.com Tbk',
-  'BELI': 'Global Digital Niaga Tbk (Blibli)',
-  'EMTKB': 'Elang Mahkota Teknologi Tbk',
-  'SCMA': 'Surya Citra Media Tbk',
-  'JELI': 'PT Niramas Utama Tbk (INACO)',
-  
-  // Transportasi & Logistik
-  'BIRD': 'Blue Bird Tbk',
-  'SMDR': 'Samudera Indonesia Tbk',
-  'TMAS': 'Temas Tbk',
-};
 
 // Helper functions for parsing and formatting numbers typed by the user
 const parseFormattedNumber = (val: string | number): number => {

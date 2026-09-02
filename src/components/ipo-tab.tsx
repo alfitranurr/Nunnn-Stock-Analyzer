@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
 import { 
@@ -21,6 +21,7 @@ import { calculateEIpoAllotment, getGolongan, getInitialAllocationConfig, EIpoIn
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cleanCompanyName } from '@/lib/utils';
+import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
 
 interface IpoTabProps {
@@ -82,106 +83,6 @@ const formatNumberForInput = (num: number | string | undefined | null, language 
   }).format(parsed);
 };
 
-// Database emiten BEI populer untuk deteksi otomatis nama perusahaan secara instan
-const TICKER_DATABASE: Record<string, string> = {
-  // Perbankan
-  'BBCA': 'Bank Central Asia Tbk',
-  'BBRI': 'Bank Rakyat Indonesia Tbk',
-  'BMRI': 'Bank Mandiri Tbk',
-  'BBNI': 'Bank Negara Indonesia Tbk',
-  'BBTN': 'Bank Tabungan Negara Tbk',
-  'BDMN': 'Bank Danamon Indonesia Tbk',
-  'BRIS': 'Bank Syariah Indonesia Tbk',
-  'ARTO': 'Bank Jago Tbk',
-  'BBYB': 'Bank Neo Commerce Tbk',
-  'MEGA': 'Bank Mega Tbk',
-  'PNBN': 'Bank Pan Indonesia Tbk',
-  
-  // Pertambangan & Energi
-  'ANTM': 'Aneka Tambang Tbk',
-  'CUAN': 'Petrindo Jaya Kreasi Tbk',
-  'ADRO': 'Adaro Energy Indonesia Tbk',
-  'ADMR': 'Adaro Minerals Indonesia Tbk',
-  'PTBA': 'Bukit Asam Tbk',
-  'HRUM': 'Harum Energy Tbk',
-  'ITMG': 'Indo Tambangraya Megah Tbk',
-  'INDY': 'Indika Energy Tbk',
-  'MEDC': 'Medco Energi Internasional Tbk',
-  'PGAS': 'Perusahaan Gas Negara Tbk',
-  'BUMI': 'Bumi Resources Tbk',
-  'BRMS': 'Bumi Resources Minerals Tbk',
-  'DOID': 'Delta Dunia Makmur Tbk',
-  'AKRA': 'AKR Corporindo Tbk',
-  'MBMA': 'Merdeka Battery Materials Tbk',
-  'NCKL': 'Trimegah Bangun Persada Tbk',
-  'MDKA': 'Merdeka Copper Gold Tbk',
-  'TPIA': 'Chandra Asri Pacific Tbk',
-  'BRPT': 'Barito Pacific Tbk',
-  'BREN': 'Barito Renewables Energy Tbk',
-  'AMMN': 'Amman Mineral Internasional Tbk',
-  'PGEO': 'Pertamina Geothermal Energy Tbk',
-  
-  // Infrastruktur, Telko & Utilitas
-  'TLKM': 'Telkom Indonesia Tbk',
-  'ISAT': 'Indosat Ooredoo Hutchison Tbk',
-  'EXCL': 'XL Axiata Tbk',
-  'FREN': 'Smartfren Telecom Tbk',
-  'TOWR': 'Sarana Menara Nusantara Tbk',
-  'TBIG': 'Tower Bersama Infrastructure Tbk',
-  'JSMR': 'Jasa Marga Tbk',
-  'WIKA': 'Wijaya Karya Tbk',
-  'PTPP': 'PP (Persero) Tbk',
-  'ADHI': 'Adhi Karya Tbk',
-  
-  // Consumer Goods & Health
-  'UNVR': 'Unilever Indonesia Tbk',
-  'ICBP': 'Indofood CBP Sukses Makmur Tbk',
-  'INDF': 'Indofood Sukses Makmur Tbk',
-  'MYOR': 'Mayora Indah Tbk',
-  'KLBF': 'Kalbe Farma Tbk',
-  'SIDO': 'Industri Jamu dan Farmasi Sido Muncul Tbk',
-  'GGRM': 'Gudang Garam Tbk',
-  'HMSP': 'Hanjaya Mandala Sampoerna Tbk',
-  'CPIN': 'Charoen Pokphand Indonesia Tbk',
-  'JPFA': 'Japfa Comfeed Indonesia Tbk',
-  'MIKA': 'Mitra Keluarga Karyasehat Tbk',
-  'HEAL': 'Medikaloka Hermina Tbk',
-  'SILO': 'Siloam International Hospitals Tbk',
-  
-  // Retail & Perdagangan
-  'MAPI': 'Mitra Adiperkasa Tbk',
-  'MAPA': 'MAP Active Adiperkasa Tbk',
-  'ACES': 'Aspirasi Hidup Indonesia Tbk',
-  'LPPF': 'Matahari Department Store Tbk',
-  'ERAA': 'Erajaya Swasembada Tbk',
-  'AMRT': 'Sumber Alfaria Trijaya Tbk (Alfamart)',
-  
-  // Otomotif & Konglomerasi
-  'ASII': 'Astra International Tbk',
-  'AUTO': 'Astra Otoparts Tbk',
-  'ASSA': 'Adi Sarana Armada Tbk',
-  'MPMX': 'Mitra Pinasthika Mustika Tbk',
-  
-  // Properti & Real Estate
-  'BSDE': 'Bumi Serpong Damai Tbk',
-  'PWON': 'Pakuwon Jati Tbk',
-  'SMRA': 'Summarecon Agung Tbk',
-  'CTRA': 'Ciputra Development Tbk',
-  'ASRI': 'Alam Sutera Realty Tbk',
-  
-  // Teknologi & Media
-  'GOTO': 'GoTo Gojek Tokopedia Tbk',
-  'BUKA': 'Bukalapak.com Tbk',
-  'BELI': 'Global Digital Niaga Tbk (Blibli)',
-  'EMTKB': 'Elang Mahkota Teknologi Tbk',
-  'SCMA': 'Surya Citra Media Tbk',
-  
-  // Transportasi & Logistik
-  'BIRD': 'Blue Bird Tbk',
-  'SMDR': 'Samudera Indonesia Tbk',
-  'TMAS': 'Temas Tbk',
-  'JELI': 'PT Niramas Utama Tbk (INACO)',
-};
 
 function IpoEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
@@ -571,28 +472,28 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                     </thead>
                     <tbody className="divide-y divide-border-color">
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'I (≤ Rp100 Miliar)' : 'I (≤ 100 Billion IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'I (â‰¤ Rp100 Miliar)' : 'I (â‰¤ 100 Billion IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 20% / Rp10 Miliar' : 'Min 20% / 10 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '22,5%' : '22.5%'}</td>
                         <td className="p-3 whitespace-nowrap">25%</td>
                         <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">30%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'II (> Rp100M - ≤ Rp250M)' : 'II (> 100M - ≤ 250M IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'II (> Rp100M - â‰¤ Rp250M)' : 'II (> 100M - â‰¤ 250M IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 15% / Rp20 Miliar' : 'Min 15% / 20 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '17,5%' : '17.5%'}</td>
                         <td className="p-3 whitespace-nowrap">20%</td>
                         <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">25%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'III (> Rp250M - ≤ Rp500M)' : 'III (> 250M - ≤ 500M IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'III (> Rp250M - â‰¤ Rp500M)' : 'III (> 250M - â‰¤ 500M IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 10% / Rp37.5 Miliar' : 'Min 10% / 37.5 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
                         <td className="p-3 whitespace-nowrap">15%</td>
                         <td className="p-3 text-emerald-400 font-bold whitespace-nowrap">20%</td>
                       </tr>
                       <tr className="hover:bg-white/5">
-                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'IV (> Rp500M - ≤ Rp1 Triliun)' : 'IV (> 500M - ≤ 1 Trillion IDR)'}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-white whitespace-nowrap">{language === 'id' ? 'IV (> Rp500M - â‰¤ Rp1 Triliun)' : 'IV (> 500M - â‰¤ 1 Trillion IDR)'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? 'Min 7,5% / Rp50 Miliar' : 'Min 7.5% / 50 Billion IDR'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '10%' : '10%'}</td>
                         <td className="p-3 whitespace-nowrap">{language === 'id' ? '12,5%' : '12.5%'}</td>
@@ -958,8 +859,8 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
               : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
           }`}>
             {language === 'id' 
-              ? `Kategori: ${personalOrderAmount <= 100_000_000 ? 'Ritel (≤ Rp100jt)' : 'Non-Ritel (> Rp100jt)'}` 
-              : `Category: ${personalOrderAmount <= 100_000_000 ? 'Retail (≤ 100M IDR)' : 'Non-Retail (> 100M IDR)'}`}
+              ? `Kategori: ${personalOrderAmount <= 100_000_000 ? 'Ritel (â‰¤ Rp100jt)' : 'Non-Ritel (> Rp100jt)'}` 
+              : `Category: ${personalOrderAmount <= 100_000_000 ? 'Retail (â‰¤ 100M IDR)' : 'Non-Retail (> 100M IDR)'}`}
           </span>
         </div>
 

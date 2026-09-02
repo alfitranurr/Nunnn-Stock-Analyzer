@@ -1,90 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { cleanCompanyName } from '@/lib/utils';
+import { IDX_TICKERS } from '@/lib/tickers';
 
-// Dictionary data emiten BEI populer untuk pencarian lokal instan & presisi
-const LOCAL_IDX_DICTIONARY: Record<string, string> = {
-  'BELL': 'Trisula Textile Industries Tbk',
-  'BBCA': 'Bank Central Asia Tbk',
-  'BBRI': 'Bank Rakyat Indonesia Tbk',
-  'BMRI': 'Bank Mandiri (Persero) Tbk',
-  'TLKM': 'Telkom Indonesia (Persero) Tbk',
-  'GOTO': 'GoTo Gojek Tokopedia Tbk',
-  'ASII': 'Astra International Tbk',
-  'ADRO': 'Adaro Energy Indonesia Tbk',
-  'PTBA': 'Bukit Asam Tbk',
-  'ITMG': 'Indo Tambangraya Megah Tbk',
-  'UNVR': 'Unilever Indonesia Tbk',
-  'SIDO': 'Industri Jamu Dan Farmasi Sido Muncul Tbk',
-  'PGAS': 'Perusahaan Gas Negara Tbk',
-  'ANTM': 'Aneka Tambang Tbk',
-  'BBNI': 'Bank Negara Indonesia Tbk',
-  'AUTO': 'Astra Otoparts Tbk',
-  'BDMN': 'Bank Danamon Indonesia Tbk',
-  'BINO': 'Perma Plasindo Tbk',
-  'BTPS': 'Bank BTPN Syariah Tbk',
-  'BSSR': 'Baramulti Suksessarana Tbk',
-  'CLEO': 'Sariguna Primatirta Tbk',
-  'CTRA': 'Ciputra Development Tbk',
-  'DMAS': 'Puradelta Lestari Tbk',
-  'DRMA': 'Dharma Polimetal Tbk',
-  'DOID': 'Delta Dunia Makmur Tbk',
-  'FILM': 'MD Pictures Tbk',
-  'HEAL': 'Medikaloka Hermina Tbk',
-  'HRUM': 'Harum Energy Tbk',
-  'INDF': 'Indofood Sukses Makmur Tbk',
-  'INKP': 'Indah Kiat Pulp & Paper Tbk',
-  'JPFA': 'Japfa Comfeed Indonesia Tbk',
-  'MARK': 'Mark Dynamics Indonesia Tbk',
-  'MEDC': 'Medco Energi Internasional Tbk',
-  'MAPI': 'Mitra Adiperkasa Tbk',
-  'MPMX': 'Mitra Pinasthika Mustika Tbk',
-  'MYOR': 'Mayora Indah Tbk',
-  'PWON': 'Pakuwon Jati Tbk',
-  'SMRA': 'Summarecon Agung Tbk',
-  'SMSM': 'Selamat Sempurna Tbk',
-  'SRTG': 'Saratoga Investama Sedaya Tbk',
-  'TAPG': 'Triputra Agro Persada Tbk',
-  'TPIA': 'Chandra Asri Pacific Tbk',
-  'UNTR': 'United Tractors Tbk',
-  'ACES': 'Aspirasi Hidup Indonesia Tbk',
-  'AKRA': 'AKR Corporindo Tbk',
-  'AMMN': 'Amman Mineral Internasional Tbk',
-  'BRPT': 'Barito Pacific Tbk',
-  'CPIN': 'Charoen Pokphand Indonesia Tbk',
-  'EMTK': 'Elang Mahkota Teknologi Tbk',
-  'EXCL': 'XL Axiata Tbk',
-  'GGRM': 'Gudang Garam Tbk',
-  'HMSP': 'H.M. Sampoerna Tbk',
-  'ICBP': 'Indofood CBP Sukses Makmur Tbk',
-  'MBMA': 'Merdeka Battery Materials Tbk',
-  'MDKA': 'Merdeka Copper Gold Tbk',
-  'MIKA': 'Mitra Keluarga Karyasehat Tbk',
-  'MNCN': 'Media Nusantara Citra Tbk',
-  'SCMA': 'Surya Citra Media Tbk',
-  'TBIG': 'Tower Bersama Infrastructure Tbk',
-  'TOWR': 'Sarana Menara Nusantara Tbk',
-  'BUMI': 'Bumi Resources Tbk',
-  'NSSI': 'Nusantara Sejahtera Raya Tbk',
-  'NICL': 'Mineral Sumberdaya Mandiri Tbk',
-  'NCKL': 'Trimegah Bangun Persada Tbk',
-  'MBSS': 'Mitrabahtera Suksesjaya Tbk',
-  'PANS': 'Panin Sekuritas Tbk',
-  'TOTL': 'Total Bangun Persada Tbk',
-  'KLBF': 'Kalbe Farma Tbk',
-  'BRIS': 'Bank Syariah Indonesia Tbk',
-  'AMRT': 'Sumber Alfaria Trijaya Tbk',
-  'ISAT': 'Indosat Ooredoo Hutchison Tbk',
-  'INTP': 'Indocement Tunggal Prakarsa Tbk',
-  'SMGR': 'Semen Indonesia (Persero) Tbk',
-  'BSDE': 'Bumi Serpong Damai Tbk',
-  'MEDS': 'Minna Padi Investama Sekuritas Tbk',
-  'BSIM': 'Bank Sinarmas Tbk',
-  'BBYB': 'Bank Neo Commerce Tbk',
-  'ARTO': 'Bank Jago Tbk',
-  'BBTN': 'Bank Tabungan Negara (Persero) Tbk',
-  'BJBR': 'Bank Pembangunan Daerah Jawa Barat dan Banten Tbk',
-  'BJTM': 'Bank Pembangunan Daerah Jawa Timur Tbk'
-};
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -96,7 +13,7 @@ export async function GET(request: NextRequest) {
       const resultsMap = new Map<string, { symbol: string; name: string }>();
 
       // 1. Cek Dictionary Lokal BEI dulu untuk pencarian instan
-      Object.entries(LOCAL_IDX_DICTIONARY).forEach(([sym, name]) => {
+      Object.entries(IDX_TICKERS).forEach(([sym, name]) => {
         if (sym.includes(cleanQ) || name.toUpperCase().includes(cleanQ)) {
           resultsMap.set(sym, { symbol: sym, name: cleanCompanyName(name) });
         }
@@ -177,7 +94,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Check local dictionary first for instant name fallback
-    const localName = LOCAL_IDX_DICTIONARY[symbol] || '';
+    const localName = IDX_TICKERS[symbol] || '';
 
     // Mengambil data chart (termasuk harga real-time dan nama) dari Yahoo Finance
     const response = await fetch(
@@ -207,7 +124,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
   } catch (error: any) {
     console.error('Error fetching ticker data from internet:', error.message);
-    const localName = LOCAL_IDX_DICTIONARY[symbol] || '';
+    const localName = IDX_TICKERS[symbol] || '';
     return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
   }
 }

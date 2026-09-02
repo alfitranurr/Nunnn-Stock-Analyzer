@@ -1,4 +1,3 @@
-import "@/lib/polyfills";
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/lib/language-context";
