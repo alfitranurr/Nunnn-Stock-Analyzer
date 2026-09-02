@@ -10,6 +10,7 @@ import { QuickSearchTicker } from '@/components/quick-search-ticker';
 import { TrendingNewsStrip } from '@/components/trending-news-strip';
 import { PortfolioSnapshot } from '@/components/portfolio-snapshot';
 import { EducationalTipCard } from '@/components/educational-tip-card';
+import { WatchlistMini } from '@/components/watchlist-mini';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
@@ -728,8 +729,15 @@ export default function Dashboard() {
                   <TrendingNewsStrip language={language} />
                 </div>
 
-                {/* Educational Tip */}
-                <div className="pt-4">
+                {/* Watchlist + Educational Tip (side by side on lg) */}
+                <div className="pt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <WatchlistMini
+                    language={language}
+                    onSelectTicker={(symbol) => {
+                      setSelectedAnalysisTicker(symbol);
+                      setCurrentTab('analysis');
+                    }}
+                  />
                   <EducationalTipCard language={language} />
                 </div>
 
