@@ -8,6 +8,7 @@ import { ResultsDisplay } from '@/components/results-display';
 import { MarketSummary } from '@/components/market-summary';
 import { QuickSearchTicker } from '@/components/quick-search-ticker';
 import { TrendingNewsStrip } from '@/components/trending-news-strip';
+import { PortfolioSnapshot } from '@/components/portfolio-snapshot';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
@@ -709,6 +710,17 @@ export default function Dashboard() {
                 <div className="pt-4">
                   <MarketSummary language={language} />
                 </div>
+
+                {/* Portfolio Snapshot (only for logged-in users) */}
+                {user && (
+                  <div className="pt-4">
+                    <PortfolioSnapshot
+                      user={user}
+                      language={language}
+                      onOpenPortfolio={() => setCurrentTab('portfolio')}
+                    />
+                  </div>
+                )}
 
                 {/* Trending News Strip */}
                 <div className="pt-4">
