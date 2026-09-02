@@ -59,18 +59,23 @@ export function WatchlistMini({ language, onSelectTicker }: WatchlistMiniProps) 
         if (cancelled) break;
         if (prices[entry.symbol]) continue;
         try {
-          const res = await fetch(`/api/ticker?symbol=${entry.symbol}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (!cancelled && data.price) {
-              const price = data.price;
-              const prevClose = data.previousClose ?? price;
-              const change = price - prevClose;
-              const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-              setPrices((prev) => ({
-                ...prev,
-                [entry.symbol]: { price, change, changePercent },
-              }));
+            const res = await fetch(`/api/ticker?symbol=${entry.symbol}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (!cancelled && data.price) {
+                const price = data.price;
+                const prevClose = data.previousClose ?? price;
+                const change = price - prevClose;
+                const changePercent =
+                  data.changePercent != null
+                    ? data.changePercent
+                    : prevClose > 0
+                      ? (change / prevClose) * 100
+                      : 0;
+                setPrices((prev) => ({
+                  ...prev,
+                  [entry.symbol]: { price, change, changePercent },
+                }));
             }
           }
         } catch {

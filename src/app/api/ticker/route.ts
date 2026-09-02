@@ -22,6 +22,9 @@ interface YahooChartMeta {
   longName?: string;
   shortName?: string;
   regularMarketPrice?: number | null;
+  chartPreviousClose?: number | null;
+  previousClose?: number | null;
+  regularMarketChangePercent?: number | null;
 }
 
 interface YahooChartResponse {
@@ -146,8 +149,12 @@ export async function GET(request: NextRequest) {
     if (meta) {
       const name = cleanCompanyName(meta.longName || meta.shortName || localName || symbol);
       const price = meta.regularMarketPrice || null;
-      
-      return NextResponse.json({ symbol, name, price });
+      const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? null;
+      const changePercent = meta.regularMarketChangePercent
+        ? meta.regularMarketChangePercent
+        : (prevClose && price ? ((price - prevClose) / prevClose) * 100 : null);
+
+      return NextResponse.json({ symbol, name, price, previousClose: prevClose, changePercent });
     }
 
     return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
