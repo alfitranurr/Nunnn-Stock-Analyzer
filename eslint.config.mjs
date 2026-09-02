@@ -10,7 +10,6 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-vars": "error",
-      "@next/next/no-img-element": "off",
       "react-hooks/exhaustive-deps": "warn",
     }
   },

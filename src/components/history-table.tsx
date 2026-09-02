@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Trash2, ExternalLink, Calendar, Calculator, Info, Sparkles } from 'lucide-react';
 import type { AppUser } from '@/lib/types';
 import { cleanCompanyName } from '@/lib/utils';
+import Image from 'next/image';
 
 export interface SavedPlan {
   id: string;
@@ -44,12 +45,13 @@ function HistoryEmitenLogo({ symbol }: { symbol: string }) {
   return (
     <div className="w-8.5 h-8.5 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
       {!hasError ? (
-        <img
+        <Image
           src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
           alt={cleanSymbol}
+          width={34}
+          height={34}
           className="w-full h-full object-contain p-0.5"
           onError={() => setHasError(true)}
-          loading="lazy"
         />
       ) : (
         <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">

@@ -20,9 +20,25 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { Sparkles, AlertCircle, Info, ChevronUp, ArrowRight, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { useLanguage } from '@/lib/language-context';
 
 const MARQUEE_TICKERS = ['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI', 'BBNI', 'BREN', 'BRPT', 'TPIA', 'CUAN', 'ADRO', 'PTBA', 'ITMG', 'UNVR'];
+
+function MarqueeLogo({ symbol }: { symbol: string }) {
+  const [hasError, setHasError] = React.useState(false);
+  if (hasError) return null;
+  return (
+    <Image
+      src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
+      alt={symbol}
+      width={16}
+      height={16}
+      className="w-4 h-4 object-contain opacity-60"
+      onError={() => setHasError(true)}
+    />
+  );
+}
 
 export default function Dashboard() {
   const [currentTab, setCurrentTab] = React.useState('home');
@@ -694,14 +710,7 @@ export default function Dashboard() {
                       {MARQUEE_TICKERS.map((symbol) => (
                         <div key={`marquee-1-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
                           <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                            <img
-                              src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
-                              alt={symbol}
-                              className="w-4 h-4 object-contain opacity-60"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
+                            <MarqueeLogo symbol={symbol} />
                           </div>
                           <span className="text-[10px] font-black text-white/30 tracking-wider uppercase">{symbol}</span>
                         </div>
@@ -711,14 +720,7 @@ export default function Dashboard() {
                       {MARQUEE_TICKERS.map((symbol) => (
                         <div key={`marquee-2-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
                           <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                            <img
-                              src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
-                              alt={symbol}
-                              className="w-4 h-4 object-contain opacity-60"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
+                            <MarqueeLogo symbol={symbol} />
                           </div>
                           <span className="text-[10px] font-black text-white/30 tracking-wider uppercase">{symbol}</span>
                         </div>

@@ -18,6 +18,7 @@ import { calculateEIpoAllotment, EIpoInput } from '@/lib/e-ipo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { cleanCompanyName, getErrorMessage } from '@/lib/utils';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
@@ -56,9 +57,11 @@ function IpoEmitenLogo({ symbol }: { symbol: string }) {
   return (
     <div className="w-8.5 h-8.5 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
       {!hasError ? (
-        <img
+        <Image
           src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
           alt={cleanSymbol}
+          width={24}
+          height={24}
           className="w-6 h-6 object-contain"
           onError={() => setHasError(true)}
         />

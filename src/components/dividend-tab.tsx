@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { calculateDividend, DividendInput, DividendResult } from '@/lib/dividend';
 import type { AppUser } from '@/lib/types';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput } from '@/lib/format';
@@ -91,9 +92,11 @@ function CompanyLogo({ symbol }: { symbol: string }) {
   return (
     <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
       {!hasError ? (
-        <img
+        <Image
           src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
           alt={cleanSymbol}
+          width={28}
+          height={28}
           className="w-7 h-7 object-contain"
           onError={() => setHasError(true)}
         />

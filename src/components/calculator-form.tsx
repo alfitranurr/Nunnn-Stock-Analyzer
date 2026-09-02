@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Sparkles, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { AvgDownInput } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { cleanCompanyName } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
@@ -64,9 +65,11 @@ function FormEmitenLogo({ symbol }: { symbol: string }) {
   return (
     <div className="w-10 h-10 md:w-9 md:h-9 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
       {!hasError ? (
-        <img
+        <Image
           src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
           alt={cleanSymbol}
+          width={28}
+          height={28}
           className="w-7 h-7 md:w-6 md:h-6 object-contain"
           onError={() => setHasError(true)}
         />

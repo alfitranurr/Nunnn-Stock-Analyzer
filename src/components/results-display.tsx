@@ -5,6 +5,7 @@ import { TrendingDown, ArrowRight, ShieldCheck, CheckCircle2, Sparkles } from 'l
 import { AvgDownResult } from '@/lib/calculator';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import Image from 'next/image';
 import { cleanCompanyName } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
 
@@ -24,9 +25,11 @@ function ResultsEmitenLogo({ symbol }: { symbol: string }) {
   return (
     <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
       {!hasError ? (
-        <img
+        <Image
           src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
           alt={cleanSymbol}
+          width={34}
+          height={34}
           className="w-8.5 h-8.5 object-contain"
           onError={() => setHasError(true)}
         />
