@@ -58,10 +58,15 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
   // The set-state-in-effect lint rule does NOT flag setState during render
   // when guarded by a prop-comparison condition.
   if (result !== prevResult || ticker !== prevTicker) {
+    const wasNull = prevResult === null;
     setPrevResult(result);
     setPrevTicker(ticker);
     if (result && !result.turnedIntoProfit) {
       setHasConfettiFired(false);
+    } else if (wasNull && result && result.turnedIntoProfit) {
+      // First arrival of a result (e.g. auto-calc on mount/reload): suppress
+      // confetti so it doesn't fire on page load.
+      setHasConfettiFired(true);
     }
   }
 
