@@ -83,49 +83,64 @@ interface SparkResponse {
 
 /**
  * Batch-fetch up to 20 tickers per request using Yahoo Spark API.
- * Returns price, change, changePercent, volume for each stock.
+ * Runs multiple batches in parallel waves to speed up fetching 900+ tickers.
  */
 async function fetchBatchMovers(
   entries: Array<[string, string]>,
-  batchSize = 20
+  batchSize = 20,
+  parallelWaves = 5
 ): Promise<StockMover[]> {
   const movers: StockMover[] = [];
+  const batches: Array<[string, string][]> = [];
 
   for (let i = 0; i < entries.length; i += batchSize) {
-    const batch = entries.slice(i, i + batchSize);
-    const symbolsParam = batch.map(([sym]) => `${sym}.JK`).join(',');
-    const fallbackNames = new Map(batch);
+    batches.push(entries.slice(i, i + batchSize));
+  }
 
-    try {
-      const res = await fetch(
-        `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbolsParam}&range=1d&interval=1d`,
-        { headers: { 'User-Agent': UA }, cache: 'no-store' }
-      );
-      if (!res.ok) continue;
-      const data: SparkResponse = await res.json();
-      const results = data.spark?.result || [];
+  // Process batches in parallel waves to avoid overwhelming Yahoo.
+  for (let w = 0; w < batches.length; w += parallelWaves) {
+    const wave = batches.slice(w, w + parallelWaves);
+    const waveResults = await Promise.all(
+      wave.map(async (batch) => {
+        const fallbackNames = new Map(batch);
+        const symbolsParam = batch.map(([sym]) => `${sym}.JK`).join(',');
+        try {
+          const res = await fetch(
+            `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbolsParam}&range=1d&interval=1d`,
+            { headers: { 'User-Agent': UA }, cache: 'no-store' }
+          );
+          if (!res.ok) return [];
+          const data: SparkResponse = await res.json();
+          const results = data.spark?.result || [];
+          const batchMovers: StockMover[] = [];
 
-      for (const result of results) {
-        const meta = result.response[0]?.meta;
-        if (!meta || meta.regularMarketPrice == null) continue;
+          for (const result of results) {
+            const meta = result.response[0]?.meta;
+            if (!meta || meta.regularMarketPrice == null) continue;
 
-        const symbol = result.symbol.replace(/\.JK$/i, '');
-        const price = meta.regularMarketPrice;
-        const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price;
-        const change = price - prevClose;
-        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+            const symbol = result.symbol.replace(/\.JK$/i, '');
+            const price = meta.regularMarketPrice;
+            const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price;
+            const change = price - prevClose;
+            const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-        movers.push({
-          symbol,
-          name: cleanCompanyName(meta.longName || meta.shortName || fallbackNames.get(symbol) || symbol),
-          price,
-          change,
-          changePercent,
-          volume: meta.regularMarketVolume ?? 0,
-        });
-      }
-    } catch {
-      // ignore batch errors
+            batchMovers.push({
+              symbol,
+              name: cleanCompanyName(meta.longName || meta.shortName || fallbackNames.get(symbol) || symbol),
+              price,
+              change,
+              changePercent,
+              volume: meta.regularMarketVolume ?? 0,
+            });
+          }
+          return batchMovers;
+        } catch {
+          return [];
+        }
+      })
+    );
+    for (const result of waveResults) {
+      movers.push(...result);
     }
   }
 
