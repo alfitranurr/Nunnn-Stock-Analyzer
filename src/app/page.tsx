@@ -622,18 +622,9 @@ export default function Dashboard() {
                     {t('cover.desc')}
                   </p>
                   
-                  {/* Status Banner */}
+                  {/* Status: Login CTA for non-logged-in users */}
                   <div className="pt-2">
-                    {user ? (
-                      <div className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-[10px] md:text-xs font-semibold text-emerald-400">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                        <span>
-                          {language === 'id' 
-                            ? `Terhubung: ${user.email} (${isSupabaseConfigured && !user.isMock ? 'Cloud DB' : 'Simulasi Lokal'})`
-                            : `Connected: ${user.email} (${isSupabaseConfigured && !user.isMock ? 'Cloud DB' : 'Local Simulation'})`}
-                        </span>
-                      </div>
-                    ) : (
+                    {!user && (
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
                         <span className="text-[10px] md:text-xs text-slate-500">
                           {language === 'id'
@@ -697,15 +688,30 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Quick Ticker Search */}
-                <div className="pt-4">
-                  <QuickSearchTicker
-                    language={language}
-                    onSelectTicker={(symbol) => {
-                      setSelectedAnalysisTicker(symbol);
-                      setCurrentTab('analysis');
-                    }}
-                  />
+                {/* Quick Ticker Search + Connection Status */}
+                <div className="pt-4 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <QuickSearchTicker
+                      language={language}
+                      onSelectTicker={(symbol) => {
+                        setSelectedAnalysisTicker(symbol);
+                        setCurrentTab('analysis');
+                      }}
+                    />
+                  </div>
+                  {user && (
+                    <div className="shrink-0 inline-flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-[10px] md:text-xs font-semibold text-emerald-400 whitespace-nowrap">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                      <span className="truncate max-w-[180px]">
+                        {language === 'id'
+                          ? `Terhubung: ${user.email}`
+                          : `Connected: ${user.email}`}
+                      </span>
+                      <span className="text-emerald-400/70 text-[9px]">
+                        ({isSupabaseConfigured && !user.isMock ? (language === 'id' ? 'Cloud DB' : 'Cloud DB') : (language === 'id' ? 'Simulasi' : 'Local')})
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Market Summary (IHSG + Top Movers) */}
