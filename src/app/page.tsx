@@ -20,6 +20,8 @@ import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp, ArrowRight,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
+const MARQUEE_TICKERS = ['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI', 'BBNI', 'BREN', 'BRPT', 'TPIA', 'CUAN', 'ADRO', 'PTBA', 'ITMG', 'UNVR'];
+
 export default function Dashboard() {
   const [currentTab, setCurrentTab] = React.useState('home');
   const [user, setUser] = React.useState<any>(null);
@@ -137,6 +139,8 @@ export default function Dashboard() {
     };
 
     const checkSession = async () => {
+      // MOCK MODE FALLBACK — DEMO ONLY, NOT FOR PRODUCTION.
+      // Passwords stored in plaintext in localStorage. Gated by !isSupabaseConfigured.
       if (!isSupabaseConfigured) {
         const storedMockUser = localStorage.getItem('nunnn_stock_mock_user');
         if (storedMockUser) {
@@ -677,7 +681,7 @@ export default function Dashboard() {
                   
                   <div className="animate-marquee-ltr flex whitespace-nowrap">
                     <div className="flex items-center gap-6 pr-6 shrink-0">
-                      {['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI', 'BBNI', 'BREN', 'BRPT', 'TPIA', 'CUAN', 'ADRO', 'PTBA', 'ITMG', 'UNVR'].map((symbol) => (
+                      {MARQUEE_TICKERS.map((symbol) => (
                         <div key={`marquee-1-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
                           <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
                             <img
@@ -694,7 +698,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                     <div className="flex items-center gap-6 pr-6 shrink-0" aria-hidden="true">
-                      {['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI', 'BBNI', 'BREN', 'BRPT', 'TPIA', 'CUAN', 'ADRO', 'PTBA', 'ITMG', 'UNVR'].map((symbol) => (
+                      {MARQUEE_TICKERS.map((symbol) => (
                         <div key={`marquee-2-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
                           <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
                             <img

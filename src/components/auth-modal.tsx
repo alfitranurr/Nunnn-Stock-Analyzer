@@ -27,7 +27,9 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
     const cleanEmail = email.toLowerCase().trim();
 
-    // MOCK MODE FALLBACK
+    // MOCK MODE FALLBACK — DEMO ONLY, NOT FOR PRODUCTION
+    // Passwords are stored in plaintext in localStorage. This fallback only runs
+    // when Supabase is not configured. Never use this mode with real user data.
     if (!isSupabaseConfigured) {
       setTimeout(() => {
         setLoading(false);
