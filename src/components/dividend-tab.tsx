@@ -263,11 +263,11 @@ export function DividendTab(_props: DividendTabProps) {
   };
 
   // Determine active tax rate %
-  const getTaxRate = (): number => {
+  const getTaxRate = React.useCallback((): number => {
     if (taxOption === '0') return 0;
     if (taxOption === '10') return 10;
     return parseFormattedNumber(customTaxStr);
-  };
+  }, [taxOption, customTaxStr]);
 
   // Calculate current dividend simulation results
   const result: DividendResult = React.useMemo(() => {
@@ -302,8 +302,7 @@ export function DividendTab(_props: DividendTabProps) {
     lotCountStr,
     inputMode,
     annualDivPerShareStr,
-    taxOption,
-    customTaxStr,
+    getTaxRate,
     payoutMonths,
     isDripEnabled,
     language,

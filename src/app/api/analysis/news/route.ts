@@ -3,6 +3,13 @@ import { getErrorMessage } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+interface NewsItem {
+  title: string;
+  link: string;
+  pubDate: string;
+  source: string;
+}
+
 function cleanXmlString(str: string) {
   return str
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
@@ -15,7 +22,7 @@ function cleanXmlString(str: string) {
 }
 
 function parseRss(xmlText: string) {
-  const items: any[] = [];
+  const items: NewsItem[] = [];
   let match;
   const itemRegex = /<item>([\s\S]*?)<\/item>/g;
 
@@ -46,7 +53,7 @@ function parseRss(xmlText: string) {
 }
 
 // Local Keyword-based Sentiment Analysis
-function getLocalSentimentAnalysis(symbol: string, news: any[]) {
+function getLocalSentimentAnalysis(symbol: string, news: NewsItem[]) {
   if (news.length === 0) {
     return {
       sentiment: 'Netral',
@@ -116,7 +123,7 @@ function getLocalSentimentAnalysis(symbol: string, news: any[]) {
 }
 
 // Call Gemini API for summary
-async function getGeminiSummary(symbol: string, news: any[], apiKey: string) {
+async function getGeminiSummary(symbol: string, news: NewsItem[], apiKey: string) {
   const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
 ${news.map((n, i) => `${i+1}. [${n.source}] ${n.title}`).join('\n')}
 
@@ -190,7 +197,7 @@ Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
 }
 
 // Call Groq API for summary
-async function getGroqSummary(symbol: string, news: any[], apiKey: string) {
+async function getGroqSummary(symbol: string, news: NewsItem[], apiKey: string) {
   const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
 ${news.map((n, i) => `${i+1}. [${n.source}] ${n.title}`).join('\n')}
 
@@ -247,7 +254,7 @@ Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
 }
 
 // Call OpenAI API for summary
-async function getOpenAISummary(symbol: string, news: any[], apiKey: string) {
+async function getOpenAISummary(symbol: string, news: NewsItem[], apiKey: string) {
   const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
 ${news.map((n, i) => `${i+1}. [${n.source}] ${n.title}`).join('\n')}
 
@@ -299,7 +306,7 @@ Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output An
   }
 }
 
-function generateFallbackNews(symbol: string): any[] {
+function generateFallbackNews(symbol: string): NewsItem[] {
   const currentDate = new Date().toLocaleDateString('id-ID', {
     weekday: 'short',
     day: 'numeric',
@@ -345,7 +352,7 @@ export async function GET(request: NextRequest) {
     const query = encodeURIComponent(`${rawSymbol} saham when:7d`);
     const feedUrl = `https://news.google.com/rss/search?q=${query}&hl=id&gl=ID&ceid=ID:id`;
 
-    let newsItems: any[] = [];
+    let newsItems: NewsItem[] = [];
 
     try {
       const response = await fetch(feedUrl, {

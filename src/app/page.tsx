@@ -17,7 +17,7 @@ import { CompoundingTab } from '@/components/compounding-tab';
 import { DividendTab } from '@/components/dividend-tab';
 import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import type { AppUser } from '@/lib/types';
+import type { AppUser, SimUser } from '@/lib/types';
 import { Sparkles, AlertCircle, Info, ChevronUp, ArrowRight, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
@@ -153,8 +153,8 @@ export default function Dashboard() {
             
             if (parsedMockUser.email?.toLowerCase() === adminEmail) {
               const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
-              const simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
-              const adminUserIndex = simUsers.findIndex((u: any) => u.email.toLowerCase() === adminEmail);
+              const simUsers: SimUser[] = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+              const adminUserIndex = simUsers.findIndex((u) => u.email.toLowerCase() === adminEmail);
               if (adminUserIndex === -1) {
                 simUsers.push({ email: adminEmail, password: 'adminpassword', approved: true });
                 localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
@@ -164,8 +164,8 @@ export default function Dashboard() {
               }
             } else {
               const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
-              const simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
-              const simUser = simUsers.find((u: any) => u.email.toLowerCase() === parsedMockUser.email.toLowerCase());
+              const simUsers: SimUser[] = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+              const simUser = simUsers.find((u) => u.email.toLowerCase() === parsedMockUser.email.toLowerCase());
               
               if (!simUser || !simUser.approved) {
                 localStorage.removeItem('nunnn_stock_mock_user');
@@ -484,7 +484,7 @@ export default function Dashboard() {
     setCurrentTab('analysis');
   };
 
-  const handleAuthSuccess = (authUser: any) => {
+  const handleAuthSuccess = (authUser: AppUser) => {
     setUser(authUser);
     if (authUser.isMock) {
       localStorage.setItem('nunnn_stock_mock_user', JSON.stringify(authUser));

@@ -40,11 +40,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const t = React.useCallback((keyPath: string): string => {
     const keys = keyPath.split('.');
-    let current: any = translations[language];
+    let current: unknown = translations[language];
     
     for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+      if (current && typeof current === 'object' && key in (current as Record<string, unknown>)) {
+        current = (current as Record<string, unknown>)[key];
       } else {
         // Fallback to key if not found
         return keyPath;

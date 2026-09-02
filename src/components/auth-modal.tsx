@@ -4,7 +4,7 @@ import * as React from 'react';
 import { getErrorMessage } from '@/lib/utils';
 import { X, Mail, Lock, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import type { AppUser } from '@/lib/types';
+import type { AppUser, SimUser } from '@/lib/types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -36,12 +36,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       setTimeout(() => {
         setLoading(false);
         const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
-        const simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+        const simUsers: SimUser[] = storedSimUsers ? JSON.parse(storedSimUsers) : [];
 
         const isCurrentAdmin = cleanEmail === adminEmail;
 
         if (isSignUp) {
-          if (simUsers.some((u: any) => u.email.toLowerCase() === cleanEmail)) {
+          if (simUsers.some((u) => u.email.toLowerCase() === cleanEmail)) {
             setErrorMsg('Alamat email sudah terdaftar.');
             return;
           }
@@ -66,7 +66,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             setIsSignUp(false);
           }
         } else {
-          const userObj = simUsers.find((u: any) => u.email.toLowerCase() === cleanEmail && u.password === password);
+          const userObj = simUsers.find((u) => u.email.toLowerCase() === cleanEmail && u.password === password);
           if (!userObj) {
             setErrorMsg('Email atau password salah.');
             return;

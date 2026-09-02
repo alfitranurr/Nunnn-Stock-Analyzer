@@ -18,7 +18,7 @@ import { calculateEIpoAllotment, EIpoInput } from '@/lib/e-ipo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cleanCompanyName } from '@/lib/utils';
+import { cleanCompanyName, getErrorMessage } from '@/lib/utils';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
 import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput, type Language } from '@/lib/format';
@@ -30,6 +30,18 @@ const formatNumberForInput = (num: number | string | undefined | null, language:
 interface IpoTabProps {
   user: AppUser | null;
   onSignInClick: () => void;
+}
+
+interface IpoPlan {
+  id: string;
+  ticker: string;
+  company_name: string;
+  price: number;
+  total_lots: number;
+  oversubscription: number;
+  total_subscribers: number;
+  retail_ratio: number;
+  personal_order_lots: number;
 }
 
 
@@ -94,7 +106,7 @@ export function IpoTab({ user }: IpoTabProps) {
     } finally {
       setIsFetchingTicker(false);
     }
-  }, []);
+  }, [language]);
 
   // Fetch ticker real-time data automatically on input change
   React.useEffect(() => {
@@ -111,7 +123,7 @@ export function IpoTab({ user }: IpoTabProps) {
   }, [ticker, fetchRemoteTicker]);
 
   // Saving state
-  const [savedPlans, setSavedPlans] = React.useState<any[]>([]);
+  const [savedPlans, setSavedPlans] = React.useState<IpoPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = React.useState(false);
 
   // Toast notification state
@@ -144,7 +156,7 @@ export function IpoTab({ user }: IpoTabProps) {
       personalOrderLots
     };
     return calculateEIpoAllotment(input);
-  }, [ticker, companyName, priceStr, totalLotsStr, oversubscriptionStr, totalSubscribersStr, retailRatio, personalOrderAmountStr]);
+  }, [ticker, companyName, price, totalLots, oversubscription, totalSubscribers, personalOrderLots, retailRatio]);
 
   // Load Saved Plans
   const fetchSavedPlans = React.useCallback(async () => {
@@ -179,8 +191,8 @@ export function IpoTab({ user }: IpoTabProps) {
           throw error;
         }
         setSavedPlans(data || []);
-      } catch (err: any) {
-        console.error('Error fetching E-IPO plans:', err.message);
+      } catch (err: unknown) {
+        console.error('Error fetching E-IPO plans:', getErrorMessage(err));
         loadFromLocalStorage();
       } finally {
         setIsLoadingPlans(false);
@@ -223,8 +235,8 @@ export function IpoTab({ user }: IpoTabProps) {
         }
         showToast(t('ipo.simDeleteSuccess').replace('{ticker}', planTicker));
         fetchSavedPlans();
-      } catch (err: any) {
-        console.error('Error deleting E-IPO plan:', err.message);
+      } catch (err: unknown) {
+        console.error('Error deleting E-IPO plan:', getErrorMessage(err));
         deleteFromLocalStorage();
       }
     } else {
@@ -233,7 +245,7 @@ export function IpoTab({ user }: IpoTabProps) {
   };
 
   // Load Parameters of Saved Plan
-  const handleLoadPlan = (plan: any) => {
+  const handleLoadPlan = (plan: IpoPlan) => {
     setTicker(plan.ticker);
     setCompanyName(cleanCompanyName(plan.company_name));
     setPriceStr(formatNumberForInput(plan.price));

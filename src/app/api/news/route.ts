@@ -3,6 +3,13 @@ import { getErrorMessage } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+interface NewsItem {
+  title: string;
+  link: string;
+  pubDate: string;
+  source: string;
+}
+
 function cleanXmlString(str: string) {
   return str
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
@@ -15,7 +22,7 @@ function cleanXmlString(str: string) {
 }
 
 function parseRss(xmlText: string) {
-  const items: any[] = [];
+  const items: NewsItem[] = [];
   let match;
   const itemRegex = /<item>([\s\S]*?)<\/item>/g;
 

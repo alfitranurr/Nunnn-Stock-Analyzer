@@ -29,6 +29,20 @@ interface CompoundingTabProps {
   onSignInClick: () => void;
 }
 
+interface CompoundingPlan {
+  id: string;
+  title: string;
+  initial_amount: number;
+  contribution_amount: number;
+  contribution_frequency: string;
+  annual_return_rate: number;
+  compounding_frequency: string;
+  duration_years: number;
+  duration_months: number;
+  tax_rate: number;
+  inflation_rate: number;
+}
+
 // Helpers for parsing and formatting numbers
 export function CompoundingTab({ user }: CompoundingTabProps) {
   const { t, language } = useLanguage();
@@ -71,7 +85,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   const [planTitle, setPlanTitle] = React.useState('');
   const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [savedPlans, setSavedPlans] = React.useState<any[]>([]);
+  const [savedPlans, setSavedPlans] = React.useState<CompoundingPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = React.useState(false);
 
   // Table options
@@ -90,7 +104,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   };
 
   // 1. Calculate the values (Standard Mode)
-  const input: CompoundingInput = {
+  const input: CompoundingInput = React.useMemo(() => ({
     title: planTitle || 'Simulasi Compounding',
     initialAmount: parseFormattedNumber(initialAmountStr),
     contributionAmount: parseFormattedNumber(contributionAmountStr),
@@ -101,18 +115,18 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
     durationMonths: parseInt(durationMonthsStr, 10) || 0,
     inflationRate: parseFloat(inflationRateStr) || 0,
     taxRate: parseFloat(taxRateStr) || 0,
-  };
-
-  const results = React.useMemo(() => {
-    return calculateCompounding(input);
-  }, [
-    initialAmountStr, contributionAmountStr, contributionFrequency,
+  }), [
+    planTitle, initialAmountStr, contributionAmountStr, contributionFrequency,
     annualReturnRateStr, compoundingFrequency, durationYearsStr,
     durationMonthsStr, inflationRateStr, taxRateStr
   ]);
 
+  const results = React.useMemo(() => {
+    return calculateCompounding(input);
+  }, [input]);
+
   // Daily trading calculation
-  const dailyInput: DailyCompoundingInput = {
+  const dailyInput: DailyCompoundingInput = React.useMemo(() => ({
     title: planTitle || 'Simulasi Trading Harian',
     initialAmount: parseFormattedNumber(initialAmountStr),
     contributionAmount: parseFormattedNumber(contributionAmountStr),
@@ -120,14 +134,14 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
     durationDays: parseInt(durationDaysStr, 10) || 0,
     feeBeli: parseFloat(dailyFeeBeliStr) || 0,
     feeJual: parseFloat(dailyFeeJualStr) || 0,
-  };
+  }), [
+    planTitle, initialAmountStr, contributionAmountStr, annualReturnRateStr,
+    durationDaysStr, dailyFeeBeliStr, dailyFeeJualStr
+  ]);
 
   const dailyResults = React.useMemo(() => {
     return calculateDailyCompounding(dailyInput);
-  }, [
-    initialAmountStr, contributionAmountStr, annualReturnRateStr,
-    durationDaysStr, dailyBrokerPreset, dailyFeeBeliStr, dailyFeeJualStr
-  ]);
+  }, [dailyInput]);
 
   const isDaily = calcMode === 'daily';
 
@@ -262,7 +276,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   };
 
   // Load Parameters of Saved Plan
-  const handleLoadPlan = (plan: any) => {
+  const handleLoadPlan = (plan: CompoundingPlan) => {
     const isDailyPlan = plan.compounding_frequency === 'trading_daily';
     if (isDailyPlan) {
       setCalcMode('daily');
@@ -295,9 +309,9 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
       setCalcMode('standard');
       setInitialAmountStr(formatNumberForInput(plan.initial_amount));
       setContributionAmountStr(formatNumberForInput(plan.contribution_amount));
-      setContributionFrequency(plan.contribution_frequency);
+      setContributionFrequency(plan.contribution_frequency as 'daily' | 'weekly' | 'monthly' | 'yearly');
       setAnnualReturnRateStr(plan.annual_return_rate.toString());
-      setCompoundingFrequency(plan.compounding_frequency);
+      setCompoundingFrequency(plan.compounding_frequency as 'daily' | 'monthly' | 'quarterly' | 'yearly');
       setDurationYearsStr(plan.duration_years.toString());
       setDurationMonthsStr(plan.duration_months.toString());
       setInflationRateStr(plan.inflation_rate.toString());
@@ -448,45 +462,45 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   }, [chartData]);
 
   // Points mapping functions
-  const getX = (index: number) => {
+  const getX = React.useCallback((index: number) => {
     if (chartData.length <= 1) return chartMargin.left;
     return chartMargin.left + (index / (chartData.length - 1)) * plotWidth;
-  };
+  }, [chartData, chartMargin.left, plotWidth]);
 
-  const getY = (val: number) => {
+  const getY = React.useCallback((val: number) => {
     return svgHeight - chartMargin.bottom - (val / maxY) * plotHeight;
-  };
+  }, [maxY, svgHeight, chartMargin.bottom, plotHeight]);
 
   // Area Path String Builder
   const nominalAreaPath = React.useMemo(() => {
     if (chartData.length === 0) return '';
     const points = chartData.map((d, i) => `${getX(i)},${getY(d.endingBalance)}`);
     return `M ${getX(0)},${getY(0)} L ${points.join(' L ')} L ${getX(chartData.length - 1)},${getY(0)} Z`;
-  }, [chartData, maxY]);
+  }, [chartData, getX, getY]);
 
   const realLinePath = React.useMemo(() => {
     if (chartData.length === 0) return '';
     const points = chartData.map((d, i) => `${getX(i)},${getY(d.realEndingBalance)}`);
     return `M ${points.join(' L ')}`;
-  }, [chartData, maxY]);
+  }, [chartData, getX, getY]);
 
   const depositAreaPath = React.useMemo(() => {
     if (chartData.length === 0) return '';
     const points = chartData.map((d, i) => `${getX(i)},${getY(d.cumulativeDeposits)}`);
     return `M ${getX(0)},${getY(0)} L ${points.join(' L ')} L ${getX(chartData.length - 1)},${getY(0)} Z`;
-  }, [chartData, maxY]);
+  }, [chartData, getX, getY]);
 
   const depositLinePath = React.useMemo(() => {
     if (chartData.length === 0) return '';
     const points = chartData.map((d, i) => `${getX(i)},${getY(d.cumulativeDeposits)}`);
     return `M ${points.join(' L ')}`;
-  }, [chartData, maxY]);
+  }, [chartData, getX, getY]);
 
   const nominalLinePath = React.useMemo(() => {
     if (chartData.length === 0) return '';
     const points = chartData.map((d, i) => `${getX(i)},${getY(d.endingBalance)}`);
     return `M ${points.join(' L ')}`;
-  }, [chartData, maxY]);
+  }, [chartData, getX, getY]);
 
   // Mouse move handler for chart hover
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
@@ -799,7 +813,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   <div className="col-span-2">
                     <select
                       value={contributionFrequency}
-                      onChange={(e) => setContributionFrequency(e.target.value as any)}
+                      onChange={(e) => setContributionFrequency(e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
                       className="w-full glass-input px-2.5 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-left"
                     >
                       <option value="daily">{language === 'id' ? 'Harian' : 'Daily'}</option>
@@ -830,7 +844,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   <div>
                     <select
                       value={compoundingFrequency}
-                      onChange={(e) => setCompoundingFrequency(e.target.value as any)}
+                      onChange={(e) => setCompoundingFrequency(e.target.value as 'daily' | 'monthly' | 'quarterly' | 'yearly')}
                       className="w-full glass-input px-2.5 py-2.5 text-xs font-bold text-foreground bg-black/25 focus:bg-background cursor-pointer text-left"
                     >
                       <option value="daily">{language === 'id' ? 'Harian' : 'Daily'}</option>
@@ -1353,7 +1367,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {savedPlans.map((plan: any) => (
+            {savedPlans.map((plan) => (
               <div 
                 key={plan.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border-color bg-black/10 hover:border-emerald-500/40 hover:bg-black/20 transition-all group"

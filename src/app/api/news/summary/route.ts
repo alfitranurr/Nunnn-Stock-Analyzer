@@ -282,7 +282,7 @@ Pastikan data dan format JSON valid.`;
         'gemini-3-flash-preview'
       ];
       
-      let lastError = null;
+      let lastError: unknown = null;
       for (const model of models) {
         try {
           console.log(`Attempting Gemini summary using model: ${model}`);
@@ -341,12 +341,12 @@ Pastikan data dan format JSON valid.`;
             }
           }
           throw new Error(`Response status ${response.status}`);
-        } catch (geminiErr: any) {
-          console.warn(`Gemini summary failed for model ${model}:`, geminiErr.message);
+        } catch (geminiErr: unknown) {
+          console.warn(`Gemini summary failed for model ${model}:`, getErrorMessage(geminiErr));
           lastError = geminiErr;
         }
       }
-      console.error('All Gemini models failed, checking Groq. Last error:', lastError?.message);
+      console.error('All Gemini models failed, checking Groq. Last error:', lastError ? getErrorMessage(lastError) : 'none');
     }
 
     if (groqKey) {
@@ -380,8 +380,8 @@ Pastikan data dan format JSON valid.`;
           }
         }
         throw new Error(`Groq API responded with status ${response.status}`);
-      } catch (groqErr: any) {
-        console.error('Groq summary failed, checking OpenAI. Error:', groqErr.message);
+      } catch (groqErr: unknown) {
+        console.error('Groq summary failed, checking OpenAI. Error:', getErrorMessage(groqErr));
       }
     }
 
@@ -414,8 +414,8 @@ Pastikan data dan format JSON valid.`;
           }
         }
         throw new Error(`OpenAI response not ok: ${response.status}`);
-      } catch (openaiErr: any) {
-        console.error('OpenAI summary failed:', openaiErr.message);
+      } catch (openaiErr: unknown) {
+        console.error('OpenAI summary failed:', getErrorMessage(openaiErr));
       }
     }
 

@@ -5,8 +5,62 @@ import { getErrorMessage } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+interface StockFundamentals {
+  peRatio: number;
+  pbRatio: number;
+  roe: number;
+  roa: number;
+  der: number;
+  dividendYield: number;
+  eps: number;
+  profitMargin: number;
+  marketCap: number;
+  price?: number | null;
+  dividendRate?: number | null;
+  operatingMargin?: number | null;
+  revenue?: number;
+  netIncome?: number;
+  currentRatio?: number | null;
+}
+
+interface HistoryEntry {
+  year?: number;
+  quarter?: string;
+  revenue: number;
+  netIncome: number;
+}
+
+interface StockHistory {
+  annual: HistoryEntry[];
+  quarterly: HistoryEntry[];
+}
+
+interface StockSource {
+  fundamentals: StockFundamentals;
+  history: StockHistory;
+}
+
+interface LiveQuoteData {
+  price?: number;
+  marketCap?: number;
+  peRatio?: number;
+  pbRatio?: number;
+  eps?: number;
+  dividendYield?: number;
+}
+
+interface YahooRawValue {
+  raw?: number;
+}
+
+interface YahooEarningsItem {
+  date: number | string;
+  revenue?: YahooRawValue;
+  earnings?: YahooRawValue;
+}
+
 // Local High-Fidelity Dictionary for popular BEI stocks
-const POPULAR_FUNDAMENTALS: Record<string, any> = {
+const POPULAR_FUNDAMENTALS: Record<string, StockSource> = {
   'BBCA': {
     fundamentals: {
       peRatio: 24.5,
@@ -221,7 +275,7 @@ export async function GET(request: NextRequest) {
   const localSource = POPULAR_FUNDAMENTALS[ticker] || getDeterministicStockData(ticker);
   
   // Try to load actual live metrics from the stable /v7/finance/quote endpoint
-  const liveData: any = {};
+  const liveData: LiveQuoteData = {};
   try {
     const quoteResponse = await fetch(
       `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${querySymbol}`,
@@ -327,12 +381,12 @@ export async function GET(request: NextRequest) {
     const quarterlyEarnings = earnings.financialsChart?.quarterly || [];
 
     const history = {
-      annual: annualEarnings.length > 0 ? annualEarnings.map((item: any) => ({
+      annual: annualEarnings.length > 0 ? annualEarnings.map((item: YahooEarningsItem) => ({
         year: item.date,
         revenue: item.revenue?.raw || 0,
         netIncome: item.earnings?.raw || 0,
       })) : localSource.history.annual,
-      quarterly: quarterlyEarnings.length > 0 ? quarterlyEarnings.map((item: any) => ({
+      quarterly: quarterlyEarnings.length > 0 ? quarterlyEarnings.map((item: YahooEarningsItem) => ({
         quarter: item.date,
         revenue: item.revenue?.raw || 0,
         netIncome: item.earnings?.raw || 0,

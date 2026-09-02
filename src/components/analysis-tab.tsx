@@ -37,6 +37,54 @@ interface ChartData {
   netIncome: number;
 }
 
+interface StockFundamentals {
+  peRatio?: number | null;
+  pbRatio?: number | null;
+  roe?: number | null;
+  roa?: number | null;
+  der?: number | null;
+  profitMargin?: number | null;
+  dividendYield?: number | null;
+  eps?: number | null;
+  price?: number | null;
+  marketCap?: number | null;
+}
+
+interface NewsItem {
+  title: string;
+  link: string;
+  pubDate: string;
+  source: string;
+}
+
+interface BrokerEntry {
+  code: string;
+  lots: number;
+}
+
+interface Technicals {
+  price?: number;
+  summary?: { score: number; rating: string };
+  bandarmologySummary?: { score: number; rating: string };
+  bandarmology?: {
+    status?: string;
+    foreignNetBuy?: number;
+    top3Brokers?: string;
+    detailedBrokers?: { buy: BrokerEntry[]; sell: BrokerEntry[] };
+  };
+  moneyFlow?: { mfi?: number };
+  rsi?: { value?: number; signal?: string };
+  macd?: { signalName?: string; macd?: number; signal?: number; histogram?: number };
+  pivotPoints?: Record<string, Record<string, number>>;
+  movingAverages?: { sma20?: number; ema20?: number; sma50?: number; ema50?: number };
+  multiTimeframe?: { weekly?: string; daily?: string; hourly?: string };
+}
+
+interface TickerQuote {
+  symbol: string;
+  name: string;
+}
+
 // Utility to format financial metrics
 const formatFinancialNumber = (num: number | null, language: string) => {
   if (num === null || isNaN(num)) return '-';
@@ -213,19 +261,19 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   const [hasAnalyzed, setHasAnalyzed] = React.useState(false);
 
   // Financial and News state
-  const [fundamentals, setFundamentals] = React.useState<any>(null);
+  const [fundamentals, setFundamentals] = React.useState<StockFundamentals | null>(null);
   const [history, setHistory] = React.useState<{
     annual: { year: number; revenue: number; netIncome: number }[];
     quarterly: { quarter: string; revenue: number; netIncome: number }[];
   } | null>(null);
-  const [news, setNews] = React.useState<any[]>([]);
+  const [news, setNews] = React.useState<NewsItem[]>([]);
   const [analysis, setAnalysis] = React.useState<{ sentiment: string; summary: string; isAI: boolean; modelUsed?: string } | null>(null);
   const [historyType, setHistoryType] = React.useState<'annual' | 'quarterly'>('annual');
-  const [technicals, setTechnicals] = React.useState<any>(null);
+  const [technicals, setTechnicals] = React.useState<Technicals | null>(null);
   const [pivotMethod, setPivotMethod] = React.useState<'standard' | 'fibonacci'>('standard');
 
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = React.useRef<any>(null);
+  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear timeout on unmount
   React.useEffect(() => {
@@ -331,12 +379,12 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         const res = await fetch(`/api/ticker?q=${val}`);
         if (res.ok) {
           const data = await res.json();
-          const quotes = data.quotes || [];
+          const quotes: TickerQuote[] = data.quotes || [];
           if (quotes.length > 0) {
             setSuggestions(prev => {
               // Merge, avoiding duplicates
               const merged = [...prev];
-              quotes.forEach((q: any) => {
+              quotes.forEach((q) => {
                 if (!merged.some(m => m.symbol.toUpperCase() === q.symbol.toUpperCase())) {
                   merged.push(q);
                 }
@@ -1590,7 +1638,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                         <span>{language === 'id' ? 'Estimasi (Lot)' : 'Est. (Lots)'}</span>
                       </div>
                       <div className="space-y-1.5">
-                        {detailedBrokers.buy.map((b: any, idx: number) => (
+                        {detailedBrokers.buy.map((b: BrokerEntry, idx: number) => (
                           <div key={idx} className="flex justify-between items-center text-[10px] font-mono">
                             <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">{b.code}</span>
                             <span className="text-slate-200 font-bold">+{b.lots.toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}</span>
@@ -1606,7 +1654,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                         <span>{language === 'id' ? 'Estimasi (Lot)' : 'Est. (Lots)'}</span>
                       </div>
                       <div className="space-y-1.5">
-                        {detailedBrokers.sell.map((s: any, idx: number) => (
+                        {detailedBrokers.sell.map((s: BrokerEntry, idx: number) => (
                           <div key={idx} className="flex justify-between items-center text-[10px] font-mono">
                             <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded font-bold">{s.code}</span>
                             <span className="text-slate-200 font-bold">-{s.lots.toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}</span>
@@ -1822,7 +1870,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ROE</span>
               <span className={`text-lg font-bold mt-1 ${
-                fundamentals?.roe > 15 ? 'text-emerald-400' : 'text-white'
+                (fundamentals?.roe ?? 0) > 15 ? 'text-emerald-400' : 'text-white'
               }`}>
                 {loading ? '...' : fundamentals?.roe ? `${fundamentals.roe.toFixed(2)}%` : '-'}
               </span>
@@ -1842,7 +1890,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">DER (Leverage)</span>
               <span className={`text-lg font-bold mt-1 ${
-                fundamentals?.der > 200 ? 'text-rose-400' : 'text-white'
+                (fundamentals?.der ?? 0) > 200 ? 'text-rose-400' : 'text-white'
               }`}>
                 {loading ? '...' : fundamentals?.der ? `${(fundamentals.der).toFixed(2)}%` : '-'}
               </span>
@@ -1880,7 +1928,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between col-span-1">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Market Cap</span>
               <span className="text-sm font-bold text-white mt-1 truncate">
-                {loading ? '...' : formatFinancialNumber(fundamentals?.marketCap, language)}
+                {loading ? '...' : formatFinancialNumber(fundamentals?.marketCap ?? null, language)}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Kapitalisasi Pasar' : 'Market Cap'}</span>
             </div>

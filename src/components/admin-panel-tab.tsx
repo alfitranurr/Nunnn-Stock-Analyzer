@@ -22,7 +22,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import type { AppUser } from '@/lib/types';
+import type { AppUser, SimUser } from '@/lib/types';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { useLanguage } from '@/lib/language-context';
 
@@ -124,9 +124,9 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     try {
       if (!isSupabaseConfigured) {
         const storedUsers = localStorage.getItem('nunnn_stock_simulated_users');
-        const parsedUsers = storedUsers ? JSON.parse(storedUsers) : [];
+        const parsedUsers: SimUser[] = storedUsers ? JSON.parse(storedUsers) : [];
         
-        const mapped: UserApproval[] = parsedUsers.map((u: any, idx: number) => ({
+        const mapped: UserApproval[] = parsedUsers.map((u, idx: number) => ({
           id: `local-id-${idx}`,
           email: u.email,
           approved: u.approved,
@@ -194,9 +194,9 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     try {
       if (!isSupabaseConfigured) {
         const storedUsers = localStorage.getItem('nunnn_stock_simulated_users');
-        let simUsers = storedUsers ? JSON.parse(storedUsers) : [];
+        let simUsers: SimUser[] = storedUsers ? JSON.parse(storedUsers) : [];
         
-        simUsers = simUsers.map((u: any) => {
+        simUsers = simUsers.map((u) => {
           if (u.email.toLowerCase() === userToUpdate.email.toLowerCase()) {
             return { ...u, approved: newStatus };
           }
@@ -245,9 +245,9 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     try {
       if (!isSupabaseConfigured) {
         const storedUsers = localStorage.getItem('nunnn_stock_simulated_users');
-        let simUsers = storedUsers ? JSON.parse(storedUsers) : [];
+        let simUsers: SimUser[] = storedUsers ? JSON.parse(storedUsers) : [];
         
-        simUsers = simUsers.filter((u: any) => u.email.toLowerCase() !== userToDelete.email.toLowerCase());
+        simUsers = simUsers.filter((u) => u.email.toLowerCase() !== userToDelete.email.toLowerCase());
 
         localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
         setUsers(prev => prev.filter(u => u.email.toLowerCase() !== userToDelete.email.toLowerCase()));

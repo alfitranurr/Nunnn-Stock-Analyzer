@@ -13,3 +13,13 @@ export interface AppUser {
   /** True when the user originates from the local demo/simulation mode. */
   isMock?: boolean;
 }
+
+/**
+ * A simulated/demo user record stored in localStorage when Supabase is not
+ * configured. Passwords are stored in plaintext — DEMO ONLY, not production.
+ */
+export interface SimUser {
+  email: string;
+  password: string;
+  approved: boolean;
+}

@@ -252,6 +252,10 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
     return () => {
       cancelled = true;
     };
+    // Intentionally omit `currentPrices`: including it would re-trigger this
+    // fetch effect every time prices update, causing an infinite refetch loop.
+    // We only want to fetch when the holdings list changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holdings]);
 
   // Fetch company name & price when user types ticker in Form modal
@@ -275,6 +279,11 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
       };
       fetchFormTicker();
     }
+    // Intentionally omit `formAvgPrice`: it is read only to guard against
+    // overwriting an existing price. Adding it would re-run the fetch effect
+    // immediately after we set the price (double fetch). We only fetch on
+    // ticker/edit-mode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formTicker, editingHolding]);
 
   // Handle Add/Edit submit
