@@ -148,8 +148,7 @@ Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
             contents: [{
               parts: [{ text: prompt }]
             }]
-          }),
-          cache: 'no-store'
+          })
         }
       );
 
@@ -213,8 +212,7 @@ Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
           model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7
-        }),
-        cache: 'no-store'
+        })
       }
     );
 
@@ -269,8 +267,7 @@ Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output An
           model: 'gpt-3.5-turbo',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7
-        }),
-        cache: 'no-store'
+        })
       }
     );
 

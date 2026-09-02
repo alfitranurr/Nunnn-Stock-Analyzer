@@ -272,8 +272,7 @@ Pastikan data dan format JSON valid.`;
                     required: ["highlight", "context", "keyFindings", "takeaway"]
                   }
                 }
-              }),
-              cache: 'no-store'
+              })
             }
           );
 
@@ -312,8 +311,7 @@ Pastikan data dan format JSON valid.`;
               messages: [{ role: 'user', content: promptOpenAI }],
               temperature: 0.5,
               response_format: { type: "json_object" }
-            }),
-            cache: 'no-store'
+            })
           }
         );
 
@@ -348,8 +346,7 @@ Pastikan data dan format JSON valid.`;
               messages: [{ role: 'user', content: promptOpenAI }],
               temperature: 0.5,
               response_format: { type: "json_object" }
-            }),
-            cache: 'no-store'
+            })
           }
         );
 

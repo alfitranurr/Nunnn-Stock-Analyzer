@@ -45,11 +45,12 @@ Antarmuka dirancang menggunakan filosofi **Card-in-Card Design System** yang ult
 
 ### 4. 🎰 Kalkulator Alokasi E-IPO (IDX Allotment)
 *   **Estimasi Allotment Realistis**: Memproyeksikan alokasi jumlah lot saham perdana (E-IPO) yang akan diperoleh investor ritel berdasarkan total nilai pesanan, faktor *oversubscription*, jumlah partisipan, dan rasio porsi ritel.
-*   **Klasifikasi Golongan Penjatahan (Golongan I - IV)**: Mengklasifikasikan investor secara otomatis sesuai aturan prospektus Bursa Efek Indonesia:
+*   **Klasifikasi Golongan Penjatahan (Golongan I - V)**: Mengklasifikasikan investor secara otomatis sesuai aturan prospektus Bursa Efek Indonesia:
     *   **Golongan I**: Pesanan $\le \text{Rp } 100\text{ Juta}$
     *   **Golongan II**: Pesanan $\text{Rp } 100\text{ Juta} - \text{Rp } 250\text{ Juta}$
     *   **Golongan III**: Pesanan $\text{Rp } 250\text{ Juta} - \text{Rp } 500\text{ Juta}$
-    *   **Golongan IV**: Pesanan $> \text{Rp } 500\text{ Juta}$
+    *   **Golongan IV**: Pesanan $\text{Rp } 500\text{ Juta} - \text{Rp } 1\text{ Triliun}$
+    *   **Golongan V**: Pesanan $> \text{Rp } 1\text{ Triliun}$
 *   **Rasio Refund & Saldo Kembali**: Menghitung estimasi saldo kas RDN yang dikembalikan (*refund*) secara otomatis setelah proses penjatahan selesai.
 
 ### 5. 💼 Manajemen Portofolio Saya & Kas RDN
@@ -124,7 +125,7 @@ Nunnn-Stock-Analyzer/
 │   │   ├── confirm-modal.tsx       # Modal Dialog Konfirmasi Aksi
 │   │   ├── dividend-tab.tsx        # Tab Dividen: Proyeksi, Opsi Pajak & Simulasi DRIP
 │   │   ├── history-table.tsx       # Tabel Riwayat Rencana Average Down
-│   │   ├── ipo-tab.tsx             # Tab E-IPO: Kalkulator Allotment Golongan I-IV
+│   │   ├── ipo-tab.tsx             # Tab E-IPO: Kalkulator Allotment Golongan I-V
 │   │   ├── news-tab.tsx            # Tab Feed Berita & AI Summary Gemini Modal
 │   │   ├── portfolio-tab.tsx       # Tab Portofolio: Tracker Asset, PnL & RDN Cash
 │   │   ├── results-display.tsx     # Output Visualisasi Hasil Kalkulasi Average Down
@@ -280,7 +281,7 @@ create table public.user_approvals (
 ## ⚙️ Panduan Instalasi & Jalankan Lokal
 
 ### 1. Prasyarat
-*   [Node.js](https://nodejs.org/) (Versi LTS $\ge 18.x$)
+*   [Node.js](https://nodejs.org/) (Versi LTS $\ge 20.x$ — disarankan 20.x atau 22.x)
 *   [Git](https://git-scm.com/)
 
 ### 2. Kloning Repositori
