@@ -5,30 +5,6 @@ import { IDX_TICKERS } from '@/lib/tickers';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-interface ChartMeta {
-  regularMarketPrice?: number | null;
-  previousClose?: number | null;
-  chartPreviousClose?: number | null;
-  regularMarketVolume?: number | null;
-  longName?: string;
-  shortName?: string;
-  fiftyTwoWeekHigh?: number | null;
-  fiftyTwoWeekLow?: number | null;
-  regularMarketDayHigh?: number | null;
-  regularMarketDayLow?: number | null;
-}
-
-interface ChartResult {
-  meta?: ChartMeta;
-}
-
-interface ChartResponse {
-  chart?: {
-    result?: ChartResult[];
-    error?: unknown;
-  };
-}
-
 interface StockMover {
   symbol: string;
   name: string;
@@ -59,7 +35,7 @@ async function fetchIndexQuote(symbol: string): Promise<{
       { headers: { 'User-Agent': UA }, cache: 'no-store' }
     );
     if (!res.ok) return null;
-    const data: ChartResponse = await res.json();
+    const data = await res.json();
     const meta = data.chart?.result?.[0]?.meta;
     if (!meta || meta.regularMarketPrice == null) return null;
 
@@ -86,54 +62,85 @@ async function fetchIndexQuote(symbol: string): Promise<{
   }
 }
 
-async function fetchStockMover(symbol: string, fallbackName: string): Promise<StockMover | null> {
-  try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.JK?range=1d&interval=1d`,
-      { headers: { 'User-Agent': UA }, cache: 'no-store' }
-    );
-    if (!res.ok) return null;
-    const data: ChartResponse = await res.json();
-    const meta = data.chart?.result?.[0]?.meta;
-    if (!meta || meta.regularMarketPrice == null) return null;
+interface SparkMeta {
+  regularMarketPrice?: number;
+  chartPreviousClose?: number;
+  previousClose?: number;
+  regularMarketVolume?: number;
+  longName?: string;
+  shortName?: string;
+}
 
-    const price = meta.regularMarketPrice;
-    const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price;
-    const change = price - prevClose;
-    const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+interface SparkResponse {
+  spark?: {
+    result?: Array<{
+      symbol: string;
+      response: Array<{ meta?: SparkMeta }>;
+    }>;
+    error?: unknown;
+  };
+}
 
-    return {
-      symbol: symbol.toUpperCase(),
-      name: cleanCompanyName(meta.longName || meta.shortName || fallbackName),
-      price,
-      change,
-      changePercent,
-      volume: meta.regularMarketVolume ?? 0,
-    };
-  } catch {
-    return null;
+/**
+ * Batch-fetch up to 20 tickers per request using Yahoo Spark API.
+ * Returns price, change, changePercent, volume for each stock.
+ */
+async function fetchBatchMovers(
+  entries: Array<[string, string]>,
+  batchSize = 20
+): Promise<StockMover[]> {
+  const movers: StockMover[] = [];
+
+  for (let i = 0; i < entries.length; i += batchSize) {
+    const batch = entries.slice(i, i + batchSize);
+    const symbolsParam = batch.map(([sym]) => `${sym}.JK`).join(',');
+    const fallbackNames = new Map(batch);
+
+    try {
+      const res = await fetch(
+        `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbolsParam}&range=1d&interval=1d`,
+        { headers: { 'User-Agent': UA }, cache: 'no-store' }
+      );
+      if (!res.ok) continue;
+      const data: SparkResponse = await res.json();
+      const results = data.spark?.result || [];
+
+      for (const result of results) {
+        const meta = result.response[0]?.meta;
+        if (!meta || meta.regularMarketPrice == null) continue;
+
+        const symbol = result.symbol.replace(/\.JK$/i, '');
+        const price = meta.regularMarketPrice;
+        const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price;
+        const change = price - prevClose;
+        const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+        movers.push({
+          symbol,
+          name: cleanCompanyName(meta.longName || meta.shortName || fallbackNames.get(symbol) || symbol),
+          price,
+          change,
+          changePercent,
+          volume: meta.regularMarketVolume ?? 0,
+        });
+      }
+    } catch {
+      // ignore batch errors
+    }
   }
+
+  return movers;
 }
 
 export async function GET() {
   // Fetch IHSG composite index
   const ihsg = await fetchIndexQuote('^JKSE');
 
-  // Fetch ALL tickers from the local dictionary (~113 stocks) in batches
-  // of 10 to avoid overwhelming Yahoo Finance with 100+ parallel requests.
-  const allSymbols = Object.entries(IDX_TICKERS);
-  const BATCH_SIZE = 10;
-  const movers: StockMover[] = [];
-
-  for (let i = 0; i < allSymbols.length; i += BATCH_SIZE) {
-    const batch = allSymbols.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map(([symbol, name]) => fetchStockMover(symbol, name))
-    );
-    for (const result of batchResults) {
-      if (result) movers.push(result);
-    }
-  }
+  // Fetch ALL tickers from the dictionary using batch Spark API.
+  // Spark API accepts max 20 symbols per request, so we batch ~105 tickers
+  // into ~6 requests (much faster than 105 individual requests).
+  const allEntries = Object.entries(IDX_TICKERS);
+  const movers = await fetchBatchMovers(allEntries, 20);
 
   // Sort by absolute change% to find the biggest movers
   movers.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
@@ -152,6 +159,7 @@ export async function GET() {
     ihsg,
     topGainers,
     topLosers,
+    totalScanned: movers.length,
     timestamp: new Date().toISOString(),
   });
 }
