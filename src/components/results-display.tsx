@@ -4,7 +4,6 @@ import * as React from 'react';
 import { TrendingDown, ArrowRight, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
 import { AvgDownResult } from '@/lib/calculator';
 import { motion } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import Image from 'next/image';
 import { cleanCompanyName } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
@@ -44,31 +43,6 @@ function ResultsEmitenLogo({ symbol }: { symbol: string }) {
 
 export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayProps) {
   const { language } = useLanguage();
-  // Suppress confetti on initial mount/reload — only fire when the user
-  // actively changes inputs to turn a loss into a profit.
-  const [hasConfettiFired, setHasConfettiFired] = React.useState(
-    () => Boolean(result?.turnedIntoProfit)
-  );
-  const [prevResult, setPrevResult] = React.useState(result);
-  const [prevTicker, setPrevTicker] = React.useState(ticker);
-
-  // Adjust state during render when the result/ticker prop changes.
-  // This is the idiomatic React pattern for "reset state when a prop changes"
-  // (https://react.dev/learn/you-might-not-need-an-effect#resetting-all-state-when-a-prop-changes).
-  // The set-state-in-effect lint rule does NOT flag setState during render
-  // when guarded by a prop-comparison condition.
-  if (result !== prevResult || ticker !== prevTicker) {
-    const wasNull = prevResult === null;
-    setPrevResult(result);
-    setPrevTicker(ticker);
-    if (result && !result.turnedIntoProfit) {
-      setHasConfettiFired(false);
-    } else if (wasNull && result && result.turnedIntoProfit) {
-      // First arrival of a result (e.g. auto-calc on mount/reload): suppress
-      // confetti so it doesn't fire on page load.
-      setHasConfettiFired(true);
-    }
-  }
 
   const cleanName = cleanCompanyName(companyName);
 
@@ -93,21 +67,6 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
   // Efek Confetti ketika berhasil mengubah Loss jadi Profit.
   // Tidak meledak pada initial mount/reload karena hasConfettiFired
   // sudah diinisialisasi ke true bila result awal sudah turnedIntoProfit.
-  React.useEffect(() => {
-    if (result && result.turnedIntoProfit && !hasConfettiFired) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#00b15b', '#05fa7b', '#008f47', '#ffffff']
-      });
-      const timer = setTimeout(() => {
-        setHasConfettiFired(true);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [result, hasConfettiFired]);
-
   if (!result || result.sharesAwal === 0) {
     return (
       <div className="glass-card p-8 flex flex-col items-center justify-center text-center h-full min-h-[350px] border-dashed border-2 border-slate-300/40 dark:border-white/10">
