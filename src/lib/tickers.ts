@@ -130,6 +130,11 @@ export const IDX_TICKERS: Record<string, string> = {
   INTP: "Indocement Tunggal Prakarsa Tbk",
   MEDS: "Minna Padi Investama Sekuritas Tbk",
   MNCN: "Media Nusantara Citra Tbk",
+  // Volatile / frequent top movers
+  NATO: "Indofood SUKSES Makmur Tbk",
+  SAPX: "Satria Antaran Prima Tbk",
+  PTSP: "Pelayaran Tempuran Emas Tbk",
+  BTEK: "Borneo Teknokrat Indonesia Tbk",
 };
 
 /**

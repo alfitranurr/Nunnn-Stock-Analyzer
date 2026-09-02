@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Radio } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface MarketData {
@@ -27,6 +27,7 @@ interface StockMover {
   price: number;
   change: number;
   changePercent: number;
+  volume: number;
 }
 
 export function MarketSummary({ language }: { language: 'id' | 'en' }) {
@@ -54,7 +55,7 @@ export function MarketSummary({ language }: { language: 'id' | 'en' }) {
     const timer = setTimeout(() => {
       fetchData();
     }, 0);
-    const interval = setInterval(fetchData, 60000);
+    const interval = setInterval(fetchData, 30000);
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
@@ -114,7 +115,10 @@ export function MarketSummary({ language }: { language: 'id' | 'en' }) {
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
             {isId ? 'Indeks IHSG' : 'IHSG Index'}
           </span>
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400">
+            <Radio className="h-2.5 w-2.5 animate-pulse" />
+            LIVE
+          </span>
         </div>
         <div>
           <div className="flex items-baseline gap-2">

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cleanCompanyName } from '@/lib/utils';
+import { IDX_TICKERS } from '@/lib/tickers';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -34,7 +35,11 @@ interface StockMover {
   price: number;
   change: number;
   changePercent: number;
+  volume: number;
 }
+
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 async function fetchIndexQuote(symbol: string): Promise<{
   price: number;
@@ -51,13 +56,7 @@ async function fetchIndexQuote(symbol: string): Promise<{
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1d&interval=1d`,
-      {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        cache: 'no-store',
-      }
+      { headers: { 'User-Agent': UA }, cache: 'no-store' }
     );
     if (!res.ok) return null;
     const data: ChartResponse = await res.json();
@@ -87,17 +86,11 @@ async function fetchIndexQuote(symbol: string): Promise<{
   }
 }
 
-async function fetchStockMover(symbol: string): Promise<StockMover | null> {
+async function fetchStockMover(symbol: string, fallbackName: string): Promise<StockMover | null> {
   try {
     const res = await fetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.JK?range=1d&interval=1d`,
-      {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        cache: 'no-store',
-      }
+      { headers: { 'User-Agent': UA }, cache: 'no-store' }
     );
     if (!res.ok) return null;
     const data: ChartResponse = await res.json();
@@ -111,10 +104,11 @@ async function fetchStockMover(symbol: string): Promise<StockMover | null> {
 
     return {
       symbol: symbol.toUpperCase(),
-      name: cleanCompanyName(meta.longName || meta.shortName || symbol),
+      name: cleanCompanyName(meta.longName || meta.shortName || fallbackName),
       price,
       change,
       changePercent,
+      volume: meta.regularMarketVolume ?? 0,
     };
   } catch {
     return null;
@@ -125,15 +119,27 @@ export async function GET() {
   // Fetch IHSG composite index
   const ihsg = await fetchIndexQuote('^JKSE');
 
-  // Fetch a curated list of blue-chip stocks for top movers display
-  const moverSymbols = ['BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM', 'ASII', 'GOTO', 'ANTM'];
-  const moverResults = await Promise.all(moverSymbols.map(fetchStockMover));
-  const movers = moverResults
-    .filter((m): m is StockMover => m !== null)
-    .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+  // Fetch ALL tickers from the local dictionary (~113 stocks) in batches
+  // of 10 to avoid overwhelming Yahoo Finance with 100+ parallel requests.
+  const allSymbols = Object.entries(IDX_TICKERS);
+  const BATCH_SIZE = 10;
+  const movers: StockMover[] = [];
 
-  const topGainers = movers.filter((m) => m.change > 0).slice(0, 3);
-  const topLosers = movers.filter((m) => m.change < 0).slice(0, 3);
+  for (let i = 0; i < allSymbols.length; i += BATCH_SIZE) {
+    const batch = allSymbols.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(([symbol, name]) => fetchStockMover(symbol, name))
+    );
+    for (const result of batchResults) {
+      if (result) movers.push(result);
+    }
+  }
+
+  // Sort by absolute change% to find the biggest movers
+  movers.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+
+  const topGainers = movers.filter((m) => m.change > 0).slice(0, 5);
+  const topLosers = movers.filter((m) => m.change < 0).slice(0, 5);
 
   if (!ihsg) {
     return NextResponse.json(
