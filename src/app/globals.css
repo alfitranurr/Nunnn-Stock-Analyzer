@@ -60,7 +60,7 @@ body {
 
 .glass-input {
   background: var(--input-bg);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid #3a4248;
   transition: all 0.2s ease;
   border-radius: 0.5rem;
 }
@@ -69,6 +69,10 @@ body {
   outline: none;
   border-color: var(--color-brand-purple);
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.glass-input:hover:not(:focus) {
+  border-color: #4a5258;
 }
 
 /* Custom Scrollbar */
