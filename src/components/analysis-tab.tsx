@@ -1715,7 +1715,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 <div className="flex justify-between"><span className="text-slate-500">+DI</span><span className="text-emerald-400">{loading ? <Skel w="w-10" /> : technicals?.adx?.plusDI?.toFixed(1) || '-'}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">-DI</span><span className="text-rose-400">{loading ? <Skel w="w-10" /> : technicals?.adx?.minusDI?.toFixed(1) || '-'}</span></div>
               </div>
-              <p className="text-[9px] text-slate-500 leading-relaxed">{loading ? <Skel w="w-full" /> : technicals?.adx?.direction === 'Bullish' ? (language === 'id' ? 'Tren bullish (+DI > -DI)' : 'Bullish trend (+DI > -DI)') : (language === 'id' ? 'Tren bearish (-DI > +DI)' : 'Bearish trend (-DI > +DI)')}</p>
+              <p className="text-[9px] text-slate-500 leading-relaxed">{loading ? <Skel w="w-full" /> : !technicals?.adx?.direction ? '-' : technicals.adx.direction === 'Bullish' ? (language === 'id' ? 'Tren bullish (+DI > -DI)' : 'Bullish trend (+DI > -DI)') : (language === 'id' ? 'Tren bearish (-DI > +DI)' : 'Bearish trend (-DI > +DI)')}</p>
             </div>
 
             {/* ATR / Volatility */}
