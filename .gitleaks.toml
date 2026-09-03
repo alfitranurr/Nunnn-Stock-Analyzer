@@ -1,0 +1,47 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project allowlist"
+paths = [
+  '''\.gitleaks\.toml''',
+  '''node_modules/.*''',
+  '''\.next/.*''',
+  '''package-lock\.json''',
+]
+
+[[rules]]
+id = "supabase-anon-key"
+description = "Supabase anon/service key (JWT format)"
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'''
+tags = ["supabase", "key", "jwt"]
+
+[[rules]]
+id = "supabase-url"
+description = "Supabase project URL"
+regex = '''https://[a-z0-9]{20,}\.supabase\.co'''
+tags = ["supabase", "url"]
+
+[[rules]]
+id = "google-oauth-client-secret"
+description = "Google OAuth client secret (GOCSPX-)"
+regex = '''GOCSPX-[A-Za-z0-9_-]{20,}'''
+tags = ["google", "oauth", "secret"]
+
+[[rules]]
+id = "gemini-api-key"
+description = "Google Gemini API key (AIza)"
+regex = '''AIza[0-9A-Za-z_-]{35}'''
+tags = ["google", "gemini", "api-key"]
+
+[[rules]]
+id = "groq-api-key"
+description = "Groq API key"
+regex = '''gsk_[A-Za-z0-9]{40,}'''
+tags = ["groq", "api-key"]
+
+[[rules]]
+id = "next-public-env-secret"
+description = "NEXT_PUBLIC env var holding a secret-like value"
+regex = '''NEXT_PUBLIC_(SUPABASE_URL|SUPABASE_ANON_KEY|ADMIN_EMAIL)\s*=\s*\S+'''
+tags = ["env", "nextjs"]

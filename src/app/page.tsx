@@ -258,8 +258,9 @@ export default function Dashboard() {
             const adminApproval = adminApprovalArray && adminApprovalArray.length > 0 ? adminApprovalArray[0] : null;
                
             if (!adminApproval) {
-              // First-run: insert own row (self-insert allowed by RLS), then claim admin.
-              await supabase.from('user_approvals').insert({ email: sessionUser.email, approved: true });
+              // First-run: insert own row as pending (RLS forces approved=false),
+              // then claim admin via the SECURITY DEFINER RPC which bypasses RLS.
+              await supabase.from('user_approvals').insert({ email: sessionUser.email, approved: false });
               await supabase.rpc('claim_first_admin', { p_email: sessionUser.email });
             } else if (!adminApproval.approved) {
               await supabase.rpc('claim_first_admin', { p_email: sessionUser.email });

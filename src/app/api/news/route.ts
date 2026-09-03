@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/utils';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,9 @@ function parseRss(xmlText: string) {
 }
 
 export async function GET(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const category = searchParams.get('category')?.toLowerCase().trim() || 'saham';
   const q = searchParams.get('q')?.trim();

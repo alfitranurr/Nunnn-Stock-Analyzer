@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -147,7 +148,10 @@ async function fetchBatchMovers(
   return movers;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   // Fetch IHSG composite index
   const ihsg = await fetchIndexQuote('^JKSE');
 

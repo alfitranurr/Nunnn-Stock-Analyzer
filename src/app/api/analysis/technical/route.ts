@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/utils';
+import { requireUser } from '@/lib/auth-guard';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 // Always run dynamically — this route proxies Yahoo Finance real-time data.
 export const dynamic = 'force-dynamic';
@@ -585,6 +587,12 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
 }
 
 export async function GET(request: NextRequest) {
+  const { user, error: authError } = await requireUser();
+  if (authError) return authError;
+
+  const limited = await applyRateLimit(request, user?.id);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const symbol = searchParams.get('symbol')?.toUpperCase().trim();
 

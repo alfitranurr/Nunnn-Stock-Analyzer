@@ -103,7 +103,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         if (data.user) {
           await supabase
             .from('user_approvals')
-            .insert({ email: cleanEmail, approved: isCurrentAdmin });
+            .insert({ email: cleanEmail, approved: false });
           
           if (isCurrentAdmin) {
             onAuthSuccess(data.user);

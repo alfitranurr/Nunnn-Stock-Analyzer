@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 // Always run dynamically — this route proxies Yahoo Finance real-time data.
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,9 @@ interface YahooChartResponse {
 
 
 export async function GET(request: NextRequest) {
+  const limited = await applyRateLimit(request);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q')?.trim();
 

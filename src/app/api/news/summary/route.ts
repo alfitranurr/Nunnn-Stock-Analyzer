@@ -1,5 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/utils';
+import { requireUser } from '@/lib/auth-guard';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 // Always run dynamically — this route fetches live news and calls AI providers.
 export const dynamic = 'force-dynamic';
@@ -183,13 +185,51 @@ async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | nul
   }
 }
 
+function isPrivateOrReservedHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h === 'localhost' || h.endsWith('.localhost')) return true;
+  if (h === '::1' || h === '::' || h === '0:0:0:0:0:0:0:1') return true;
+  if (h.endsWith('.ipv6-localnet')) return true;
+  const parts = h.split('.').map((p) => Number(p));
+  if (parts.length === 4 && parts.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)) {
+    if (parts[0] === 10) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 127) return true;
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    if (parts[0] === 0) return true;
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
+  }
+  // IPv6 unique-local / link-local
+  if (h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80')) return true;
+  return false;
+}
+
+function isSafeArticleUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+  if (u.username || u.password) return false;
+  if (isPrivateOrReservedHost(u.hostname)) return false;
+  return true;
+}
+
 async function fetchArticleText(url: string): Promise<string | null> {
+  if (!isSafeArticleUrl(url)) {
+    console.warn('fetchArticleText: rejected unsafe URL');
+    return null;
+  }
   try {
     const res = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
-      signal: AbortSignal.timeout(6000) // 6 seconds timeout
+      signal: AbortSignal.timeout(6000), // 6 seconds timeout
+      redirect: 'manual', // do not follow cross-host redirects blindly
     });
     if (!res.ok) return null;
     const html = await res.text();
@@ -211,6 +251,12 @@ async function fetchArticleText(url: string): Promise<string | null> {
 
 export async function POST(request: NextRequest) {
   try {
+    const { user, error: authError } = await requireUser();
+    if (authError) return authError;
+
+    const limited = await applyRateLimit(request, user?.id);
+    if (limited) return limited;
+
     const body = await request.json();
     const { title, source, link } = body;
 
@@ -222,18 +268,21 @@ export async function POST(request: NextRequest) {
     const groqKey = process.env.GROQ_API_KEY;
     const openAIKey = process.env.OPENAI_API_KEY;
 
-    // Resolve original URL and fetch article text if link is provided
+    // Resolve original URL and fetch article text if link is provided.
+    // isSafeArticleUrl validates scheme + blocks private/reserved IPs (SSRF guard).
     let articleContent = '';
     let resolvedUrl = link || '';
-    if (link && link.startsWith('http')) {
+    if (link && isSafeArticleUrl(link)) {
       try {
         if (link.includes('news.google.com')) {
           const decoded = await getOriginalArticleUrl(link);
-          if (decoded) {
+          if (decoded && isSafeArticleUrl(decoded)) {
             resolvedUrl = decoded;
+          } else {
+            resolvedUrl = '';
           }
         }
-        if (resolvedUrl) {
+        if (resolvedUrl && isSafeArticleUrl(resolvedUrl)) {
           const content = await fetchArticleText(resolvedUrl);
           if (content) {
             articleContent = content;

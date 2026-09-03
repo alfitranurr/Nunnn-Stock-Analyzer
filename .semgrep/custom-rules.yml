@@ -1,0 +1,106 @@
+# Custom Semgrep rules for Nunnn Stock Analyzer (Skill 14)
+rules:
+  - id: nextjs-supabase-service-role-key-in-client
+    patterns:
+      - pattern: process.env.SUPABASE_SERVICE_ROLE_KEY
+      - pattern-not-inside: |
+          import 'server-only';
+          ...
+    message: >
+      service_role key digunakan tanpa server-only guard. Kunci ini bypass RLS.
+      Jangan pernah expose ke client component.
+    severity: ERROR
+    languages: [typescript]
+    metadata:
+      cwe: "CWE-200: Exposure of Sensitive Information"
+      owasp: "A01:2021 - Broken Access Control"
+
+  - id: nextjs-createclient-without-rls-check
+    patterns:
+      - pattern: createClient($URL, $KEY, {...})
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: .*service_role.*
+    message: >
+      createClient dengan service_role key → bypass RLS. Pastikan hanya di
+      server route handler, bukan client.
+    severity: ERROR
+    languages: [typescript]
+    metadata:
+      cwe: "CWE-862: Missing Authorization"
+      owasp: "A01:2021 - Broken Access Control"
+
+  - id: react-dangerouslysetinnerhtml-without-sanitization
+    pattern-either:
+      - pattern: $JSX.dangerouslySetInnerHTML={{ __html: $INPUT }}
+    pattern-not: $JSX.dangerouslySetInnerHTML={{ __html: "..." }}
+    message: >
+      dangerouslySetInnerHTML dengan nilai dinamis — risiko XSS. Gunakan
+      DOMPurify.sanitize($INPUT) atau pindahkan ke textContent.
+    severity: ERROR
+    languages: [tsx]
+    metadata:
+      cwe: "CWE-79: XSS"
+      owasp: "A03:2021 - Injection"
+
+  - id: nextjs-innerhtml-assignment
+    pattern: $EL.innerHTML = $INPUT
+    pattern-not: $EL.innerHTML = ""
+    message: >
+      innerHTML assignment dengan input dinamis — risiko DOM XSS. Gunakan
+      textContent atau sanitize.
+    severity: ERROR
+    languages: [typescript]
+    metadata:
+      cwe: "CWE-79: XSS"
+      owasp: "A03:2021 - Injection"
+
+  - id: nextjs-eval-with-input
+    pattern: eval($INPUT)
+    message: eval() dengan input — RCE/XSS. Hindari eval.
+    severity: ERROR
+    languages: [typescript]
+    metadata:
+      cwe: "CWE-94: Code Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: nextjs-fetch-with-user-controlled-url-ssrf
+    patterns:
+      - pattern: fetch($URL, ...)
+      - pattern-inside: |
+          export async function $FUNC(request: NextRequest) {
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $URL
+          regex: .*\$.*(link|url|target).*
+    message: >
+      fetch() dengan URL yang mengandung variabel user-controlled dari request —
+      risiko SSRF. Validasi hostname/IP & block private range.
+    severity: WARNING
+    languages: [typescript]
+    metadata:
+      cwe: "CWE-918: SSRF"
+      owasp: "A10:2021 - SSRF"
+
+  - id: nextjs-route-handler-missing-auth
+    pattern: |
+      export async function $FUNC(request: NextRequest) {
+        ...
+      }
+    pattern-not-inside: |
+      export async function $FUNC(request: NextRequest) {
+        ...
+        await supabase.auth.getUser()
+        ...
+      }
+    message: >
+      Route handler tidak memanggil supabase.auth.getUser() — tidak ada
+      validasi JWT server-side. Tambahkan auth check.
+    severity: WARNING
+    languages: [typescript]
+    paths:
+      include: ["src/app/api/**/route.ts"]
+    metadata:
+      cwe: "CWE-306: Missing Authentication"
+      owasp: "A01:2021 - Broken Access Control"

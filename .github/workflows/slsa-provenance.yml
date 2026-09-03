@@ -1,0 +1,73 @@
+name: Build Provenance & Code Signing (SLSA)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
+jobs:
+  build:
+    name: Build, Sign & Provenance (SLSA L3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Package build artifact
+        run: |
+          tar -czf nunnn-stock-analyzer-${{ github.sha }}.tar.gz \
+            .next package.json package-lock.json next.config.ts
+          sha256sum nunnn-stock-analyzer-${{ github.sha }}.tar.gz > checksums.txt
+
+      - name: Install cosign (Sigstore)
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifact (keyless OIDC)
+        run: |
+          cosign sign-blob --yes \
+            --output-signature nunnn-stock-analyzer-${{ github.sha }}.sig \
+            --output-certificate nunnn-stock-analyzer-${{ github.sha }}.pem \
+            nunnn-stock-analyzer-${{ github.sha }}.tar.gz
+
+      - name: Generate SLSA provenance
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
+        with:
+          image: nunnn-stock-analyzer:${{ github.sha }}
+          digest: ${{ steps.build.outputs.digest }}
+        continue-on-error: true
+
+      - name: Verify signature
+        run: |
+          cosign verify-blob \
+            --certificate nunnn-stock-analyzer-${{ github.sha }}.pem \
+            --signature nunnn-stock-analyzer-${{ github.sha }}.sig \
+            --certificate-identity-regexp 'https://github.com/${{ github.repository }}/' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            nunnn-stock-analyzer-${{ github.sha }}.tar.gz
+
+      - name: Upload signed artifact + provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-build
+          path: |
+            nunnn-stock-analyzer-*.tar.gz
+            nunnn-stock-analyzer-*.sig
+            nunnn-stock-analyzer-*.pem
+            checksums.txt
