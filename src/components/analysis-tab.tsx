@@ -250,6 +250,64 @@ function FinancialBarChart({ data, language }: { data: ChartData[]; language: st
   );
 }
 
+// Reusable inline skeleton for loading metric values
+function Skel({ className = '', w = 'w-12' }: { className?: string; w?: string }) {
+  return <span className={`inline-block ${w} h-3.5 bg-slate-700/60 rounded animate-pulse align-middle ${className}`} />;
+}
+
+// Full-section loading skeleton shown while data is being fetched for the first time
+function AnalysisSkeleton({ language }: { language: string }) {
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      {/* Consensus skeleton */}
+      <div className="border border-border-color bg-card-bg rounded-2xl p-6 space-y-4">
+        <div className="h-4 w-48 bg-slate-700/50 rounded animate-pulse" />
+        <div className="h-8 w-32 bg-slate-700/50 rounded animate-pulse" />
+        <div className="space-y-2">
+          <div className="h-3 w-full bg-slate-700/40 rounded animate-pulse" />
+          <div className="h-3 w-4/5 bg-slate-700/40 rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl space-y-2">
+              <div className="h-2.5 w-20 bg-slate-700/50 rounded animate-pulse" />
+              <div className="h-3 w-16 bg-slate-700/50 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart skeleton */}
+      <div className="border border-border-color rounded-2xl overflow-hidden bg-card-bg h-[540px] flex flex-col">
+        <div className="px-5 py-4 border-b border-border-color">
+          <div className="h-4 w-56 bg-slate-700/50 rounded animate-pulse" />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+
+      {/* Technical indicators skeleton */}
+      <div className="border border-border-color rounded-2xl bg-card-bg p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, col) => (
+          <div key={col} className="space-y-4">
+            <div className="h-3 w-32 bg-slate-700/50 rounded animate-pulse" />
+            <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-3">
+              <div className="h-3 w-20 bg-slate-700/50 rounded animate-pulse" />
+              <div className="h-2 w-full bg-slate-800 rounded animate-pulse" />
+              <div className="h-2 w-full bg-slate-800 rounded animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-center text-xs text-slate-500 py-2">
+        {language === 'id' ? 'Sedang memuat data analisis komprehensif...' : 'Loading comprehensive analysis data...'}
+      </p>
+    </div>
+  );
+}
+
 export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabProps) {
   const { language, t } = useLanguage();
   const [tickerQuery, setTickerQuery] = React.useState('');
@@ -798,31 +856,94 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       )}
 
       {!hasAnalyzed ? (
-        <div className="border border-white/5 bg-slate-950/40 backdrop-blur-md rounded-2xl p-8 md:p-12 text-center max-w-3xl mx-auto my-6 shadow-xl flex flex-col items-center justify-center space-y-6">
-          <div className="p-4 bg-teal-500/10 border border-teal-500/30 rounded-full text-teal-400">
-            <TrendingUp className="w-10 h-10 animate-pulse" />
+        <div className="space-y-6 animate-fadeIn">
+          {/* Hero Empty State */}
+          <div className="relative overflow-hidden border border-border-color bg-card-bg rounded-2xl p-8 md:p-12 text-center max-w-3xl mx-auto shadow-xl flex flex-col items-center justify-center space-y-6">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
+            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-emerald-500/10 blur-[80px] pointer-events-none" />
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-teal-500/5 blur-[80px] pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col items-center space-y-5">
+              <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 shadow-lg shadow-emerald-500/10">
+                <BarChart2 className="w-12 h-12 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-white md:text-2xl">
+                  {t('analysis.popularTitle')}
+                </h3>
+                <p className="text-xs md:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+                  {t('analysis.popularDesc')}
+                </p>
+              </div>
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-white md:text-2xl">
-            {t('analysis.popularTitle')}
-          </h3>
-          <p className="text-xs md:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-            {t('analysis.popularDesc')}
-          </p>
-          <div className="flex flex-wrap gap-2 justify-center pt-2">
-            {['BBCA', 'BBRI', 'BMRI', 'TLKM', 'GOTO'].map((symbol) => (
-              <button
-                key={symbol}
-                onClick={() => handleSelectSuggestion(symbol)}
-                className="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-900 border border-slate-800 hover:border-emerald-500/40 hover:text-white rounded-lg transition-all duration-200 cursor-pointer"
-              >
-                {symbol}
-              </button>
-            ))}
+
+          {/* Categorized Popular Tickers */}
+          <div className="max-w-4xl mx-auto space-y-5">
+            {/* Blue Chips */}
+            <div className="border border-border-color bg-card-bg rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 bg-emerald-500 rounded-full" />
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  {language === 'id' ? 'Blue Chips & Saham Unggulan' : 'Blue Chips & Top Stocks'}
+                </h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { symbol: 'BBCA', name: 'Bank Central Asia' },
+                  { symbol: 'BBRI', name: 'Bank Rakyat Indonesia' },
+                  { symbol: 'BMRI', name: 'Bank Mandiri' },
+                  { symbol: 'TLKM', name: 'Telkom Indonesia' },
+                  { symbol: 'ASII', name: 'Astra International' },
+                ].map(({ symbol, name }) => (
+                  <button
+                    key={symbol}
+                    onClick={() => handleSelectSuggestion(symbol)}
+                    className="group flex items-center gap-2 px-3.5 py-2 bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 rounded-xl transition-all duration-200 cursor-pointer"
+                    title={name}
+                  >
+                    <span className="text-xs font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">{symbol}</span>
+                    <span className="text-[10px] text-slate-500 hidden sm:block">{name.split(' ').slice(0, 2).join(' ')}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Growth & Sectoral */}
+            <div className="border border-border-color bg-card-bg rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 bg-teal-500 rounded-full" />
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  {language === 'id' ? 'Saham Pertumbuhan & Sektor Populer' : 'Growth & Popular Sectors'}
+                </h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { symbol: 'GOTO', name: 'GoTo Gojek Tokopedia' },
+                  { symbol: 'AMRT', name: 'Sumber Alfaria (Alfamart)' },
+                  { symbol: 'KLBF', name: 'Kalbe Farma' },
+                  { symbol: 'UNVR', name: 'Unilever Indonesia' },
+                  { symbol: 'ANTM', name: 'Aneka Tambang' },
+                  { symbol: 'ADRO', name: 'Adaro Energy' },
+                ].map(({ symbol, name }) => (
+                  <button
+                    key={symbol}
+                    onClick={() => handleSelectSuggestion(symbol)}
+                    className="group flex items-center gap-2 px-3.5 py-2 bg-slate-900/60 border border-slate-800 hover:border-teal-500/40 hover:bg-teal-500/5 rounded-xl transition-all duration-200 cursor-pointer"
+                    title={name}
+                  >
+                    <span className="text-xs font-bold text-slate-200 group-hover:text-teal-400 transition-colors">{symbol}</span>
+                    <span className="text-[10px] text-slate-500 hidden sm:block">{name.split(' ').slice(0, 2).join(' ')}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+      ) : loading && !fundamentals ? (
+        <AnalysisSkeleton language={language} />
       ) : (
         <>
-          {/* Main Content Grid */}
           <div className="flex flex-col gap-6 w-full">
             
             {/* Unified Analysis Consensus Overview Card */}
@@ -912,7 +1033,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     {/* Sub-breakdowns */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2 w-full">
                       {/* Fundamental */}
-                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                      <div className="p-3 bg-slate-900/40 border border-border-color rounded-xl space-y-1 hover:border-emerald-500/30 transition-colors">
                         <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{language === 'id' ? 'Analisa Fundamental' : 'Fundamental Analysis'}</div>
                         <div className="flex justify-between items-center mt-1">
                           <span className={`text-xs font-bold ${
@@ -923,7 +1044,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       </div>
   
                       {/* Teknikal */}
-                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                      <div className="p-3 bg-slate-900/40 border border-border-color rounded-xl space-y-1 hover:border-emerald-500/30 transition-colors">
                         <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{language === 'id' ? 'Analisa Teknikal' : 'Technical Analysis'}</div>
                         <div className="flex justify-between items-center mt-1">
                           <span className={`text-xs font-bold ${
@@ -934,7 +1055,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       </div>
   
                       {/* Bandarmology */}
-                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                      <div className="p-3 bg-slate-900/40 border border-border-color rounded-xl space-y-1 hover:border-emerald-500/30 transition-colors">
                         <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Bandarmology</div>
                         <div className="flex justify-between items-center mt-1">
                           <span className={`text-xs font-bold ${
@@ -945,7 +1066,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       </div>
   
                       {/* Narasi/Sentimen */}
-                      <div className="p-3 bg-slate-900/40 border border-slate-900/60 rounded-xl space-y-1">
+                      <div className="p-3 bg-slate-900/40 border border-border-color rounded-xl space-y-1 hover:border-emerald-500/30 transition-colors">
                         <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{language === 'id' ? 'Analisa Narasi' : 'Narrative Analysis'}</div>
                         <div className="flex justify-between items-center mt-1">
                           <span className={`text-xs font-bold ${
@@ -958,14 +1079,30 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   </div>
   
                   {/* Right Side: Speedometer/Gauge bar */}
-                  <div className="w-full lg:w-72 flex flex-col items-center justify-center p-4 bg-slate-900/30 border border-slate-900 rounded-2xl relative overflow-hidden shrink-0">
+                  <div className="w-full lg:w-72 flex flex-col items-center justify-center p-5 bg-slate-900/30 border border-border-color rounded-2xl relative overflow-hidden shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-30 pointer-events-none" />
                     
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{language === 'id' ? 'Sinyal Konsensus Meter' : 'Consensus Signal Meter'}</span>
+                    {/* Circular Score Badge */}
+                    <div className="relative flex flex-col items-center mb-5">
+                      <div className={`relative w-24 h-24 rounded-full flex items-center justify-center border-2 ${
+                        recs.unified.rating.includes('STRONG BUY')
+                          ? 'border-teal-400 bg-teal-500/10'
+                          : recs.unified.rating.includes('BUY')
+                          ? 'border-emerald-400 bg-emerald-500/10'
+                          : recs.unified.rating.includes('SELL')
+                          ? 'border-rose-400 bg-rose-500/10'
+                          : 'border-amber-400 bg-amber-500/10'
+                      } shadow-lg`}>
+                        <span className="text-2xl font-black text-white font-mono">{recs.unified.score}</span>
+                        <span className="absolute -bottom-1 text-[9px] font-bold text-slate-400 bg-card-bg px-1.5 rounded-full border border-border-color">/ 100</span>
+                      </div>
+                    </div>
+                    
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">{language === 'id' ? 'Sinyal Konsensus Meter' : 'Consensus Signal Meter'}</span>
                     
                     {/* Horizontal segmented bar visualizer with highlight cursor */}
                     <div className="w-full space-y-2">
-                       <div className="relative h-4 w-full bg-slate-950 border border-slate-800 rounded-full overflow-hidden flex">
+                       <div className="relative h-5 w-full bg-slate-950 border border-border-color rounded-full overflow-hidden flex">
                         {/* Strong Sell (Red) */}
                         <div className="h-full w-[20%] bg-gradient-to-r from-red-600 to-rose-500" />
                         {/* Sell (Orange) */}
@@ -1002,7 +1139,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                           ? 'text-rose-400'
                           : 'text-yellow-400'
                       }`}>
-                        {recs.unified.rating} ({recs.unified.score}%)
+                        {recs.unified.rating}
                       </span>
                     </div>
                   </div>
@@ -1011,8 +1148,8 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             )}
          
          {/* Technical Chart Card (Full width) */}
-        <div className="border border-slate-800/60 rounded-2xl overflow-hidden bg-slate-950/40 shadow-lg flex flex-col h-[540px] w-full">
-          <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between">
+        <div className="border border-border-color rounded-2xl overflow-hidden bg-card-bg shadow-lg flex flex-col h-[540px] w-full">
+          <div className="px-5 py-4 border-b border-border-color bg-card-bg flex items-center justify-between">
             <span className="text-sm font-semibold text-white flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-400" /> {language === 'id' ? 'Chart Teknikal Profesional (TradingView)' : 'Professional Technical Chart (TradingView)'}
             </span>
@@ -1030,8 +1167,8 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
         </div>
 
         {/* Technical Indicators Dashboard */}
-        <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg flex flex-col h-auto w-full">
-          <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
+        <div className="border border-border-color rounded-2xl bg-card-bg shadow-lg flex flex-col h-auto w-full">
+          <div className="px-5 py-4 border-b border-border-color bg-card-bg flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-cyan-400" />
               <span className="text-sm font-semibold">{language === 'id' ? 'Dashboard Indikator Teknikal Harian' : 'Daily Technical Indicators Dashboard'}</span>
@@ -1068,7 +1205,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? 'bg-rose-500/20 text-rose-400'
                       : 'bg-slate-800 text-slate-400'
                   }`}>
-                    {loading ? '...' : technicals?.rsi?.value ? technicals.rsi.value.toFixed(2) : '-'} - {loading ? '...' : technicals?.rsi?.signal || '-'}
+                    {loading ? <Skel w="w-16" /> : technicals?.rsi?.value ? technicals.rsi.value.toFixed(2) : '-'} - {loading ? <Skel w="w-14" /> : technicals?.rsi?.signal || '-'}
                   </span>
                 </div>
                 
@@ -1116,7 +1253,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? 'bg-rose-500/20 text-rose-400'
                       : 'bg-slate-800 text-slate-400'
                   }`}>
-                    {loading ? '...' : technicals?.macd?.signalName || 'Neutral'}
+                    {loading ? <Skel w="w-20" /> : technicals?.macd?.signalName || 'Neutral'}
                   </span>
                 </div>
                 
@@ -1125,13 +1262,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   <div className="bg-slate-950 p-2 rounded border border-slate-900">
                     <div className="text-slate-500">MACD</div>
                     <div className="font-mono font-semibold text-slate-200 mt-0.5">
-                      {loading ? '...' : technicals?.macd?.macd ? technicals.macd.macd.toFixed(2) : '0.00'}
+                      {loading ? <Skel w="w-10" /> : technicals?.macd?.macd ? technicals.macd.macd.toFixed(2) : '0.00'}
                     </div>
                   </div>
                   <div className="bg-slate-950 p-2 rounded border border-slate-900">
                     <div className="text-slate-500">Signal</div>
                     <div className="font-mono font-semibold text-slate-200 mt-0.5">
-                      {loading ? '...' : technicals?.macd?.signal ? technicals.macd.signal.toFixed(2) : '0.00'}
+                      {loading ? <Skel w="w-10" /> : technicals?.macd?.signal ? technicals.macd.signal.toFixed(2) : '0.00'}
                     </div>
                   </div>
                   <div className="bg-slate-950 p-2 rounded border border-slate-900">
@@ -1139,7 +1276,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className={`font-mono font-semibold mt-0.5 ${
                       (technicals?.macd?.histogram || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
                     }`}>
-                      {loading ? '...' : technicals?.macd?.histogram ? technicals.macd.histogram.toFixed(2) : '0.00'}
+                      {loading ? <Skel w="w-10" /> : technicals?.macd?.histogram ? technicals.macd.histogram.toFixed(2) : '0.00'}
                     </div>
                   </div>
                 </div>
@@ -1202,21 +1339,21 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
                         <span className="text-rose-400 font-semibold">{language === 'id' ? 'Resistansi 3 (R3)' : 'Resistance 3 (R3)'}</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.r3 ? `Rp ${Math.round(levels.r3).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                          {loading ? <Skel w="w-20" /> : levels.r3 ? `Rp ${Math.round(levels.r3).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* R2 */}
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
                         <span className="text-rose-400/80 font-semibold">{language === 'id' ? 'Resistansi 2 (R2)' : 'Resistance 2 (R2)'}</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.r2 ? `Rp ${Math.round(levels.r2).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                          {loading ? <Skel w="w-20" /> : levels.r2 ? `Rp ${Math.round(levels.r2).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* R1 */}
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
                         <span className="text-rose-400/60 font-semibold">{language === 'id' ? 'Resistansi 1 (R1)' : 'Resistance 1 (R1)'}</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.r1 ? `Rp ${Math.round(levels.r1).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                          {loading ? <Skel w="w-20" /> : levels.r1 ? `Rp ${Math.round(levels.r1).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       
@@ -1224,7 +1361,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       <div className="flex justify-between items-center py-1 bg-slate-950/60 px-2 rounded border border-slate-800/60 my-1">
                         <span className="text-cyan-400 font-bold">Pivot Point (PP)</span>
                         <span className="font-bold text-white">
-                          {loading ? '...' : levels.pp ? `Rp ${Math.round(levels.pp).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                          {loading ? <Skel w="w-20" /> : levels.pp ? `Rp ${Math.round(levels.pp).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
 
@@ -1232,21 +1369,21 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
                         <span className="text-emerald-500/60 font-semibold">Support 1 (S1)</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.s1 ? `Rp ${Math.round(levels.s1).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                          {loading ? <Skel w="w-20" /> : levels.s1 ? `Rp ${Math.round(levels.s1).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* S2 */}
                       <div className="flex justify-between items-center py-1 border-b border-slate-800/30">
                         <span className="text-emerald-500/80 font-semibold">Support 2 (S2)</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.s2 ? `Rp ${Math.round(levels.s2).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                          {loading ? <Skel w="w-20" /> : levels.s2 ? `Rp ${Math.round(levels.s2).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
                       {/* S3 */}
                       <div className="flex justify-between items-center py-1">
                         <span className="text-emerald-500 font-semibold">Support 3 (S3)</span>
                         <span className="text-slate-200">
-                          {loading ? '...' : levels.s3 ? `Rp ${Math.round(levels.s3).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                          {loading ? <Skel w="w-20" /> : levels.s3 ? `Rp ${Math.round(levels.s3).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                         </span>
                       </div>
 
@@ -1278,7 +1415,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">SMA 20</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.sma20 ? `Rp ${Math.round(technicals.movingAverages.sma20).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                        {loading ? <Skel w="w-20" /> : technicals?.movingAverages?.sma20 ? `Rp ${Math.round(technicals.movingAverages.sma20).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1301,7 +1438,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">EMA 20</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.ema20 ? `Rp ${Math.round(technicals.movingAverages.ema20).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                        {loading ? <Skel w="w-20" /> : technicals?.movingAverages?.ema20 ? `Rp ${Math.round(technicals.movingAverages.ema20).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1324,7 +1461,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">SMA 50</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.sma50 ? `Rp ${Math.round(technicals.movingAverages.sma50).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                        {loading ? <Skel w="w-20" /> : technicals?.movingAverages?.sma50 ? `Rp ${Math.round(technicals.movingAverages.sma50).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1347,7 +1484,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-300 font-sans">EMA 50</span>
                       <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                        {loading ? '...' : technicals?.movingAverages?.ema50 ? `Rp ${Math.round(technicals.movingAverages.ema50).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
+                        {loading ? <Skel w="w-20" /> : technicals?.movingAverages?.ema50 ? `Rp ${Math.round(technicals.movingAverages.ema50).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}` : '-'}
                       </span>
                     </div>
                     {(() => {
@@ -1408,7 +1545,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                       : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                   }`}>
-                    {loading ? '...' : technicals?.multiTimeframe?.weekly || '-'}
+                    {loading ? <Skel w="w-16" /> : technicals?.multiTimeframe?.weekly || '-'}
                   </span>
                 </div>
 
@@ -1420,7 +1557,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                       : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                   }`}>
-                    {loading ? '...' : technicals?.multiTimeframe?.daily || '-'}
+                    {loading ? <Skel w="w-16" /> : technicals?.multiTimeframe?.daily || '-'}
                   </span>
                 </div>
 
@@ -1434,7 +1571,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                       : 'bg-slate-800 text-slate-400'
                   }`}>
-                    {loading ? '...' : technicals?.multiTimeframe?.hourly || '-'}
+                    {loading ? <Skel w="w-16" /> : technicals?.multiTimeframe?.hourly || '-'}
                   </span>
                 </div>
               </div>
@@ -1484,8 +1621,8 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       </div>
 
       {/* Bandarmology & Cash Flow Dashboard (Fully Separated Section) */}
-      <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg flex flex-col h-auto w-full">
-        <div className="px-5 py-4 border-b border-slate-900 bg-slate-950/70 flex items-center justify-between text-white">
+      <div className="border border-border-color rounded-2xl bg-card-bg shadow-lg flex flex-col h-auto w-full">
+        <div className="px-5 py-4 border-b border-border-color bg-card-bg flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-emerald-400" />
             <span className="text-sm font-semibold">{language === 'id' ? 'Analisis Bandarmology & Arus Kas Transaksi' : 'Bandarmology & Transaction Cash Flow Analysis'}</span>
@@ -1522,7 +1659,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? 'text-rose-400'
                       : 'text-slate-300'
                   }`}>
-                    {loading ? '...' : technicals?.bandarmology?.status || 'NEUTRAL'}
+                    {loading ? <Skel w="w-20" /> : technicals?.bandarmology?.status || 'NEUTRAL'}
                   </span>
                 </div>
 
@@ -1531,7 +1668,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   <span className={`text-xs font-bold mt-1.5 ${
                     (technicals?.bandarmology?.foreignNetBuy || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
                   }`}>
-                    {loading ? '...' : (technicals?.bandarmology?.foreignNetBuy !== undefined) 
+                    {loading ? <Skel w="w-16" /> : (technicals?.bandarmology?.foreignNetBuy !== undefined) 
                       ? `${(technicals.bandarmology.foreignNetBuy >= 0 ? '+' : '')}${formatShort(technicals.bandarmology.foreignNetBuy, language)}` 
                       : '-'}
                   </span>
@@ -1549,7 +1686,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       ? 'bg-rose-500/20 text-rose-400'
                       : 'bg-slate-800 text-slate-400'
                   }`}>
-                    {loading ? '...' : technicals?.moneyFlow?.mfi ? technicals.moneyFlow.mfi.toFixed(2) : '-'}
+                    {loading ? <Skel w="w-14" /> : technicals?.moneyFlow?.mfi ? technicals.moneyFlow.mfi.toFixed(2) : '-'}
                   </span>
                 </div>
                 
@@ -1597,7 +1734,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                   }
                   return (
                     <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded tracking-wide border ${badgeClass}`}>
-                      {loading ? '...' : statusText}
+                      {loading ? <Skel w="w-16" /> : statusText}
                     </span>
                   );
                 })()}
@@ -1616,13 +1753,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-900">
                         <div className="text-slate-500 font-bold mb-1 uppercase tracking-wider">Top Buy</div>
                         <div className="font-mono font-bold text-emerald-400 tracking-wider">
-                          {loading ? '...' : topBuy}
+                          {loading ? <Skel w="w-12" /> : topBuy}
                         </div>
                       </div>
                       <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-900">
                         <div className="text-slate-500 font-bold mb-1 uppercase tracking-wider">Top Sell</div>
                         <div className="font-mono font-bold text-rose-400 tracking-wider">
-                          {loading ? '...' : topSell}
+                          {loading ? <Skel w="w-12" /> : topSell}
                         </div>
                       </div>
                     </div>
@@ -1819,14 +1956,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                 </>
               )}
             </div>
-          </div>
+         </div>
+       </div>
+       </div>
 
-        </div>
-      </div>
-
-      {/* Fundamental Section */}
-      <div className="border border-slate-800/60 rounded-2xl bg-slate-950/40 shadow-lg p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-900 pb-4">
+       {/* Fundamental Section */}
+      <div className="border border-border-color rounded-2xl bg-card-bg shadow-lg p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-border-color pb-4">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Building className="w-5 h-5 text-teal-400" /> {language === 'id' ? 'Ringkasan Fundamental & Keuangan' : 'Fundamental & Financial Summary'}
           </h3>
@@ -1852,7 +1988,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">P/E Ratio</span>
               <span className="text-lg font-bold text-white mt-1">
-                {loading ? '...' : fundamentals?.peRatio ? `${fundamentals.peRatio.toFixed(2)}x` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.peRatio ? `${fundamentals.peRatio.toFixed(2)}x` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Valuasi Laba' : 'Earnings Valuation'}</span>
             </div>
@@ -1861,7 +1997,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Price to Book (PBV)</span>
               <span className="text-lg font-bold text-white mt-1">
-                {loading ? '...' : fundamentals?.pbRatio ? `${fundamentals.pbRatio.toFixed(2)}x` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.pbRatio ? `${fundamentals.pbRatio.toFixed(2)}x` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Valuasi Aset' : 'Asset Valuation'}</span>
             </div>
@@ -1872,7 +2008,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className={`text-lg font-bold mt-1 ${
                 (fundamentals?.roe ?? 0) > 15 ? 'text-emerald-400' : 'text-white'
               }`}>
-                {loading ? '...' : fundamentals?.roe ? `${fundamentals.roe.toFixed(2)}%` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.roe ? `${fundamentals.roe.toFixed(2)}%` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Efisiensi Ekuitas' : 'Equity Efficiency'}</span>
             </div>
@@ -1881,7 +2017,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ROA</span>
               <span className="text-lg font-bold text-white mt-1">
-                {loading ? '...' : fundamentals?.roa ? `${fundamentals.roa.toFixed(2)}%` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.roa ? `${fundamentals.roa.toFixed(2)}%` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Efisiensi Aset' : 'Asset Efficiency'}</span>
             </div>
@@ -1892,7 +2028,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <span className={`text-lg font-bold mt-1 ${
                 (fundamentals?.der ?? 0) > 200 ? 'text-rose-400' : 'text-white'
               }`}>
-                {loading ? '...' : fundamentals?.der ? `${(fundamentals.der).toFixed(2)}%` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.der ? `${(fundamentals.der).toFixed(2)}%` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Rasio Utang / Modal' : 'Debt / Equity Ratio'}</span>
             </div>
@@ -1901,7 +2037,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Dividend Yield</span>
               <span className="text-lg font-bold text-teal-400 mt-1">
-                {loading ? '...' : fundamentals?.dividendYield ? `${fundamentals.dividendYield.toFixed(2)}%` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.dividendYield ? `${fundamentals.dividendYield.toFixed(2)}%` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Yield Dividen' : 'Dividend Yield'}</span>
             </div>
@@ -1910,7 +2046,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">EPS (Trailing)</span>
               <span className="text-lg font-bold text-white mt-1">
-                {loading ? '...' : fundamentals?.eps ? `Rp ${fundamentals.eps.toFixed(1)}` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.eps ? `Rp ${fundamentals.eps.toFixed(1)}` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Laba Per Saham' : 'Earnings Per Share'}</span>
             </div>
@@ -1919,7 +2055,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Net Profit Margin</span>
               <span className="text-lg font-bold text-white mt-1">
-                {loading ? '...' : fundamentals?.profitMargin ? `${fundamentals.profitMargin.toFixed(2)}%` : '-'}
+                {loading ? <Skel w="w-16" /> : fundamentals?.profitMargin ? `${fundamentals.profitMargin.toFixed(2)}%` : '-'}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Marjin Laba Bersih' : 'Net Profit Margin'}</span>
             </div>
@@ -1928,7 +2064,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
             <div className="p-4 bg-slate-900/40 border border-slate-900 rounded-xl flex flex-col justify-between col-span-1">
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Market Cap</span>
               <span className="text-sm font-bold text-white mt-1 truncate">
-                {loading ? '...' : formatFinancialNumber(fundamentals?.marketCap ?? null, language)}
+                {loading ? <Skel w="w-20" /> : formatFinancialNumber(fundamentals?.marketCap ?? null, language)}
               </span>
               <span className="text-[9px] text-slate-400 mt-2">{language === 'id' ? 'Kapitalisasi Pasar' : 'Market Cap'}</span>
             </div>
