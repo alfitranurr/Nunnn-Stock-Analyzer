@@ -9,11 +9,23 @@ import { cleanCompanyName } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
-import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput } from '@/lib/format';
+import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput, formatIDR } from '@/lib/format';
 
 // Local wrapper preserves the original max-fraction-digits (4) for this tab.
 const formatNumberForInput = (num: number | string | undefined | null): string =>
   _formatNumberForInput(num, { maxFractionDigits: 4 });
+
+// Modal (dana) yang dibutuhkan untuk satu tranche, mengikuti setting fee beli.
+function getTrancheCapital(lot: string, price: string, includeFees: boolean, feeBeli: number): number {
+  const l = parseFormattedNumber(lot);
+  const p = parseFormattedNumber(price);
+  if (l <= 0 || p <= 0) return 0;
+  let cost = l * 100 * p;
+  if (includeFees) {
+    cost = cost * (1 + feeBeli / 100);
+  }
+  return cost;
+}
 
 interface CalculatorFormProps {
   onCalculate: (values: AvgDownInput) => void;
@@ -497,13 +509,16 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   <span className="w-12 shrink-0">{t('calculator.tahap')}</span>
                   <span className="flex-1 text-center">{t('calculator.trancheLot')}</span>
                   <span className="flex-2 text-center pr-6">{t('calculator.tranchePrice')}</span>
+                  <span className="w-24 shrink-0 text-center">{t('calculator.trancheCapital')}</span>
                   {tranches.length > 1 && <span className="w-8 shrink-0" />}
                 </div>
               )}
 
               <div className="flex flex-col gap-2">
                 <AnimatePresence initial={false}>
-                  {tranches.map((tranche, index) => (
+                  {tranches.map((tranche, index) => {
+                    const trancheCapital = getTrancheCapital(tranche.lot, tranche.price, includeFees, feeBeli);
+                    return (
                     <motion.div
                       key={tranche.id}
                       initial={{ opacity: 0, height: 0, y: -10 }}
@@ -549,6 +564,10 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                         </button>
                       </div>
 
+                      <span className="w-24 shrink-0 text-center text-[11px] font-bold text-emerald-400 truncate" title={formatIDR(trancheCapital, language)}>
+                        {trancheCapital > 0 ? formatIDR(trancheCapital, language) : '-'}
+                      </span>
+
                       {tranches.length > 1 && (
                         <button
                           type="button"
@@ -560,9 +579,26 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                         </button>
                       )}
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </AnimatePresence>
               </div>
+            </div>
+
+            {/* Total Dana Dibutuhkan untuk seluruh tranche */}
+            <div className="flex items-center justify-between gap-2 px-1 pt-2 mt-1 border-t border-white/10">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                {language === 'id' ? 'Total Dana Pembelian' : 'Total Purchase Capital'}
+              </span>
+              <span className="text-xs md:text-sm font-black text-emerald-400">
+                {formatIDR(
+                  tranches.reduce(
+                    (sum, tr) => sum + getTrancheCapital(tr.lot, tr.price, includeFees, feeBeli),
+                    0
+                  ),
+                  language
+                )}
+              </span>
             </div>
 
             <button
