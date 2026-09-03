@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/utils';
 import { requireUser } from '@/lib/auth-guard';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { validateTickerSymbol } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
@@ -346,10 +347,10 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
-  const symbol = searchParams.get('symbol')?.toUpperCase().trim();
+  const symbol = validateTickerSymbol(searchParams.get('symbol'));
 
   if (!symbol) {
-    return NextResponse.json({ error: 'Symbol parameter is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid or missing symbol parameter' }, { status: 400 });
   }
 
   // Raw symbol without .JK extension for news search

@@ -1,8 +1,37 @@
-{
+﻿{
   "crons": [
     {
       "path": "/api/keepalive",
       "schedule": "0 0,6,12,18 * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/news/summary/route.ts": { "maxDuration": 30, "memory": 1024 },
+    "src/app/api/analysis/news/route.ts": { "maxDuration": 30, "memory": 1024 },
+    "src/app/api/analysis/fundamentals/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "src/app/api/analysis/technical/route.ts": { "maxDuration": 20, "memory": 1024 },
+    "src/app/api/dividend/route.ts": { "maxDuration": 15 },
+    "src/app/api/ticker/route.ts": { "maxDuration": 10 },
+    "src/app/api/news/route.ts": { "maxDuration": 15 },
+    "src/app/api/market-summary/route.ts": { "maxDuration": 15 }
+  },
+  "regions": ["sin1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
     }
   ]
 }

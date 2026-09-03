@@ -220,12 +220,21 @@ export function ClientBootstrap() {
           errorEl.style.marginBottom = '10px';
           errorEl.style.borderBottom = '1px solid rgba(255, 255, 255, 0.2)';
           errorEl.style.paddingBottom = '5px';
-          errorEl.innerHTML =
-            '<strong>Browser Error:</strong> ' +
-            message +
-            '<pre style="margin: 5px 0 0 0; white-space: pre-wrap; font-size: 9px; opacity: 0.85; color: #fecaca;">' +
-            (stack || 'No stack trace available') +
-            '</pre>';
+
+          const label = document.createElement('strong');
+          label.textContent = 'Browser Error: ';
+          errorEl.appendChild(label);
+          errorEl.appendChild(document.createTextNode(message));
+
+          const pre = document.createElement('pre');
+          pre.style.margin = '5px 0 0 0';
+          pre.style.whiteSpace = 'pre-wrap';
+          pre.style.fontSize = '9px';
+          pre.style.opacity = '0.85';
+          pre.style.color = '#fecaca';
+          pre.textContent = stack || 'No stack trace available';
+          errorEl.appendChild(pre);
+
           container.appendChild(errorEl);
         } catch {
           // ignore

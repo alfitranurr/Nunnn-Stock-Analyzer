@@ -2,6 +2,7 @@
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { validateTickerSymbol } from '@/lib/validators';
 
 // Always run dynamically — this route proxies Yahoo Finance real-time data.
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,10 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get('q')?.trim();
 
   if (q) {
+    // Limit search query length and characters to prevent abuse of upstream API.
+    if (q.length > 20 || !/^[A-Za-z0-9.\s-]+$/.test(q)) {
+      return NextResponse.json({ error: 'Invalid search query' }, { status: 400 });
+    }
     try {
       const cleanQ = q.toUpperCase();
       const resultsMap = new Map<string, { symbol: string; name: string }>();
@@ -122,7 +127,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const symbol = searchParams.get('symbol')?.toUpperCase().trim();
+  const symbol = validateTickerSymbol(searchParams.get('symbol'));
 
   if (!symbol) {
     return NextResponse.json({ error: 'Symbol or q parameter is required' }, { status: 400 });

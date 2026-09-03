@@ -7,6 +7,22 @@ import { applyRateLimit } from '@/lib/rate-limit';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/**
+ * Validate that the request Origin matches the deployment host to prevent
+ * cross-site requests (CSRF). Same-origin POSTs carry an Origin header that
+ * matches the server's host; absence or mismatch → 403.
+ */
+function isSameOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get('origin');
+  const host = request.headers.get('host');
+  if (!origin || !host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 function cleanJsonString(str: string) {
   let clean = str.trim();
   if (clean.startsWith('```json')) {
@@ -251,6 +267,13 @@ async function fetchArticleText(url: string): Promise<string | null> {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isSameOrigin(request)) {
+      return NextResponse.json(
+        { error: 'Forbidden: cross-origin requests are not allowed.' },
+        { status: 403 }
+      );
+    }
+
     const { user, error: authError } = await requireUser();
     if (authError) return authError;
 

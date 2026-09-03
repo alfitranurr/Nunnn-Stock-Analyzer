@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { cleanCompanyName } from '@/lib/utils';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { validateTickerSymbol } from '@/lib/validators';
 
 // Always run dynamically — this route proxies Yahoo Finance real-time data.
 export const dynamic = 'force-dynamic';
@@ -235,10 +236,10 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
-  const rawSymbol = searchParams.get('symbol')?.toUpperCase().trim();
+  const rawSymbol = validateTickerSymbol(searchParams.get('symbol'));
 
   if (!rawSymbol) {
-    return NextResponse.json({ error: 'Symbol parameter is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid or missing symbol parameter' }, { status: 400 });
   }
 
   const cleanSymbol = rawSymbol.split('.')[0];

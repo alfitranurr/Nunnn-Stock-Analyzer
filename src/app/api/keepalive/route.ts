@@ -24,7 +24,7 @@ export async function GET() {
   if (error) {
     console.error('[keepalive] Supabase ping failed:', error.message);
     return NextResponse.json(
-      { ok: false, error: error.message, timestamp: new Date().toISOString() },
+      { ok: false, error: 'Database ping failed', timestamp: new Date().toISOString() },
       { status: 500 }
     );
   }
