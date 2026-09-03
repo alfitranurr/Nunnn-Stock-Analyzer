@@ -366,7 +366,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-5 items-stretch w-full">
           
           {/* Sub-Card Step 1: Ticker & Nama Emiten */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step1')}
@@ -407,7 +407,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           </div>
 
           {/* Sub-Card Step 2: Posisi Portofolio Awal */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step2')}
@@ -486,7 +486,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           </div>
 
           {/* Sub-Card Step 3: Rencana Pembelian Baru */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step3')}
@@ -576,7 +576,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           </div>
 
           {/* Sub-Card Step 4: Broker Fee Settings */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/20 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
             <div className="space-y-3">
               <label className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step4')}

@@ -97,7 +97,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="glass-card p-4 md:p-5 border-emerald-500/20 bg-card-bg relative overflow-hidden flex items-center gap-4 min-h-[84px] md:min-h-[92px]"
+          className="glass-card p-4 md:p-5 border-emerald-500/40 bg-card-bg relative overflow-hidden flex items-center gap-4 min-h-[84px] md:min-h-[92px]"
         >
           <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
           <ResultsEmitenLogo key={ticker} symbol={ticker} />
@@ -116,7 +116,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
-          className="glass-card p-4 md:p-5 border-slate-200 dark:border-white/5 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[84px] md:min-h-[92px]"
+          className="glass-card p-4 md:p-5 border-slate-300 dark:border-white/25 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[84px] md:min-h-[92px]"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl pointer-events-none" />
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
@@ -136,7 +136,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5.5 w-full"
       >
         {/* Card 1: Modal Baru yang Dibutuhkan */}
-        <div className="md:col-span-2 glass-card p-4 md:p-5 bg-emerald-500/5 border-emerald-500/20 relative overflow-hidden flex flex-col justify-center min-h-[96px] md:min-h-[110px]">
+        <div className="md:col-span-2 glass-card p-4 md:p-5 bg-emerald-500/5 border-emerald-500/40 relative overflow-hidden flex flex-col justify-center min-h-[96px] md:min-h-[110px]">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
           <span className="text-[9px] font-bold text-emerald-400 dark:text-emerald-400 uppercase tracking-widest block">
             {language === 'id' ? 'Modal Baru yang Dibutuhkan' : 'Required New Capital'}
@@ -154,7 +154,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         </div>
 
         {/* Card 2: Total Lot Akhir */}
-        <div className="glass-card p-4 md:p-5 bg-white/5 dark:bg-black/25 border-slate-200 dark:border-white/5 flex flex-col justify-center min-h-[96px] md:min-h-[110px]">
+        <div className="glass-card p-4 md:p-5 bg-white/5 dark:bg-black/25 border-slate-300 dark:border-white/25 flex flex-col justify-center min-h-[96px] md:min-h-[110px]">
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
             {language === 'id' ? 'Total Lot Akhir' : 'Total Final Lots'}
           </span>
@@ -174,7 +174,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="glass-card p-4 md:p-6 border-slate-200 dark:border-white/5 flex flex-col justify-between"
+          className="glass-card p-4 md:p-6 border-slate-300 dark:border-white/25 flex flex-col justify-between"
         >
           <div>
             <div className="flex justify-between items-center mb-4 md:mb-5.5">
@@ -230,7 +230,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, x: 15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
-          className="glass-card p-4 md:p-6 border-emerald-500/20 bg-slate-900/10 flex flex-col justify-between relative overflow-hidden"
+          className="glass-card p-4 md:p-6 border-emerald-500/40 bg-slate-900/10 flex flex-col justify-between relative overflow-hidden"
         >
           {result.turnedIntoProfit && (
             <div className="absolute -right-12 -top-12 w-28 h-28 bg-bullish-green/10 rounded-full blur-xl pointer-events-none" />
@@ -299,7 +299,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="glass-card p-4 md:p-6 border-slate-200 dark:border-white/5 relative overflow-hidden"
+        className="glass-card p-4 md:p-6 border-slate-300 dark:border-white/25 relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
         
