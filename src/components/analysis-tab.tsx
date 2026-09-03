@@ -78,6 +78,14 @@ interface Technicals {
   pivotPoints?: Record<string, Record<string, number>>;
   movingAverages?: { sma20?: number; ema20?: number; sma50?: number; ema50?: number };
   multiTimeframe?: { weekly?: string; daily?: string; hourly?: string };
+  bollingerBands?: { upper?: number; middle?: number; lower?: number; percentB?: number; bandwidth?: number; signal?: string };
+  stochastic?: { k?: number; d?: number; signal?: string };
+  atr?: { value?: number; volatilityPct?: number; interpretation?: string };
+  obv?: { value?: number; trend?: string; divergence?: string };
+  vwap?: number;
+  adx?: { value?: number; trend?: string; plusDI?: number; minusDI?: number; direction?: string };
+  riskMetrics?: { volatility?: number; maxDrawdown?: number; sharpeProxy?: number; riskLevel?: string };
+  techSignals?: Array<{ indicator: string; signal: 'bull' | 'bear' | 'neutral'; weight: number }>;
 }
 
 interface TickerQuote {
@@ -657,8 +665,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       ? (language === 'id' ? `sentimen cenderung ${sentimentTranslated.toLowerCase()}` : `sentiment tends to be ${sentimentTranslated.toLowerCase()}`)
       : (language === 'id' ? `sentimen pasar terpantau ${sentimentTranslated.toLowerCase()}` : `market sentiment observed is ${sentimentTranslated.toLowerCase()}`);
 
-    // 5. UNIFIED CONSENSUS (25% Fundamental, 25% Technical, 25% Bandarmology, 25% Narrative)
-    const unifiedScore = Math.round((fundScore * 0.25) + (techScore * 0.25) + (bandarScore * 0.25) + (narrScore * 0.25));
+    // 5. UNIFIED CONSENSUS — Professional weighted scoring
+    // Technical (35%) — most indicators, Fundamentals (30%) — long-term value,
+    // Bandarmology (20%) — institutional flow, Narrative (15%) — market sentiment
+    // Risk-adjusted: if riskLevel is High, reduce score by 5% to penalize volatility
+    const riskLevel = technicals?.riskMetrics?.riskLevel;
+    let unifiedScore = Math.round((fundScore * 0.30) + (techScore * 0.35) + (bandarScore * 0.20) + (narrScore * 0.15));
+    if (riskLevel === 'High') unifiedScore = Math.max(0, unifiedScore - 5);
+    else if (riskLevel === 'Low') unifiedScore = Math.min(100, unifiedScore + 2);
     
     let unifiedRating = 'HOLD';
     if (unifiedScore >= 75) unifiedRating = 'STRONG BUY';
@@ -727,6 +741,45 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       if (w === 'BEARISH') cons.push(language === 'id' ? 'Tren Mingguan (Weekly): Bearish' : 'Weekly Trend (Weekly): Bearish');
       if (d === 'BULLISH') pros.push(language === 'id' ? 'Tren Harian (Daily): Bullish' : 'Daily Trend (Daily): Bullish');
       if (d === 'BEARISH') cons.push(language === 'id' ? 'Tren Harian (Daily): Bearish' : 'Daily Trend (Daily): Bearish');
+
+      // Bollinger Bands signals
+      const bb = technicals.bollingerBands;
+      if (bb?.percentB !== undefined) {
+        if (bb.percentB < 10) pros.push(language === 'id' ? `Bollinger Bands: Harga di dekat lower band (Oversold, %B=${bb.percentB.toFixed(0)}%)` : `Bollinger Bands: Price near lower band (Oversold, %B=${bb.percentB.toFixed(0)}%)`);
+        else if (bb.percentB > 90) cons.push(language === 'id' ? `Bollinger Bands: Harga di dekat upper band (Overbought, %B=${bb.percentB.toFixed(0)}%)` : `Bollinger Bands: Price near upper band (Overbought, %B=${bb.percentB.toFixed(0)}%)`);
+      }
+      if (bb?.bandwidth !== undefined && bb.bandwidth < 3) {
+        pros.push(language === 'id' ? 'Bollinger Bands: Squeeze (volatilitas rendah, potensi breakout)' : 'Bollinger Bands: Squeeze (low volatility, potential breakout)');
+      }
+
+      // Stochastic signals
+      const stoch = technicals.stochastic;
+      if (stoch?.signal?.includes('Buy Signal')) pros.push(language === 'id' ? `Stochastic: Sinyal Beli (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})` : `Stochastic: Buy Signal (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})`);
+      else if (stoch?.signal?.includes('Sell Signal')) cons.push(language === 'id' ? `Stochastic: Sinyal Jual (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})` : `Stochastic: Sell Signal (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})`);
+
+      // ADX trend strength
+      const adx = technicals.adx;
+      if (adx?.trend === 'Strong') {
+        if (adx.direction === 'Bullish') pros.push(language === 'id' ? `ADX: Tren kuat bullish (ADX=${adx.value.toFixed(0)}, +DI=${adx.plusDI.toFixed(0)})` : `ADX: Strong bullish trend (ADX=${adx.value.toFixed(0)}, +DI=${adx.plusDI.toFixed(0)})`);
+        else cons.push(language === 'id' ? `ADX: Tren kuat bearish (ADX=${adx.value.toFixed(0)}, -DI=${adx.minusDI.toFixed(0)})` : `ADX: Strong bearish trend (ADX=${adx.value.toFixed(0)}, -DI=${adx.minusDI.toFixed(0)})`);
+      }
+
+      // OBV divergence
+      const obv = technicals.obv;
+      if (obv?.divergence === 'Bullish') pros.push(language === 'id' ? 'OBV: Divergensi Bullish (harga turun tapi volume naik)' : 'OBV: Bullish Divergence (price down but volume up)');
+      else if (obv?.divergence === 'Bearish') cons.push(language === 'id' ? 'OBV: Divergensi Bearish (harga naik tapi volume turun)' : 'OBV: Bearish Divergence (price up but volume down)');
+
+      // ATR / Volatility risk
+      const atr = technicals.atr;
+      if (atr?.volatilityPct !== undefined && atr.volatilityPct > 4) {
+        cons.push(language === 'id' ? `ATR: Volatilitas tinggi (${atr.volatilityPct.toFixed(1)}%) — risiko fluktuasi besar` : `ATR: High volatility (${atr.volatilityPct.toFixed(1)}%) — risk of large price swings`);
+      }
+
+      // Risk metrics
+      const risk = technicals.riskMetrics;
+      if (risk?.riskLevel === 'High') {
+        cons.push(language === 'id' ? `Risiko: Volatilitas tinggi (${risk.volatility?.toFixed(0)}%), Max Drawdown ${risk.maxDrawdown?.toFixed(0)}%` : `Risk: High volatility (${risk.volatility?.toFixed(0)}%), Max Drawdown ${risk.maxDrawdown?.toFixed(0)}%`);
+      }
     }
 
     // Bandarmology Pros & Cons
@@ -1595,6 +1648,129 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                       : 'Timeframe divergence occurred (weekly and daily trends do not align). This condition usually indicates major consolidation or trend reversal transition.';
                   }
                 })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Professional Indicators Row — Bollinger, Stochastic, ADX, Volatility, OBV, Risk */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-border-color mt-2">
+            {/* Bollinger Bands */}
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bollinger Bands</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                  (technicals?.bollingerBands?.percentB ?? 50) < 10 ? 'bg-emerald-500/20 text-emerald-400' :
+                  (technicals?.bollingerBands?.percentB ?? 50) > 90 ? 'bg-rose-500/20 text-rose-400' :
+                  'bg-slate-800 text-slate-400'
+                }`}>
+                  {loading ? <Skel w="w-12" /> : `%B ${(technicals?.bollingerBands?.percentB ?? 0).toFixed(0)}`}
+                </span>
+              </div>
+              <div className="text-[10px] space-y-0.5 font-mono">
+                <div className="flex justify-between"><span className="text-slate-500">Upper</span><span className="text-rose-400">{loading ? <Skel w="w-14" /> : `Rp ${Math.round(technicals?.bollingerBands?.upper ?? 0).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}`}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Mid</span><span className="text-slate-300">{loading ? <Skel w="w-14" /> : `Rp ${Math.round(technicals?.bollingerBands?.middle ?? 0).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}`}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Lower</span><span className="text-emerald-400">{loading ? <Skel w="w-14" /> : `Rp ${Math.round(technicals?.bollingerBands?.lower ?? 0).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}`}</span></div>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-relaxed">{loading ? <Skel w="w-full" /> : technicals?.bollingerBands?.signal}</p>
+            </div>
+
+            {/* Stochastic Oscillator */}
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stochastic</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                  technicals?.stochastic?.signal?.includes('Buy') ? 'bg-emerald-500/20 text-emerald-400' :
+                  technicals?.stochastic?.signal?.includes('Sell') ? 'bg-rose-500/20 text-rose-400' :
+                  'bg-slate-800 text-slate-400'
+                }`}>
+                  {loading ? <Skel w="w-14" /> : technicals?.stochastic?.signal || 'Neutral'}
+                </span>
+              </div>
+              <div className="text-[10px] space-y-0.5 font-mono">
+                <div className="flex justify-between"><span className="text-slate-500">%K</span><span className="text-slate-300">{loading ? <Skel w="w-10" /> : technicals?.stochastic?.k?.toFixed(1) || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">%D</span><span className="text-slate-300">{loading ? <Skel w="w-10" /> : technicals?.stochastic?.d?.toFixed(1) || '-'}</span></div>
+              </div>
+              {/* Stochastic scale */}
+              <div className="relative h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div style={{ width: `${Math.min(100, Math.max(0, technicals?.stochastic?.k ?? 50))}%` }} className={`h-full ${ (technicals?.stochastic?.k ?? 50) > 80 ? 'bg-rose-500' : (technicals?.stochastic?.k ?? 50) < 20 ? 'bg-emerald-500' : 'bg-amber-500' }`} />
+                <div className="absolute top-0 bottom-0 left-[20%] border-l border-slate-700/50" />
+                <div className="absolute top-0 bottom-0 right-[20%] border-r border-slate-700/50" />
+              </div>
+            </div>
+
+            {/* ADX (Trend Strength) */}
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ADX (Trend)</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                  technicals?.adx?.trend === 'Strong' ? 'bg-emerald-500/20 text-emerald-400' :
+                  technicals?.adx?.trend === 'Weak' ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-slate-800 text-slate-400'
+                }`}>
+                  {loading ? <Skel w="w-12" /> : technicals?.adx?.trend || 'None'}
+                </span>
+              </div>
+              <div className="text-[10px] space-y-0.5 font-mono">
+                <div className="flex justify-between"><span className="text-slate-500">ADX</span><span className="text-slate-300">{loading ? <Skel w="w-10" /> : technicals?.adx?.value?.toFixed(1) || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">+DI</span><span className="text-emerald-400">{loading ? <Skel w="w-10" /> : technicals?.adx?.plusDI?.toFixed(1) || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">-DI</span><span className="text-rose-400">{loading ? <Skel w="w-10" /> : technicals?.adx?.minusDI?.toFixed(1) || '-'}</span></div>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-relaxed">{loading ? <Skel w="w-full" /> : technicals?.adx?.direction === 'Bullish' ? (language === 'id' ? 'Tren bullish (+DI > -DI)' : 'Bullish trend (+DI > -DI)') : (language === 'id' ? 'Tren bearish (-DI > +DI)' : 'Bearish trend (-DI > +DI)')}</p>
+            </div>
+
+            {/* ATR / Volatility */}
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ATR (Volatility)</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                  (technicals?.atr?.volatilityPct ?? 0) > 4 ? 'bg-rose-500/20 text-rose-400' :
+                  (technicals?.atr?.volatilityPct ?? 0) > 2 ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-emerald-500/20 text-emerald-400'
+                }`}>
+                  {loading ? <Skel w="w-12" /> : technicals?.atr?.interpretation || '-'}
+                </span>
+              </div>
+              <div className="text-[10px] space-y-0.5 font-mono">
+                <div className="flex justify-between"><span className="text-slate-500">ATR</span><span className="text-slate-300">{loading ? <Skel w="w-14" /> : `Rp ${Math.round(technicals?.atr?.value ?? 0).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}`}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Vol %</span><span className="text-slate-300">{loading ? <Skel w="w-10" /> : `${(technicals?.atr?.volatilityPct ?? 0).toFixed(2)}%`}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">VWAP</span><span className="text-cyan-400">{loading ? <Skel w="w-14" /> : `Rp ${Math.round(technicals?.vwap ?? 0).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}`}</span></div>
+              </div>
+            </div>
+
+            {/* OBV (On-Balance Volume) */}
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OBV (Volume Flow)</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                  technicals?.obv?.divergence === 'Bullish' ? 'bg-emerald-500/20 text-emerald-400' :
+                  technicals?.obv?.divergence === 'Bearish' ? 'bg-rose-500/20 text-rose-400' :
+                  'bg-slate-800 text-slate-400'
+                }`}>
+                  {loading ? <Skel w="w-14" /> : technicals?.obv?.divergence === 'Bullish' ? 'Bullish Div' : technicals?.obv?.divergence === 'Bearish' ? 'Bearish Div' : 'No Divergence'}
+                </span>
+              </div>
+              <div className="text-[10px] space-y-0.5 font-mono">
+                <div className="flex justify-between"><span className="text-slate-500">OBV</span><span className="text-slate-300 truncate">{loading ? <Skel w="w-16" /> : (technicals?.obv?.value ?? 0).toLocaleString(language === 'id' ? 'id-ID' : 'en-US')}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Trend</span><span className={technicals?.obv?.trend === 'Rising' ? 'text-emerald-400' : technicals?.obv?.trend === 'Falling' ? 'text-rose-400' : 'text-slate-400'}>{loading ? <Skel w="w-10" /> : technicals?.obv?.trend || 'Flat'}</span></div>
+              </div>
+            </div>
+
+            {/* Risk Metrics */}
+            <div className="bg-slate-900/40 border border-slate-900 rounded-xl p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{language === 'id' ? 'Metrik Risiko' : 'Risk Metrics'}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                  technicals?.riskMetrics?.riskLevel === 'High' ? 'bg-rose-500/20 text-rose-400' :
+                  technicals?.riskMetrics?.riskLevel === 'Moderate' ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-emerald-500/20 text-emerald-400'
+                }`}>
+                  {loading ? <Skel w="w-12" /> : technicals?.riskMetrics?.riskLevel || 'Low'}
+                </span>
+              </div>
+              <div className="text-[10px] space-y-0.5 font-mono">
+                <div className="flex justify-between"><span className="text-slate-500">{language === 'id' ? 'Volatilitas' : 'Volatility'}</span><span className="text-slate-300">{loading ? <Skel w="w-10" /> : `${(technicals?.riskMetrics?.volatility ?? 0).toFixed(1)}%`}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Max DD</span><span className="text-rose-400">{loading ? <Skel w="w-10" /> : `${(technicals?.riskMetrics?.maxDrawdown ?? 0).toFixed(1)}%`}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Sharpe</span><span className="text-slate-300">{loading ? <Skel w="w-10" /> : (technicals?.riskMetrics?.sharpeProxy ?? 0).toFixed(2)}</span></div>
               </div>
             </div>
           </div>

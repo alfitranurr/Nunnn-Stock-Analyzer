@@ -5,13 +5,22 @@ import { getErrorMessage } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Math helpers
+// ─────────────────────────────────────────────────────────
+// Professional Technical Indicator Calculations
+// All formulas follow standard trading industry conventions.
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Wilder's RSI (Relative Strength Index) — proper smoothing.
+ * Uses the standard Wilder smoothing method, not simple average.
+ */
 function calculateRSI(closes: number[], period = 14): number {
   if (closes.length <= period) return 50;
-  
+
   let gains = 0;
   let losses = 0;
 
+  // First period: simple average of gains/losses
   for (let i = 1; i <= period; i++) {
     const diff = closes[i] - closes[i - 1];
     if (diff > 0) gains += diff;
@@ -21,6 +30,7 @@ function calculateRSI(closes: number[], period = 14): number {
   let avgGain = gains / period;
   let avgLoss = losses / period;
 
+  // Subsequent: Wilder smoothing
   for (let i = period + 1; i < closes.length; i++) {
     const diff = closes[i] - closes[i - 1];
     let currentGain = 0;
@@ -37,9 +47,12 @@ function calculateRSI(closes: number[], period = 14): number {
   return 100 - (100 / (1 + rs));
 }
 
+/**
+ * Money Flow Index (MFI) — volume-weighted RSI.
+ */
 function calculateMFI(close: number[], high: number[], low: number[], volume: number[], period = 14): number {
   if (close.length <= period) return 50;
-  
+
   const typicalPrices: number[] = [];
   for (let i = 0; i < close.length; i++) {
     typicalPrices.push((high[i] + low[i] + close[i]) / 3);
@@ -64,7 +77,7 @@ function calculateMFI(close: number[], high: number[], low: number[], volume: nu
     const rawMoneyFlow = typicalPrices[i] * volume[i];
     const prevTP = typicalPrices[i - 1];
     const currTP = typicalPrices[i];
-    
+
     if (currTP > prevTP) {
       avgPosFlow = (avgPosFlow * (period - 1) + rawMoneyFlow) / period;
       avgNegFlow = (avgNegFlow * (period - 1)) / period;
@@ -82,11 +95,11 @@ function calculateMFI(close: number[], high: number[], low: number[], volume: nu
 function calculateEMA(values: number[], period: number): number[] {
   const ema: number[] = [];
   if (values.length === 0) return [];
-  
+
   const k = 2 / (period + 1);
   let currentEma = values[0];
   ema.push(currentEma);
-  
+
   for (let i = 1; i < values.length; i++) {
     currentEma = (values[i] - currentEma) * k + currentEma;
     ema.push(currentEma);
@@ -105,25 +118,25 @@ function calculateMACD(closes: number[], fastPeriod = 12, slowPeriod = 26, signa
   if (closes.length < slowPeriod) {
     return { macd: 0, signal: 0, histogram: 0, signalName: 'Neutral' };
   }
-  
+
   const emaFast = calculateEMA(closes, fastPeriod);
   const emaSlow = calculateEMA(closes, slowPeriod);
-  
+
   const macdLine: number[] = [];
   for (let i = 0; i < closes.length; i++) {
     macdLine.push(emaFast[i] - emaSlow[i]);
   }
-  
+
   const signalLine = calculateEMA(macdLine, signalPeriod);
-  
+
   const latestIdx = closes.length - 1;
   const macdVal = macdLine[latestIdx];
   const signalVal = signalLine[latestIdx];
   const histogramVal = macdVal - signalVal;
-  
+
   const prevMacd = macdLine[latestIdx - 1] || 0;
   const prevSignal = signalLine[latestIdx - 1] || 0;
-  
+
   let signalName = 'Neutral';
   if (macdVal > signalVal && prevMacd <= prevSignal) {
     signalName = 'Bullish Crossover';
@@ -135,13 +148,266 @@ function calculateMACD(closes: number[], fastPeriod = 12, slowPeriod = 26, signa
     signalName = 'Bearish';
   }
 
+  // Histogram momentum direction
+  const prevHist = (macdLine[latestIdx - 1] || 0) - (signalLine[latestIdx - 1] || 0);
+  const histRising = histogramVal > prevHist;
+
   return {
     macd: macdVal,
     signal: signalVal,
     histogram: histogramVal,
-    signalName
+    signalName,
+    histRising
   };
 }
+
+/**
+ * Bollinger Bands — measures volatility and relative price levels.
+ * Middle = SMA(20), Upper/Lower = ±2 standard deviations.
+ */
+function calculateBollingerBands(closes: number[], period = 20, stdDev = 2) {
+  if (closes.length < period) {
+    const price = closes[closes.length - 1] || 0;
+    return { middle: price, upper: price, lower: price, percentB: 50, bandwidth: 0 };
+  }
+
+  const slice = closes.slice(-period);
+  const middle = slice.reduce((a, b) => a + b, 0) / period;
+
+  const variance = slice.reduce((sum, val) => sum + Math.pow(val - middle, 2), 0) / period;
+  const sd = Math.sqrt(variance);
+
+  const upper = middle + stdDev * sd;
+  const lower = middle - stdDev * sd;
+
+  const currentPrice = closes[closes.length - 1];
+  const range = upper - lower;
+  const percentB = range > 0 ? ((currentPrice - lower) / range) * 100 : 50;
+  const bandwidth = middle > 0 ? (range / middle) * 100 : 0;
+
+  return { middle, upper, lower, percentB, bandwidth };
+}
+
+/**
+ * Stochastic Oscillator — momentum indicator comparing closing price to price range.
+ * %K = (Current Close - Lowest Low) / (Highest High - Lowest Low) * 100
+ * %D = SMA(3) of %K
+ */
+function calculateStochastic(high: number[], low: number[], close: number[], period = 14, smoothK = 3) {
+  if (close.length < period + smoothK) {
+    return { k: 50, d: 50, signal: 'Neutral' };
+  }
+
+  const kValues: number[] = [];
+  for (let i = period - 1; i < close.length; i++) {
+    const sliceHigh = high.slice(i - period + 1, i + 1);
+    const sliceLow = low.slice(i - period + 1, i + 1);
+    const highestHigh = Math.max(...sliceHigh);
+    const lowestLow = Math.min(...sliceLow);
+    const currentClose = close[i];
+
+    const k = highestHigh === lowestLow ? 50 : ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+    kValues.push(k);
+  }
+
+  const k = kValues[kValues.length - 1];
+  const d = calculateSMA(kValues.slice(-smoothK), smoothK);
+
+  let signal = 'Neutral';
+  if (k > 80 && k < d) signal = 'Overbought / Sell Signal';
+  else if (k < 20 && k > d) signal = 'Oversold / Buy Signal';
+  else if (k > d && k < 80) signal = 'Bullish';
+  else if (k < d && k > 20) signal = 'Bearish';
+  else if (k > 80) signal = 'Overbought';
+  else if (k < 20) signal = 'Oversold';
+
+  return { k, d, signal };
+}
+
+/**
+ * ATR (Average True Range) — measures market volatility.
+ * True Range = max(High - Low, |High - PrevClose|, |Low - PrevClose|)
+ */
+function calculateATR(high: number[], low: number[], close: number[], period = 14): number {
+  if (close.length <= period) return 0;
+
+  const trueRanges: number[] = [];
+  for (let i = 1; i < close.length; i++) {
+    const tr = Math.max(
+      high[i] - low[i],
+      Math.abs(high[i] - close[i - 1]),
+      Math.abs(low[i] - close[i - 1])
+    );
+    trueRanges.push(tr);
+  }
+
+  // Wilder's smoothing
+  let atr = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < trueRanges.length; i++) {
+    atr = (atr * (period - 1) + trueRanges[i]) / period;
+  }
+
+  return atr;
+}
+
+/**
+ * OBV (On-Balance Volume) — cumulative volume that adds/subtracts based on price direction.
+ * Detects divergences between price and volume flow.
+ */
+function calculateOBV(closes: number[], volumes: number[]): { obv: number; obvTrend: 'Rising' | 'Falling' | 'Flat'; divergence: 'Bullish' | 'Bearish' | 'None' } {
+  if (closes.length < 2) return { obv: 0, obvTrend: 'Flat', divergence: 'None' };
+
+  let obv = 0;
+  const obvHistory: number[] = [0];
+
+  for (let i = 1; i < closes.length; i++) {
+    if (closes[i] > closes[i - 1]) {
+      obv += volumes[i] || 0;
+    } else if (closes[i] < closes[i - 1]) {
+      obv -= volumes[i] || 0;
+    }
+    obvHistory.push(obv);
+  }
+
+  // OBV trend over last 10 days
+  const recentOBV = obvHistory.slice(-10);
+  const obvTrend: 'Rising' | 'Falling' | 'Flat' =
+    recentOBV[recentOBV.length - 1] > recentOBV[0] * 1.02 ? 'Rising' :
+    recentOBV[recentOBV.length - 1] < recentOBV[0] * 0.98 ? 'Falling' : 'Flat';
+
+  // Divergence detection: price up but OBV down = bearish, vice versa
+  const priceChange = (closes[closes.length - 1] - closes[closes.length - 10]) / closes[closes.length - 10];
+  const obvChange = recentOBV[recentOBV.length - 1] - recentOBV[0];
+
+  let divergence: 'Bullish' | 'Bearish' | 'None' = 'None';
+  if (priceChange > 0.02 && obvChange < 0) divergence = 'Bearish';
+  else if (priceChange < -0.02 && obvChange > 0) divergence = 'Bullish';
+
+  return { obv, obvTrend, divergence };
+}
+
+/**
+ * VWAP (Volume Weighted Average Price) — institutional benchmark price.
+ */
+function calculateVWAP(high: number[], low: number[], close: number[], volume: number[]): number {
+  if (close.length === 0) return 0;
+  let cumulativePV = 0;
+  let cumulativeV = 0;
+  const lookback = Math.min(20, close.length);
+
+  for (let i = close.length - lookback; i < close.length; i++) {
+    const typicalPrice = (high[i] + low[i] + close[i]) / 3;
+    cumulativePV += typicalPrice * (volume[i] || 0);
+    cumulativeV += volume[i] || 0;
+  }
+
+  return cumulativeV > 0 ? cumulativePV / cumulativeV : close[close.length - 1];
+}
+
+/**
+ * ADX (Average Directional Index) — trend strength indicator.
+ * ADX > 25 = strong trend, ADX < 20 = weak/no trend.
+ */
+function calculateADX(high: number[], low: number[], close: number[], period = 14): { adx: number; trend: 'Strong' | 'Weak' | 'None'; plusDI: number; minusDI: number } {
+  if (close.length <= period * 2) return { adx: 20, trend: 'None', plusDI: 25, minusDI: 25 };
+
+  const plusDM: number[] = [];
+  const minusDM: number[] = [];
+  const trueRanges: number[] = [];
+
+  for (let i = 1; i < close.length; i++) {
+    const upMove = high[i] - high[i - 1];
+    const downMove = low[i - 1] - low[i];
+    const tr = Math.max(
+      high[i] - low[i],
+      Math.abs(high[i] - close[i - 1]),
+      Math.abs(low[i] - close[i - 1])
+    );
+    trueRanges.push(tr);
+
+    plusDM.push(upMove > downMove && upMove > 0 ? upMove : 0);
+    minusDM.push(downMove > upMove && downMove > 0 ? downMove : 0);
+  }
+
+  // Wilder smoothing for +DI, -DI, ADX
+  const smooth = (arr: number[], p: number) => {
+    let smoothed = arr.slice(0, p).reduce((a, b) => a + b, 0);
+    const smoothedHistory = [smoothed];
+    for (let i = p; i < arr.length; i++) {
+      smoothed = (smoothed * (p - 1) + arr[i]) / p;
+      smoothedHistory.push(smoothed);
+    }
+    return smoothedHistory;
+  };
+
+  const smoothedTR = smooth(trueRanges, period);
+  const smoothedPlusDM = smooth(plusDM, period);
+  const smoothedMinusDM = smooth(minusDM, period);
+
+  const plusDI = (smoothedPlusDM[smoothedPlusDM.length - 1] / (smoothedTR[smoothedTR.length - 1] || 1)) * 100;
+  const minusDI = (smoothedMinusDM[smoothedMinusDM.length - 1] / (smoothedTR[smoothedTR.length - 1] || 1)) * 100;
+
+  // DX and ADX
+  const dxValues: number[] = [];
+  for (let i = 0; i < smoothedTR.length; i++) {
+    const pdi = (smoothedPlusDM[i] / (smoothedTR[i] || 1)) * 100;
+    const mdi = (smoothedMinusDM[i] / (smoothedTR[i] || 1)) * 100;
+    const dx = (pdi + mdi) > 0 ? Math.abs(pdi - mdi) / (pdi + mdi) * 100 : 0;
+    dxValues.push(dx);
+  }
+
+  let adx = dxValues.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < dxValues.length; i++) {
+    adx = (adx * (period - 1) + dxValues[i]) / period;
+  }
+
+  const trend: 'Strong' | 'Weak' | 'None' = adx > 25 ? 'Strong' : adx > 20 ? 'Weak' : 'None';
+
+  return { adx, trend, plusDI, minusDI };
+}
+
+/**
+ * Volatility metrics — annualized volatility and max drawdown.
+ */
+function calculateRiskMetrics(closes: number[]): {
+  volatility: number;
+  maxDrawdown: number;
+  sharpeProxy: number;
+} {
+  if (closes.length < 20) return { volatility: 0, maxDrawdown: 0, sharpeProxy: 0 };
+
+  // Daily returns
+  const returns: number[] = [];
+  for (let i = 1; i < closes.length; i++) {
+    returns.push((closes[i] - closes[i - 1]) / closes[i - 1]);
+  }
+
+  // Annualized volatility (std dev of daily returns * sqrt(252 trading days))
+  const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
+  const dailyVol = Math.sqrt(variance);
+  const volatility = dailyVol * Math.sqrt(252) * 100;
+
+  // Max drawdown
+  let peak = closes[0];
+  let maxDD = 0;
+  for (let i = 1; i < closes.length; i++) {
+    if (closes[i] > peak) peak = closes[i];
+    const dd = (closes[i] - peak) / peak;
+    if (dd < maxDD) maxDD = dd;
+  }
+  const maxDrawdown = Math.abs(maxDD) * 100;
+
+  // Sharpe ratio proxy (annualized return / annualized volatility, assuming 0 risk-free rate)
+  const annualizedReturn = avgReturn * 252 * 100;
+  const sharpeProxy = volatility > 0 ? annualizedReturn / volatility : 0;
+
+  return { volatility, maxDrawdown, sharpeProxy };
+}
+
+// ─────────────────────────────────────────────────────────
+// Broker & Bandarmology (deterministic fallback)
+// ─────────────────────────────────────────────────────────
 
 const BROKER_CODES = ['YP', 'CC', 'PD', 'OD', 'DX', 'AK', 'YU', 'GR', 'DH', 'NI', 'LG', 'AZ', 'RX', 'DR', 'XC', 'ZP'];
 
@@ -223,7 +489,7 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
   for (let i = 0; i < cleanSymbol.length; i++) {
     hash = cleanSymbol.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   const getVal = (salt: number, min: number, max: number) => {
     const seed = Math.abs(Math.sin(hash + salt));
     return min + seed * (max - min);
@@ -236,7 +502,6 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
   const histogram = macdLine - signalLine;
   const macdSignal = macdLine > signalLine ? 'Bullish' : 'Bearish';
 
-  // Support & Resistance levels
   const range = currentPrice * getVal(4, 0.03, 0.08);
   const pp = currentPrice;
   const r1 = pp + 0.382 * range;
@@ -246,7 +511,6 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
   const r3 = pp + 1.000 * range;
   const s3 = pp - 1.000 * range;
 
-  // Bandarmology status
   const bandarStatusSeed = getVal(12, 0, 100);
   let bandarStatus = 'NEUTRAL';
   if (bandarStatusSeed > 70) bandarStatus = 'BIG ACCUMULATION';
@@ -256,7 +520,6 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
 
   const foreignNetBuy = Math.round(getVal(13, -5e9, 15e9));
 
-  // Multi-Timeframe Trends
   const weeklyTrend = rsi > 52 ? 'BULLISH' : 'BEARISH';
   const dailyTrend = macdLine > signalLine ? 'BULLISH' : 'BEARISH';
   const hourlyTrend = rsi > 60 ? 'BULLISH / OVERBOUGHT' : rsi < 40 ? 'BEARISH / OVERSOLD' : 'CONSOLIDATING';
@@ -333,9 +596,9 @@ export async function GET(request: NextRequest) {
   const querySymbol = symbol.includes('.') ? symbol : `${ticker}.JK`;
 
   try {
-    // Fetch daily historical chart data for the last 3 months
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=3mo`,
+    // Fetch 6 months of daily data for robust indicator calculations
+    const dailyResponse = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=6mo`,
       {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -344,8 +607,34 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    if (!response.ok) {
-      console.warn(`Yahoo Chart API returned status ${response.status}. Falling back to deterministic technicals.`);
+    // Fetch weekly data for accurate multi-timeframe analysis
+    const weeklyData: { closes: number[]; highs: number[]; lows: number[] } = { closes: [], highs: [], lows: [] };
+    try {
+      const weeklyResponse = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1wk&range=1y`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          },
+          cache: 'no-store'
+        }
+      );
+      if (weeklyResponse.ok) {
+        const wData = await weeklyResponse.json();
+        const wResult = wData.chart?.result?.[0];
+        if (wResult) {
+          const wIndicators = wResult.indicators?.quote?.[0] || {};
+          weeklyData.closes = (wIndicators.close || []).filter((v: number | null) => v !== null && v !== undefined);
+          weeklyData.highs = (wIndicators.high || []).filter((v: number | null) => v !== null && v !== undefined);
+          weeklyData.lows = (wIndicators.low || []).filter((v: number | null) => v !== null && v !== undefined);
+        }
+      }
+    } catch {
+      // Weekly fetch is optional — fall back to EMA-based weekly trend
+    }
+
+    if (!dailyResponse.ok) {
+      console.warn(`Yahoo Chart API returned status ${dailyResponse.status}. Falling back to deterministic technicals.`);
       const price = 5000;
       return NextResponse.json({
         symbol: querySymbol,
@@ -353,7 +642,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const data = await response.json();
+    const data = await dailyResponse.json();
     const result = data.chart?.result?.[0];
 
     if (!result) {
@@ -399,12 +688,20 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // ─── Core Indicators ───
     const rsiValue = calculateRSI(cleanClose, 14);
     const rsiSignal = rsiValue > 70 ? 'Overbought' : rsiValue < 30 ? 'Oversold' : 'Neutral';
     const mfiValue = calculateMFI(cleanClose, cleanHigh, cleanLow, cleanVolume, 14);
     const macdData = calculateMACD(cleanClose, 12, 26, 9);
-    
-    // Pivot Points calculated on the most recent completed day with a valid trading range (high !== low)
+    const bollinger = calculateBollingerBands(cleanClose, 20, 2);
+    const stochastic = calculateStochastic(cleanHigh, cleanLow, cleanClose, 14, 3);
+    const atrValue = calculateATR(cleanHigh, cleanLow, cleanClose, 14);
+    const obvData = calculateOBV(cleanClose, cleanVolume);
+    const vwap = calculateVWAP(cleanHigh, cleanLow, cleanClose, cleanVolume);
+    const adxData = calculateADX(cleanHigh, cleanLow, cleanClose, 14);
+    const riskMetrics = calculateRiskMetrics(cleanClose);
+
+    // ─── Pivot Points ───
     let lastDayIdx = cleanClose.length - 1;
     while (lastDayIdx > 0 && cleanHigh[lastDayIdx] === cleanLow[lastDayIdx]) {
       lastDayIdx--;
@@ -430,12 +727,13 @@ export async function GET(request: NextRequest) {
     const fibR3 = pp + 1.000 * range;
     const fibS3 = pp - 1.000 * range;
 
+    // ─── Moving Averages ───
     const sma20 = calculateSMA(cleanClose, 20);
     const sma50 = calculateSMA(cleanClose, 50);
     const ema20 = calculateEMA(cleanClose, 20)[cleanClose.length - 1] || currentPrice;
     const ema50 = calculateEMA(cleanClose, 50)[cleanClose.length - 1] || currentPrice;
 
-    // Bandarmology Flow Analysis (Volume Price Action Flow)
+    // ─── Bandarmology (Volume-Price Analysis) ───
     const volSlice = cleanVolume.slice(-20);
     const avgVol20 = volSlice.reduce((a, b) => a + b, 0) / volSlice.length;
     const volumeRatio = lastVolume / (avgVol20 || 1);
@@ -452,51 +750,102 @@ export async function GET(request: NextRequest) {
       bandarStatus = 'DISTRIBUTION';
     }
 
-    // Estimate Foreign Net Buy in IDR based on total daily turnover and close price position within the high-low range
     const totalTurnover = lastClose * lastVolume;
     let foreignNetBuy = Math.round(totalTurnover * (closePos - 0.5) * 0.65);
-    
-    // Safety fallback when price is unchanged but bandar status shows movement
+
     if (foreignNetBuy === 0 && bandarStatus.includes('ACCUMULATION')) {
       foreignNetBuy = Math.round(totalTurnover * 0.08);
     } else if (foreignNetBuy === 0 && bandarStatus.includes('DISTRIBUTION')) {
       foreignNetBuy = -Math.round(totalTurnover * 0.08);
     }
 
-    // Multi-Timeframe Trend
-    const weeklyTrend = currentPrice > ema50 ? 'BULLISH' : 'BEARISH';
-    const dailyTrend = currentPrice > sma20 ? 'BULLISH' : 'BEARISH';
-    let hourlyTrend = 'CONSOLIDATING';
-    if (rsiValue > 65) {
-      hourlyTrend = 'BULLISH / OVERBOUGHT';
-    } else if (rsiValue < 35) {
-      hourlyTrend = 'BEARISH / OVERSOLD';
-    } else if (macdData.histogram > 0) {
-      hourlyTrend = 'BULLISH';
+    // ─── Multi-Timeframe Analysis ───
+    // Weekly: use actual weekly data if available, else proxy from daily EMA50
+    let weeklyTrend = 'CONSOLIDATING';
+    if (weeklyData.closes.length >= 10) {
+      const weeklySMA20 = calculateSMA(weeklyData.closes, Math.min(20, weeklyData.closes.length));
+      const weeklySMA50 = calculateSMA(weeklyData.closes, Math.min(50, weeklyData.closes.length));
+      const weeklyRSI = calculateRSI(weeklyData.closes, 14);
+      const weeklyPrice = weeklyData.closes[weeklyData.closes.length - 1];
+
+      if (weeklyPrice > weeklySMA20 && weeklyPrice > weeklySMA50 && weeklyRSI > 50) {
+        weeklyTrend = 'BULLISH';
+      } else if (weeklyPrice < weeklySMA20 && weeklyPrice < weeklySMA50 && weeklyRSI < 50) {
+        weeklyTrend = 'BEARISH';
+      } else if (weeklyPrice > weeklySMA20) {
+        weeklyTrend = 'BULLISH';
+      } else {
+        weeklyTrend = 'BEARISH';
+      }
     } else {
+      weeklyTrend = currentPrice > ema50 ? 'BULLISH' : 'BEARISH';
+    }
+
+    // Daily: based on SMA20 and MACD
+    const dailyTrend = currentPrice > sma20 && macdData.histogram >= 0 ? 'BULLISH' :
+                       currentPrice < sma20 && macdData.histogram < 0 ? 'BEARISH' : 'CONSOLIDATING';
+
+    // Hourly (short-term): based on RSI and Stochastic
+    let hourlyTrend = 'CONSOLIDATING';
+    if (rsiValue > 70 || stochastic.k > 80) {
+      hourlyTrend = 'BULLISH / OVERBOUGHT';
+    } else if (rsiValue < 30 || stochastic.k < 20) {
+      hourlyTrend = 'BEARISH / OVERSOLD';
+    } else if (rsiValue > 55 && stochastic.k > stochastic.d) {
+      hourlyTrend = 'BULLISH';
+    } else if (rsiValue < 45 && stochastic.k < stochastic.d) {
       hourlyTrend = 'BEARISH';
     }
 
-    // Technical consensus rating score (RSI, MACD, MA, PP, MTF)
+    // ─── Weighted Consensus Scoring ───
+    // Professional weighting: indicators weighted by signal confidence
     let techBullish = 0;
     let techBearish = 0;
+    const techSignals: { indicator: string; signal: 'bull' | 'bear' | 'neutral'; weight: number }[] = [];
 
-    if (rsiValue > 70) techBearish += 2;
-    else if (rsiValue < 30) techBullish += 2;
-    else if (rsiValue > 55) techBullish += 0.5;
-    else if (rsiValue < 45) techBearish += 0.5;
+    // RSI (weight: 1.5)
+    if (rsiValue > 70) { techBearish += 1.5; techSignals.push({ indicator: 'RSI', signal: 'bear', weight: 1.5 }); }
+    else if (rsiValue < 30) { techBullish += 1.5; techSignals.push({ indicator: 'RSI', signal: 'bull', weight: 1.5 }); }
+    else if (rsiValue > 55) { techBullish += 0.5; techSignals.push({ indicator: 'RSI', signal: 'neutral', weight: 0.5 }); }
+    else if (rsiValue < 45) { techBearish += 0.5; techSignals.push({ indicator: 'RSI', signal: 'neutral', weight: 0.5 }); }
 
+    // MACD (weight: 2.0 — strongest signal)
     if (macdData.signalName.includes('Bullish')) {
-      techBullish += macdData.signalName.includes('Crossover') ? 2 : 1;
+      const w = macdData.signalName.includes('Crossover') ? 2.0 : 1.0;
+      techBullish += w;
+      techSignals.push({ indicator: 'MACD', signal: 'bull', weight: w });
     } else if (macdData.signalName.includes('Bearish')) {
-      techBearish += macdData.signalName.includes('Crossover') ? 2 : 1;
+      const w = macdData.signalName.includes('Crossover') ? 2.0 : 1.0;
+      techBearish += w;
+      techSignals.push({ indicator: 'MACD', signal: 'bear', weight: w });
     }
 
-    if (currentPrice > sma20) techBullish += 0.5;
-    else techBearish += 0.5;
+    // Moving Averages (weight: 1.5)
+    if (currentPrice > sma20) { techBullish += 0.5; techSignals.push({ indicator: 'SMA20', signal: 'bull', weight: 0.5 }); }
+    else { techBearish += 0.5; techSignals.push({ indicator: 'SMA20', signal: 'bear', weight: 0.5 }); }
 
-    if (currentPrice > sma50) techBullish += 1;
-    else techBearish += 1;
+    if (currentPrice > sma50) { techBullish += 1.0; techSignals.push({ indicator: 'SMA50', signal: 'bull', weight: 1.0 }); }
+    else { techBearish += 1.0; techSignals.push({ indicator: 'SMA50', signal: 'bear', weight: 1.0 }); }
+
+    // Stochastic (weight: 1.0)
+    if (stochastic.signal.includes('Buy Signal')) { techBullish += 1.5; techSignals.push({ indicator: 'Stochastic', signal: 'bull', weight: 1.5 }); }
+    else if (stochastic.signal.includes('Sell Signal')) { techBearish += 1.5; techSignals.push({ indicator: 'Stochastic', signal: 'bear', weight: 1.5 }); }
+    else if (stochastic.signal.includes('Bullish')) { techBullish += 0.5; techSignals.push({ indicator: 'Stochastic', signal: 'bull', weight: 0.5 }); }
+    else if (stochastic.signal.includes('Bearish')) { techBearish += 0.5; techSignals.push({ indicator: 'Stochastic', signal: 'bear', weight: 0.5 }); }
+
+    // Bollinger Bands (weight: 0.5)
+    if (bollinger.percentB < 10) { techBullish += 0.5; techSignals.push({ indicator: 'Bollinger', signal: 'bull', weight: 0.5 }); }
+    else if (bollinger.percentB > 90) { techBearish += 0.5; techSignals.push({ indicator: 'Bollinger', signal: 'bear', weight: 0.5 }); }
+
+    // ADX trend strength (weight: 1.0)
+    if (adxData.trend === 'Strong') {
+      if (adxData.plusDI > adxData.minusDI) { techBullish += 1.0; techSignals.push({ indicator: 'ADX', signal: 'bull', weight: 1.0 }); }
+      else { techBearish += 1.0; techSignals.push({ indicator: 'ADX', signal: 'bear', weight: 1.0 }); }
+    }
+
+    // OBV divergence (weight: 1.0)
+    if (obvData.divergence === 'Bullish') { techBullish += 1.0; techSignals.push({ indicator: 'OBV Divergence', signal: 'bull', weight: 1.0 }); }
+    else if (obvData.divergence === 'Bearish') { techBearish += 1.0; techSignals.push({ indicator: 'OBV Divergence', signal: 'bear', weight: 1.0 }); }
 
     let rating = 'NEUTRAL';
     let score = 50;
@@ -509,7 +858,7 @@ export async function GET(request: NextRequest) {
       else if (score <= 45) rating = 'SELL';
     }
 
-    // Bandarmology consensus rating score (MFI, Bandar Status, Foreign Flow)
+    // ─── Bandarmology Consensus ───
     let bandarBullish = 0;
     let bandarBearish = 0;
 
@@ -522,11 +871,12 @@ export async function GET(request: NextRequest) {
       bandarBearish += bandarStatus.includes('BIG') ? 2.5 : 1.5;
     }
 
-    if (foreignNetBuy > 0) {
-      bandarBullish += 1.0;
-    } else if (foreignNetBuy < 0) {
-      bandarBearish += 1.0;
-    }
+    if (foreignNetBuy > 0) bandarBullish += 1.0;
+    else if (foreignNetBuy < 0) bandarBearish += 1.0;
+
+    // OBV trend adds to bandarmology confidence
+    if (obvData.obvTrend === 'Rising') bandarBullish += 0.5;
+    else if (obvData.obvTrend === 'Falling') bandarBearish += 0.5;
 
     let bandarRating = 'NEUTRAL';
     let bandarScore = 50;
@@ -576,6 +926,48 @@ export async function GET(request: NextRequest) {
         daily: dailyTrend,
         hourly: hourlyTrend
       },
+      // ─── New Professional Indicators ───
+      bollingerBands: {
+        upper: bollinger.upper,
+        middle: bollinger.middle,
+        lower: bollinger.lower,
+        percentB: bollinger.percentB,
+        bandwidth: bollinger.bandwidth,
+        signal: bollinger.percentB < 10 ? 'Oversold (Near Lower Band)' :
+                bollinger.percentB > 90 ? 'Overbought (Near Upper Band)' :
+                bollinger.bandwidth < 3 ? 'Squeeze (Low Volatility)' : 'Normal Range'
+      },
+      stochastic: {
+        k: stochastic.k,
+        d: stochastic.d,
+        signal: stochastic.signal
+      },
+      atr: {
+        value: atrValue,
+        volatilityPct: currentPrice > 0 ? (atrValue / currentPrice) * 100 : 0,
+        interpretation: atrValue > 0 && currentPrice > 0 && (atrValue / currentPrice) > 0.04 ? 'High Volatility' :
+                       atrValue > 0 && currentPrice > 0 && (atrValue / currentPrice) > 0.02 ? 'Moderate Volatility' : 'Low Volatility'
+      },
+      obv: {
+        value: obvData.obv,
+        trend: obvData.obvTrend,
+        divergence: obvData.divergence
+      },
+      vwap,
+      adx: {
+        value: adxData.adx,
+        trend: adxData.trend,
+        plusDI: adxData.plusDI,
+        minusDI: adxData.minusDI,
+        direction: adxData.plusDI > adxData.minusDI ? 'Bullish' : 'Bearish'
+      },
+      riskMetrics: {
+        volatility: riskMetrics.volatility,
+        maxDrawdown: riskMetrics.maxDrawdown,
+        sharpeProxy: riskMetrics.sharpeProxy,
+        riskLevel: riskMetrics.volatility > 50 ? 'High' : riskMetrics.volatility > 25 ? 'Moderate' : 'Low'
+      },
+      techSignals,
       summary: {
         rating,
         score
