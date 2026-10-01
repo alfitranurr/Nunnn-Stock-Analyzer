@@ -766,14 +766,14 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
       // Stochastic signals
       const stoch = technicals.stochastic;
-      if (stoch?.signal?.includes('Buy Signal')) pros.push(language === 'id' ? `Stochastic: Sinyal Beli (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})` : `Stochastic: Buy Signal (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})`);
-      else if (stoch?.signal?.includes('Sell Signal')) cons.push(language === 'id' ? `Stochastic: Sinyal Jual (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})` : `Stochastic: Sell Signal (${stoch.k.toFixed(0)}/${stoch.d.toFixed(0)})`);
+      if (stoch?.signal?.includes('Buy Signal')) pros.push(language === 'id' ? `Stochastic: Sinyal Beli (${(stoch.k ?? 0).toFixed(0)}/${(stoch.d ?? 0).toFixed(0)})` : `Stochastic: Buy Signal (${(stoch.k ?? 0).toFixed(0)}/${(stoch.d ?? 0).toFixed(0)})`);
+      else if (stoch?.signal?.includes('Sell Signal')) cons.push(language === 'id' ? `Stochastic: Sinyal Jual (${(stoch.k ?? 0).toFixed(0)}/${(stoch.d ?? 0).toFixed(0)})` : `Stochastic: Sell Signal (${(stoch.k ?? 0).toFixed(0)}/${(stoch.d ?? 0).toFixed(0)})`);
 
       // ADX trend strength
       const adx = technicals.adx;
       if (adx?.trend === 'Strong') {
-        if (adx.direction === 'Bullish') pros.push(language === 'id' ? `ADX: Tren kuat bullish (ADX=${adx.value.toFixed(0)}, +DI=${adx.plusDI.toFixed(0)})` : `ADX: Strong bullish trend (ADX=${adx.value.toFixed(0)}, +DI=${adx.plusDI.toFixed(0)})`);
-        else cons.push(language === 'id' ? `ADX: Tren kuat bearish (ADX=${adx.value.toFixed(0)}, -DI=${adx.minusDI.toFixed(0)})` : `ADX: Strong bearish trend (ADX=${adx.value.toFixed(0)}, -DI=${adx.minusDI.toFixed(0)})`);
+        if (adx.direction === 'Bullish') pros.push(language === 'id' ? `ADX: Tren kuat bullish (ADX=${(adx.value ?? 0).toFixed(0)}, +DI=${(adx.plusDI ?? 0).toFixed(0)})` : `ADX: Strong bullish trend (ADX=${(adx.value ?? 0).toFixed(0)}, +DI=${(adx.plusDI ?? 0).toFixed(0)})`);
+        else cons.push(language === 'id' ? `ADX: Tren kuat bearish (ADX=${(adx.value ?? 0).toFixed(0)}, -DI=${(adx.minusDI ?? 0).toFixed(0)})` : `ADX: Strong bearish trend (ADX=${(adx.value ?? 0).toFixed(0)}, -DI=${(adx.minusDI ?? 0).toFixed(0)})`);
       }
 
       // OBV divergence
