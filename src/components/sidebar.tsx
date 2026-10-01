@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   Percent,
   Coins,
-  Home
+  Home,
+  TrendingUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
@@ -48,6 +49,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
     { id: 'news', label: t('sidebar.news'), icon: BookOpen, active: true },
     { id: 'avg-down', label: t('sidebar.avgDown'), icon: Calculator, active: true },
     { id: 'compounding', label: t('sidebar.compounding'), icon: Percent, active: true },
+    { id: 'percentage', label: t('sidebar.percentage'), icon: TrendingUpDown, active: true },
     { id: 'dividend', label: t('sidebar.dividend'), icon: Coins, active: true },
     { id: 'ipo', label: t('sidebar.ipo'), icon: Coins, active: true },
     { id: 'analysis', label: t('sidebar.analysis'), icon: TrendingUp, active: true, isLocked: !user },

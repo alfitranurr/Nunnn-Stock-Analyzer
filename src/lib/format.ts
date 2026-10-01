@@ -90,3 +90,27 @@ export function formatIDR(value: number, language: Language = 'en'): string {
   }).format(Math.abs(value));
   return value < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
 }
+
+export interface FormatPercentOptions {
+  /** Locale used for separators. 'id' -> "48,89%", 'en' -> "48.89%". Default: 'en'. */
+  language?: Language;
+  /** Prefix positive values with "+". Default: false. */
+  signed?: boolean;
+  /** Maximum number of fractional digits to display. Default: 2. */
+  maxFractionDigits?: number;
+}
+
+/**
+ * Format a percentage value (already multiplied by 100), e.g. 48.888 -> "+48.89%".
+ * Values that round to zero never get a sign, so there is no "-0%".
+ */
+export function formatPercent(value: number, options?: FormatPercentOptions): string {
+  const { language = 'en', signed = false, maxFractionDigits = 2 } = options || {};
+  const formatted = new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits,
+  }).format(Math.abs(value));
+  const roundsToZero = Number(Math.abs(value).toFixed(maxFractionDigits)) === 0;
+  const sign = roundsToZero ? '' : value < 0 ? '-' : signed ? '+' : '';
+  return `${sign}${formatted}%`;
+}
