@@ -41,11 +41,54 @@ export interface AvgDownResult {
   floatingPLTotal: number;
   floatingPLTotalPct: number;
   
+  // Break Even Point (harga jual impas, sudah memperhitungkan fee jual bila aktif)
+  breakEvenPriceAwal: number;
+  breakEvenPriceBaru: number;
+  gainToBreakEvenAwalPct: number; // Kenaikan harga yang dibutuhkan dari harga sekarang agar impas
+  gainToBreakEvenBaruPct: number;
+
   // Metriks Perbaikan (Sebelum vs Sesudah)
-  avgPriceReductionPct: number; // Seberapa jauh harga rata-rata turun
+  avgPriceReductionPct: number; // Seberapa jauh harga rata-rata turun (negatif = avg naik)
   plImprovementPct: number; // Selisih persentase P&L
   lossShrunkPct: number | null; // Seberapa banyak floating loss berkurang (%), null jika tidak loss di awal
   turnedIntoProfit: boolean; // Apakah berubah dari loss menjadi profit/break-even
+}
+
+/**
+ * Fraksi harga (tick size) saham BEI berdasarkan rentang harga.
+ */
+export function getIdxTickSize(price: number): number {
+  if (price < 200) return 1;
+  if (price < 500) return 2;
+  if (price < 2000) return 5;
+  if (price < 5000) return 10;
+  return 25;
+}
+
+/** Apakah harga sesuai kelipatan fraksi harga BEI. */
+export function isValidIdxPrice(price: number): boolean {
+  if (price <= 0) return false;
+  return price % getIdxTickSize(price) === 0;
+}
+
+/** Bulatkan harga ke bawah ke fraksi harga BEI terdekat. */
+export function roundDownToIdxTick(price: number): number {
+  if (price <= 0) return 0;
+  const tick = getIdxTickSize(price);
+  return Math.floor(price / tick) * tick;
+}
+
+/**
+ * Naikkan/turunkan harga satu fraksi BEI. Harga yang belum sesuai fraksi
+ * di-snap ke harga valid terdekat ke arah yang dituju (mis. 2.755 → 2.760 / 2.750).
+ */
+export function stepIdxPrice(price: number, direction: 1 | -1): number {
+  if (price <= 0) return direction > 0 ? 1 : 0;
+  const base = roundDownToIdxTick(price);
+  if (direction > 0) return base + getIdxTickSize(base);
+  if (base < price) return base;
+  // Turun memakai fraksi rentang di bawahnya (200 → 199, 500 → 498).
+  return Math.max(1, price - getIdxTickSize(price - 1));
 }
 
 /**
@@ -130,9 +173,24 @@ export function calculateAvgDown(input: AvgDownInput): AvgDownResult {
     ? (floatingPLTotal / investedAmountTotal) * 100
     : 0;
 
-  // 4. Metriks Perbaikan
-  const avgPriceReductionPct = avgPriceAwal > 0
-    ? ((avgPriceAwal - avgPriceBaru) / avgPriceAwal) * 100
+  // 4. Break Even Point: harga jual di mana nilai jual bersih = modal
+  const sellFactor = includeFees ? 1 - feeJualPct : 1;
+  const breakEvenPriceAwal = sharesAwal > 0 && sellFactor > 0
+    ? investedAmountAwal / (sharesAwal * sellFactor)
+    : 0;
+  const breakEvenPriceBaru = sharesTotal > 0 && sellFactor > 0
+    ? investedAmountTotal / (sharesTotal * sellFactor)
+    : 0;
+  const gainToBreakEvenAwalPct = currentPrice > 0
+    ? ((breakEvenPriceAwal - currentPrice) / currentPrice) * 100
+    : 0;
+  const gainToBreakEvenBaruPct = currentPrice > 0
+    ? ((breakEvenPriceBaru - currentPrice) / currentPrice) * 100
+    : 0;
+
+  // 5. Metriks Perbaikan (dibandingkan dengan avg awal riil agar konsisten dengan yang ditampilkan)
+  const avgPriceReductionPct = realAvgPriceAwal > 0
+    ? ((realAvgPriceAwal - avgPriceBaru) / realAvgPriceAwal) * 100
     : 0;
 
   const plImprovementPct = floatingPLTotalPct - floatingPLAwalPct;
@@ -168,6 +226,10 @@ export function calculateAvgDown(input: AvgDownInput): AvgDownResult {
     marketValueTotal,
     floatingPLTotal,
     floatingPLTotalPct,
+    breakEvenPriceAwal,
+    breakEvenPriceBaru,
+    gainToBreakEvenAwalPct,
+    gainToBreakEvenBaruPct,
     avgPriceReductionPct,
     plImprovementPct,
     lossShrunkPct,

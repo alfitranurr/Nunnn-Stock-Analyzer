@@ -26,7 +26,7 @@ import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
-import { Sparkles, AlertCircle, Info, ChevronUp, ArrowRight, Calculator } from 'lucide-react';
+import { Sparkles, AlertCircle, Info, ChevronUp, ArrowRight, Calculator, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useLanguage } from '@/lib/language-context';
@@ -497,6 +497,8 @@ export default function Dashboard() {
 
   const handleLoadPlan = (plan: SavedPlan) => {
     setActivePlanToLoad(plan);
+    // Rencana dimuat dari tabel di bawah; bawa user kembali ke form agar perubahannya terlihat.
+    document.getElementById('avg-down-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     showToast(
       language === 'id'
         ? `Parameter saham ${plan.ticker} berhasil dimuat ke kalkulator.`
@@ -899,13 +901,16 @@ export default function Dashboard() {
 
               {/* Content Area Stack (Form on top, Results on bottom) */}
               <div className="flex flex-col gap-6 w-full">
-                <CalculatorForm 
-                  onCalculate={handleCalculate}
-                  onSavePlan={handleSavePlan}
-                  isSaving={isSaving}
-                  user={user}
-                  initialValues={activePlanToLoad}
-                />
+                <div id="avg-down-form" className="scroll-mt-20 md:scroll-mt-6">
+                  <CalculatorForm
+                    onCalculate={handleCalculate}
+                    onSavePlan={handleSavePlan}
+                    isSaving={isSaving}
+                    user={user}
+                    result={calculatorResult}
+                    initialValues={activePlanToLoad}
+                  />
+                </div>
 
                 {/* Section Divider / Sekat Pemisah */}
                 <div className="relative my-2 flex items-center justify-center">
@@ -913,25 +918,25 @@ export default function Dashboard() {
                     <div className="w-full border-t border-dashed border-slate-300/60 dark:border-white/10" />
                   </div>
                   <div className="relative flex items-center gap-2 bg-background px-4 py-1.5 rounded-full border border-slate-200/60 dark:border-white/10 text-xs font-black tracking-widest uppercase text-slate-600 dark:text-slate-300 shadow-sm select-none">
-                    <span className="text-emerald-500 font-mono font-bold">----</span>
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
                     <span>{t('calculator.conclusion')}</span>
-                    <span className="text-emerald-500 font-mono font-bold">----</span>
                   </div>
                 </div>
 
-                <ResultsDisplay 
-                  result={calculatorResult} 
-                  ticker={calculatorInput?.ticker || 'ANTM'} 
+                <ResultsDisplay
+                  result={calculatorResult}
+                  ticker={calculatorInput?.ticker || 'GTSI'}
                   companyName={calculatorInput?.companyName}
                 />
               </div>
 
               {/* History List */}
               <div className="w-full">
-                <HistoryTable 
+                <HistoryTable
                   plans={plans}
                   onDeletePlan={handleDeletePlan}
                   onLoadPlan={handleLoadPlan}
+                  onSignInClick={() => setIsAuthModalOpen(true)}
                   user={user}
                 />
               </div>

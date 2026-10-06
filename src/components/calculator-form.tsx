@@ -1,19 +1,51 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
-import { Sparkles, Plus, Trash2, RefreshCw } from 'lucide-react';
-import { AvgDownInput } from '@/lib/calculator';
+import { Sparkles, Plus, Trash2, RefreshCw, RotateCcw, AlertTriangle } from 'lucide-react';
+import { AvgDownInput, AvgDownResult, isValidIdxPrice, getIdxTickSize, roundDownToIdxTick, stepIdxPrice } from '@/lib/calculator';
+import { StepperInput } from '@/components/stepper-input';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { cleanCompanyName } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
 import { IDX_TICKERS as TICKER_DATABASE } from '@/lib/tickers';
 import { useLanguage } from '@/lib/language-context';
-import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput, formatIDR } from '@/lib/format';
+import { parseFormattedNumber, formatNumberForInput as _formatNumberForInput, formatIDR, formatPercent } from '@/lib/format';
 
 // Local wrapper preserves the original max-fraction-digits (4) for this tab.
 const formatNumberForInput = (num: number | string | undefined | null): string =>
   _formatNumberForInput(num, { maxFractionDigits: 4 });
+
+// Nilai contoh awal form (juga dipakai tombol Reset).
+const DEFAULT_FORM = {
+  ticker: 'GTSI',
+  companyName: 'GTS Internasional Tbk',
+  lotAwal: '100',
+  avgPriceAwal: '160',
+  currentPrice: '135',
+  trancheLot: '100',
+  tranchePrice: '130',
+};
+
+// Tahap baru diisi otomatis sekian persen di bawah harga tahap sebelumnya.
+const LADDER_STEP = 0.95;
+
+// Langkah tombol −/+ untuk tiap jenis angka.
+const stepLot = (value: string, direction: 1 | -1): string =>
+  formatNumberForInput(Math.max(1, Math.round(parseFormattedNumber(value)) + direction));
+
+const stepPrice = (value: string, direction: 1 | -1): string =>
+  formatNumberForInput(stepIdxPrice(parseFormattedNumber(value), direction));
+
+// Avg price boleh desimal, jadi digeser satu fraksi tanpa di-snap ke harga valid.
+const stepAvgPrice = (value: string, direction: 1 | -1): string => {
+  const price = parseFormattedNumber(value);
+  const tick = getIdxTickSize(direction > 0 ? price : Math.max(1, price - 1));
+  return formatNumberForInput(Math.max(1, price + direction * tick));
+};
+
+const stepFee = (value: number, direction: 1 | -1): number =>
+  Math.min(10, Math.max(0, Math.round((value + direction * 0.01) * 100) / 100));
 
 // Modal (dana) yang dibutuhkan untuk satu tranche, mengikuti setting fee beli.
 function getTrancheCapital(lot: string, price: string, includeFees: boolean, feeBeli: number): number {
@@ -32,6 +64,7 @@ interface CalculatorFormProps {
   onSavePlan?: (title: string) => void;
   isSaving?: boolean;
   user?: AppUser | null;
+  result?: AvgDownResult | null;
   initialValues?: {
     ticker: string;
     company_name?: string;
@@ -55,10 +88,13 @@ const BROKER_PRESETS = [
   { id: 'custom', name: 'Custom Fee', buy: 0.20, sell: 0.30 }
 ];
 
+const SUB_CARD_CLASS =
+  'p-4 md:p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full';
+
 function FormEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
   const [prevSymbol, setPrevSymbol] = React.useState(symbol);
-  
+
   if (symbol !== prevSymbol) {
     setPrevSymbol(symbol);
     setHasError(false);
@@ -94,28 +130,29 @@ function FormEmitenLogo({ symbol }: { symbol: string }) {
   );
 }
 
-export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user, initialValues }: CalculatorFormProps) {
+export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user, result, initialValues }: CalculatorFormProps) {
   const { t, language } = useLanguage();
-  const [ticker, setTicker] = React.useState('ANTM');
-  const [companyName, setCompanyName] = React.useState('Aneka Tambang Tbk');
-  const [lotAwal, setLotAwal] = React.useState<string>('10');
-  const [avgPriceAwal, setAvgPriceAwal] = React.useState<string>('3,200');
-  const [currentPrice, setCurrentPrice] = React.useState<string>('2,900');
-  
+  const fieldId = React.useId();
+  const [ticker, setTicker] = React.useState(DEFAULT_FORM.ticker);
+  const [companyName, setCompanyName] = React.useState(DEFAULT_FORM.companyName);
+  const [lotAwal, setLotAwal] = React.useState<string>(DEFAULT_FORM.lotAwal);
+  const [avgPriceAwal, setAvgPriceAwal] = React.useState<string>(DEFAULT_FORM.avgPriceAwal);
+  const [currentPrice, setCurrentPrice] = React.useState<string>(DEFAULT_FORM.currentPrice);
+
   const [tranches, setTranches] = React.useState<Array<{ id: string; lot: string; price: string }>>([
-    { id: '1', lot: '15', price: '2,800' }
+    { id: '1', lot: DEFAULT_FORM.trancheLot, price: DEFAULT_FORM.tranchePrice }
   ]);
-  
+
   const [brokerPreset, setBrokerPreset] = React.useState('stockbit');
   const [feeBeli, setFeeBeli] = React.useState(0.15);
   const [feeJual, setFeeJual] = React.useState(0.25);
   const [includeFees, setIncludeFees] = React.useState(true);
-  
+
   // Custom configurations and loading states
   const [avgPriceAwalIncludesFee, setAvgPriceAwalIncludesFee] = React.useState(true);
   const [isFetchingTicker, setIsFetchingTicker] = React.useState(false);
   const [fetchingTrancheId, setFetchingTrancheId] = React.useState<string | null>(null);
-  
+
   const isLoadedPlanRef = React.useRef(false);
   const prevCurrentPriceRef = React.useRef(currentPrice);
 
@@ -137,10 +174,10 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           })));
         } else {
           setTranches([
-            { 
-              id: '1', 
-              lot: formatNumberForInput(initialValues.lot_baru), 
-              price: formatNumberForInput(initialValues.harga_beli_baru) 
+            {
+              id: '1',
+              lot: formatNumberForInput(initialValues.lot_baru),
+              price: formatNumberForInput(initialValues.harga_beli_baru)
             }
           ]);
         }
@@ -148,7 +185,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         setFeeJual(initialValues.fee_jual);
         setIncludeFees(initialValues.fee_beli > 0 || initialValues.fee_jual > 0);
         setAvgPriceAwalIncludesFee(initialValues.avgPriceAwalIncludesFee !== false);
-        
+
         const matchedPreset = BROKER_PRESETS.find(p => p.buy === initialValues.fee_beli && p.sell === initialValues.fee_jual);
         if (matchedPreset) {
           setBrokerPreset(matchedPreset.id);
@@ -157,7 +194,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         } else {
           setBrokerPreset('custom');
         }
-        
+
         // Reset plan loaded flag after rendering
         setTimeout(() => {
           isLoadedPlanRef.current = false;
@@ -170,7 +207,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   const fetchRemoteTicker = React.useCallback(async (symbol: string) => {
     setIsFetchingTicker(true);
     try {
-      const res = await fetch(`/api/ticker?symbol=${symbol}`);
+      const res = await fetch(`/api/ticker?symbol=${encodeURIComponent(symbol)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.name) {
@@ -187,21 +224,28 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     }
   }, []);
 
-  // Mengambil nama emiten & harga secara real-time dari internet (Yahoo Finance) atau database lokal
+  // Mengambil nama emiten & harga secara real-time dari internet (Yahoo Finance) atau database lokal.
+  // Nama dari kamus lokal tampil instan; request ke server ditunda sampai user berhenti mengetik.
   React.useEffect(() => {
     const val = ticker.toUpperCase().trim();
-    const timer = setTimeout(() => {
-      if (val.length >= 4) {
-        if (TICKER_DATABASE[val]) {
-          setCompanyName(TICKER_DATABASE[val]);
-        }
-        fetchRemoteTicker(val);
-      } else {
+    if (val.length < 4) {
+      const timer = setTimeout(() => {
         setCompanyName('');
         setCurrentPrice('');
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+
+    const localTimer = setTimeout(() => {
+      if (TICKER_DATABASE[val]) {
+        setCompanyName(TICKER_DATABASE[val]);
       }
     }, 0);
-    return () => clearTimeout(timer);
+    const remoteTimer = setTimeout(() => fetchRemoteTicker(val), 400);
+    return () => {
+      clearTimeout(localTimer);
+      clearTimeout(remoteTimer);
+    };
   }, [ticker, fetchRemoteTicker]);
 
   const handleRefreshPrice = React.useCallback(() => {
@@ -216,15 +260,15 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     if (val.length >= 4) {
       setFetchingTrancheId(trancheId);
       try {
-        const res = await fetch(`/api/ticker?symbol=${val}`);
+        const res = await fetch(`/api/ticker?symbol=${encodeURIComponent(val)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.price !== undefined && data.price !== null) {
             const formattedPrice = formatNumberForInput(data.price);
             setCurrentPrice(formattedPrice);
-            
+
             // Set the price of this specific tranche
-            setTranches(prev => prev.map(t => 
+            setTranches(prev => prev.map(t =>
               t.id === trancheId ? { ...t, price: formattedPrice } : t
             ));
             return;
@@ -236,10 +280,10 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         setFetchingTrancheId(null);
       }
     }
-    
+
     // Fallback: copy currentPrice if api fetch fails or symbol is invalid
     if (currentPrice) {
-      setTranches(prev => prev.map(t => 
+      setTranches(prev => prev.map(t =>
         t.id === trancheId ? { ...t, price: currentPrice } : t
       ));
     }
@@ -250,12 +294,12 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     const oldPrice = prevCurrentPriceRef.current;
     const newPrice = currentPrice;
     prevCurrentPriceRef.current = newPrice;
-    
+
     if (isLoadedPlanRef.current) return;
-    
+
     if (newPrice !== oldPrice) {
       setTranches(prev => prev.map(t => {
-        if (!t.price || t.price === oldPrice || oldPrice === '' || t.price === '2,800') {
+        if (!t.price || t.price === oldPrice || oldPrice === '' || t.price === DEFAULT_FORM.tranchePrice) {
           return { ...t, price: newPrice };
         }
         return t;
@@ -296,15 +340,23 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     };
     onCalculate(calculationInput);
   }, [
-    ticker, companyName, lotAwal, avgPriceAwal, currentPrice, 
+    ticker, companyName, lotAwal, avgPriceAwal, currentPrice,
     tranches, feeBeli, feeJual, includeFees, avgPriceAwalIncludesFee,
     onCalculate
   ]);
 
+  // Tahap baru: lot sama dengan tahap terakhir, harga 5% di bawahnya (dibulatkan ke fraksi BEI).
   const handleAddTranche = () => {
+    const last = tranches[tranches.length - 1];
+    const basePrice = parseFormattedNumber(last?.price || '') || parseFormattedNumber(currentPrice);
+    const nextPrice = basePrice > 0 ? roundDownToIdxTick(basePrice * LADDER_STEP) : 0;
     setTranches([
       ...tranches,
-      { id: crypto.randomUUID(), lot: '', price: currentPrice || '' }
+      {
+        id: crypto.randomUUID(),
+        lot: last?.lot || '',
+        price: nextPrice > 0 ? formatNumberForInput(nextPrice) : ''
+      }
     ]);
   };
 
@@ -333,6 +385,14 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   };
 
 
+  // Functional update agar tombol yang ditahan (repeat) selalu memakai nilai terbaru.
+  const handleTrancheStep = (id: string, field: 'lot' | 'price', direction: 1 | -1) => {
+    setTranches(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      return { ...t, [field]: field === 'lot' ? stepLot(t.lot, direction) : stepPrice(t.price, direction) };
+    }));
+  };
+
   const handlePresetChange = (presetId: string) => {
     setBrokerPreset(presetId);
     if (presetId === 'none') {
@@ -349,6 +409,20 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     }
   };
 
+  const handleReset = () => {
+    const tickerChanged = ticker !== DEFAULT_FORM.ticker;
+    setTicker(DEFAULT_FORM.ticker);
+    setCompanyName(DEFAULT_FORM.companyName);
+    setLotAwal(DEFAULT_FORM.lotAwal);
+    setAvgPriceAwal(DEFAULT_FORM.avgPriceAwal);
+    setCurrentPrice(DEFAULT_FORM.currentPrice);
+    setTranches([{ id: crypto.randomUUID(), lot: DEFAULT_FORM.trancheLot, price: DEFAULT_FORM.tranchePrice }]);
+    handlePresetChange('stockbit');
+    setAvgPriceAwalIncludesFee(true);
+    // Ticker yang sama tidak memicu effect fetch, jadi ambil harga live secara manual.
+    if (!tickerChanged) fetchRemoteTicker(DEFAULT_FORM.ticker);
+  };
+
   const handleBlur = (val: string, setter: (val: string) => void) => {
     if (!val) return;
     setter(formatNumberForInput(val));
@@ -361,47 +435,71 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     }
   };
 
+  const totalPurchaseCapital = tranches.reduce(
+    (sum, tr) => sum + getTrancheCapital(tr.lot, tr.price, includeFees, feeBeli),
+    0
+  );
+
+  const canSave =
+    parseFormattedNumber(lotAwal) > 0 &&
+    parseFormattedNumber(avgPriceAwal) > 0 &&
+    tranches.every(t => parseFormattedNumber(t.lot) > 0 && parseFormattedNumber(t.price) > 0);
+
+  const hasLiveResult = !!result && result.sharesAwal > 0 && result.sharesBaru > 0;
+
   return (
-    <div className="glass-card p-5 md:p-6 w-full flex flex-col gap-4">
+    <div className="glass-card p-4 md:p-6 w-full flex flex-col gap-4">
       {/* Title block */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200/50 dark:border-white/5 pb-3">
-        <div>
-          <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-4.5 w-4.5 text-emerald-400" />
-            {t('calculator.title')}
-          </h2>
-        </div>
+      <div className="flex justify-between items-center gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3">
+        <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
+          <Sparkles className="h-4.5 w-4.5 text-emerald-400" />
+          {t('calculator.title')}
+        </h2>
+        <button
+          type="button"
+          onClick={handleReset}
+          title={t('calculator.resetTitle')}
+          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-white/10 hover:border-emerald-500/40 bg-white/[0.03] hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-400 text-[11px] font-bold transition-all cursor-pointer shrink-0"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          {t('calculator.reset')}
+        </button>
       </div>
 
       {/* Responsive Form Layout with Card-Inside-Card design */}
       <form onSubmit={handleSaveClick} className="flex flex-col gap-5 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-5 items-stretch w-full">
-          
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 md:gap-5 items-stretch w-full">
+
           {/* Sub-Card Step 1: Ticker & Nama Emiten */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className={`${SUB_CARD_CLASS} xl:col-span-5`}>
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-300 block">
+              <label htmlFor={`${fieldId}-ticker`} className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step1')}
               </label>
               <div className="flex gap-2.5 items-center">
-                
+
                 {/* Logo Emiten */}
                 <FormEmitenLogo symbol={ticker} />
 
                 {/* Kotak Ticker */}
                 <div className="w-1/3 relative">
                   <input
+                    id={`${fieldId}-ticker`}
                     type="text"
                     value={ticker}
                     onChange={(e) => {
-                      setTicker(e.target.value.toUpperCase());
+                      setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
                     }}
-                    placeholder="ANTM"
+                    placeholder="GTSI"
+                    maxLength={5}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
                     className="w-full text-center font-bold tracking-wider glass-input px-2.5 py-2.5 text-xs uppercase"
                     required
                   />
                 </div>
-                
+
                 {/* Kotak Nama Perusahaan */}
                 <div className="w-2/3">
                   <input
@@ -409,6 +507,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder={t('calculator.placeholderCompany')}
+                    aria-label={t('calculator.placeholderCompany')}
                     className={`w-full glass-input px-3 py-2.5 text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
                       isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
                     }`}
@@ -419,76 +518,92 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           </div>
 
           {/* Sub-Card Step 2: Posisi Portofolio Awal */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className={`${SUB_CARD_CLASS} xl:col-span-7`}>
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-300 block">
+              <span className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step2')}
-              </label>
-              <div className="grid grid-cols-3 gap-2">
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
                 <div>
-                  <input
+                  <StepperInput
+                    id={`${fieldId}-lot-awal`}
                     type="text"
+                    inputMode="numeric"
                     value={lotAwal}
                     onChange={(e) => setLotAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
                     onBlur={() => handleBlur(lotAwal, setLotAwal)}
+                    onStep={(dir) => setLotAwal(prev => stepLot(prev, dir))}
+                    canDecrement={parseFormattedNumber(lotAwal) > 1}
+                    decrementLabel={`${t('calculator.decrease')} ${t('calculator.lotAwal')}`}
+                    incrementLabel={`${t('calculator.increase')} ${t('calculator.lotAwal')}`}
                     placeholder={t('calculator.lotAwal')}
-                    className="w-full glass-input px-1.5 py-2.5 text-xs text-center font-semibold"
                     required
                   />
-                  <span className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.lotAwal')}</span>
+                  <label htmlFor={`${fieldId}-lot-awal`} className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.lotAwal')}</label>
                 </div>
                 <div>
-                  <input
+                  <StepperInput
+                    id={`${fieldId}-avg-awal`}
                     type="text"
+                    inputMode="decimal"
                     value={avgPriceAwal}
                     onChange={(e) => setAvgPriceAwal(e.target.value.replace(/[^0-9.,]/g, ''))}
                     onBlur={() => handleBlur(avgPriceAwal, setAvgPriceAwal)}
+                    onStep={(dir) => setAvgPriceAwal(prev => stepAvgPrice(prev, dir))}
+                    canDecrement={parseFormattedNumber(avgPriceAwal) > 1}
+                    decrementLabel={`${t('calculator.decrease')} Avg Price`}
+                    incrementLabel={`${t('calculator.increase')} Avg Price`}
                     placeholder="Avg Price"
-                    className="w-full glass-input px-1.5 py-2.5 text-xs text-center font-semibold"
                     required
                   />
-                  <span className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.avgPrice').replace(' (Rp)', '')} (Rp)</span>
+                  <label htmlFor={`${fieldId}-avg-awal`} className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.avgPrice').replace(' (Rp)', '')} (Rp)</label>
                 </div>
                 <div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={currentPrice}
-                      onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
-                      onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
-                      placeholder="Harga Sekarang"
-                      className={`w-full glass-input pl-1.5 pr-7 py-2.5 text-xs text-center font-semibold transition-all duration-300 ${
-                        isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : ''
-                      }`}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRefreshPrice}
-                      disabled={isFetchingTicker || ticker.toUpperCase().trim().length < 4}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-emerald-400 hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="Refresh Harga Sekarang"
-                    >
-                      <RefreshCw className={`h-3 w-3 ${isFetchingTicker ? 'animate-spin' : ''}`} />
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</span>
+                  <StepperInput
+                    id={`${fieldId}-current-price`}
+                    type="text"
+                    inputMode="decimal"
+                    value={currentPrice}
+                    onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
+                    onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
+                    onStep={(dir) => setCurrentPrice(prev => stepPrice(prev, dir))}
+                    canDecrement={parseFormattedNumber(currentPrice) > 1}
+                    decrementLabel={`${t('calculator.decrease')} ${t('calculator.currentPrice').replace(' (Rp)', '')}`}
+                    incrementLabel={`${t('calculator.increase')} ${t('calculator.currentPrice').replace(' (Rp)', '')}`}
+                    placeholder={t('calculator.currentPrice').replace(' (Rp)', '')}
+                    className={isFetchingTicker ? 'animate-pulse border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]' : undefined}
+                    inputClassName={isFetchingTicker ? 'text-slate-400' : undefined}
+                    adornment={
+                      <button
+                        type="button"
+                        onClick={handleRefreshPrice}
+                        disabled={isFetchingTicker || ticker.toUpperCase().trim().length < 4}
+                        className="w-6 shrink-0 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={t('calculator.useMarketPrice')}
+                        aria-label={t('calculator.useMarketPrice')}
+                      >
+                        <RefreshCw className={`h-3 w-3 ${isFetchingTicker ? 'animate-spin' : ''}`} />
+                      </button>
+                    }
+                    required
+                  />
+                  <label htmlFor={`${fieldId}-current-price`} className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</label>
                 </div>
               </div>
             </div>
-            
+
             {/* Checkbox Penyesuaian Fee Beli Awal */}
             {includeFees ? (
               <div className="flex items-center gap-2 pt-1 animate-fadeIn select-none">
                 <input
                   type="checkbox"
-                  id="avgPriceAwalIncludesFee"
+                  id={`${fieldId}-avg-includes-fee`}
                   checked={avgPriceAwalIncludesFee}
                   onChange={(e) => setAvgPriceAwalIncludesFee(e.target.checked)}
                   className="rounded border-white/10 text-emerald-500 focus:ring-emerald-500 bg-black/40 h-3.5 w-3.5 cursor-pointer"
                 />
-                <label 
-                  htmlFor="avgPriceAwalIncludesFee" 
+                <label
+                  htmlFor={`${fieldId}-avg-includes-fee`}
                   className="text-[10px] text-slate-400 hover:text-slate-300 cursor-pointer transition-colors font-semibold leading-none"
                 >
                   {t('calculator.includingFeeCheckbox')}
@@ -498,26 +613,46 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           </div>
 
           {/* Sub-Card Step 3: Rencana Pembelian Baru */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className={`${SUB_CARD_CLASS} xl:col-span-8`}>
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-300 block">
+              <span className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step3')}
-              </label>
-              
-              {tranches.length > 0 && (
-                <div className="flex items-center gap-2 px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <span className="w-12 shrink-0">{t('calculator.tahap')}</span>
-                  <span className="flex-1 text-center">{t('calculator.trancheLot')}</span>
-                  <span className="flex-2 text-center pr-6">{t('calculator.tranchePrice')}</span>
-                  <span className="w-24 shrink-0 text-center">{t('calculator.trancheCapital')}</span>
-                  {tranches.length > 1 && <span className="w-8 shrink-0" />}
-                </div>
-              )}
+              </span>
+
+              <div className="hidden sm:flex items-center gap-2 px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400" aria-hidden="true">
+                <span className="w-6 shrink-0 text-center">#</span>
+                <span className="flex-1 min-w-0 text-center">{t('calculator.trancheLot')}</span>
+                <span className="flex-[1.4] min-w-0 text-center">{t('calculator.tranchePrice')}</span>
+                <span className="w-28 shrink-0 text-right">{t('calculator.trancheCapital')}</span>
+                {tranches.length > 1 && <span className="w-7 shrink-0" />}
+              </div>
 
               <div className="flex flex-col gap-2">
                 <AnimatePresence initial={false}>
                   {tranches.map((tranche, index) => {
                     const trancheCapital = getTrancheCapital(tranche.lot, tranche.price, includeFees, feeBeli);
+                    const priceNum = parseFormattedNumber(tranche.price);
+                    const tickInvalid = priceNum > 0 && !isValidIdxPrice(priceNum);
+                    const rowLabel = `${t('calculator.tahap')} ${index + 1}`;
+                    const indexBadge = (
+                      <span
+                        className="w-6 h-6 shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-black text-emerald-400 flex items-center justify-center"
+                        title={rowLabel}
+                      >
+                        {index + 1}
+                      </span>
+                    );
+                    const removeButton = tranches.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTranche(tranche.id)}
+                        className="w-7 h-7 flex items-center justify-center text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title={t('calculator.removeTranche')}
+                        aria-label={`${rowLabel} – ${t('calculator.removeTranche')}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : null;
                     return (
                     <motion.div
                       key={tranche.id}
@@ -525,59 +660,90 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       animate={{ opacity: 1, height: 'auto', y: 0 }}
                       exit={{ opacity: 0, height: 0, y: -10 }}
                       transition={{ duration: 0.2 }}
-                      className="flex items-center gap-2 overflow-hidden py-0.5 shrink-0"
+                      className="overflow-hidden shrink-0"
                     >
-                      <span className="text-[10px] font-bold text-slate-400 w-12 shrink-0">
-                        {t('calculator.tahap')} {index + 1}
-                      </span>
+                      <div className="rounded-xl border border-white/5 bg-black/10 p-2.5 sm:p-0 sm:border-0 sm:bg-transparent">
+                        {/* Mobile: nomor tahap, dana & hapus di baris atas */}
+                        <div className="flex sm:hidden items-center gap-2 pb-2">
+                          {indexBadge}
+                          <span className="text-[11px] font-bold text-slate-300">{rowLabel}</span>
+                          <span className="ml-auto text-[11px] font-bold text-emerald-400 truncate">
+                            {trancheCapital > 0 ? formatIDR(trancheCapital, language) : '-'}
+                          </span>
+                          {removeButton}
+                        </div>
 
-                      <div className="flex-1 min-w-[60px]">
-                        <input
-                          type="text"
-                          value={tranche.lot}
-                          onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
-                          onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
-                          placeholder={t('calculator.trancheLot')}
-                          className="w-full glass-input px-1.5 py-2 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
-                          required
-                        />
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:py-0.5">
+                          <span className="hidden sm:flex">{indexBadge}</span>
+
+                          <div className="min-w-0 sm:flex-1">
+                            <span className="sm:hidden block mb-1 text-[9px] font-extrabold uppercase tracking-wider text-slate-500">{t('calculator.trancheLot')}</span>
+                            <StepperInput
+                              type="text"
+                              inputMode="numeric"
+                              value={tranche.lot}
+                              onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
+                              onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
+                              onStep={(dir) => handleTrancheStep(tranche.id, 'lot', dir)}
+                              canDecrement={parseFormattedNumber(tranche.lot) > 1}
+                              decrementLabel={`${rowLabel} – ${t('calculator.decrease')} ${t('calculator.trancheLot')}`}
+                              incrementLabel={`${rowLabel} – ${t('calculator.increase')} ${t('calculator.trancheLot')}`}
+                              placeholder={t('calculator.trancheLot')}
+                              aria-label={`${rowLabel} – ${t('calculator.trancheLot')}`}
+                              className="bg-black/20"
+                              inputClassName="py-2"
+                              required
+                            />
+                          </div>
+
+                          <div className="min-w-0 sm:flex-[1.4]">
+                            <span className="sm:hidden block mb-1 text-[9px] font-extrabold uppercase tracking-wider text-slate-500">{t('calculator.tranchePrice')}</span>
+                            <StepperInput
+                              type="text"
+                              inputMode="decimal"
+                              value={tranche.price}
+                              onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
+                              onBlur={() => handleTrancheBlur(tranche.id, 'price')}
+                              onStep={(dir) => handleTrancheStep(tranche.id, 'price', dir)}
+                              canDecrement={priceNum > 1}
+                              decrementLabel={`${rowLabel} – ${t('calculator.decrease')} ${t('calculator.tranchePrice')}`}
+                              incrementLabel={`${rowLabel} – ${t('calculator.increase')} ${t('calculator.tranchePrice')}`}
+                              placeholder={t('calculator.tranchePrice')}
+                              aria-label={`${rowLabel} – ${t('calculator.tranchePrice')}`}
+                              invalid={tickInvalid}
+                              className="bg-black/20"
+                              inputClassName="py-2"
+                              adornment={
+                                <button
+                                  type="button"
+                                  onClick={() => handleRefreshTranchePrice(tranche.id)}
+                                  disabled={fetchingTrancheId !== null || isFetchingTicker || ticker.toUpperCase().trim().length < 4}
+                                  className="w-6 shrink-0 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                  title={t('calculator.useMarketPrice')}
+                                  aria-label={`${rowLabel} – ${t('calculator.useMarketPrice')}`}
+                                >
+                                  <RefreshCw className={`h-3 w-3 ${fetchingTrancheId === tranche.id ? 'animate-spin' : ''}`} />
+                                </button>
+                              }
+                              required
+                            />
+                          </div>
+
+                          <span className="hidden sm:block w-28 shrink-0 text-right text-[11px] font-bold text-emerald-400 truncate" title={formatIDR(trancheCapital, language)}>
+                            {trancheCapital > 0 ? formatIDR(trancheCapital, language) : '-'}
+                          </span>
+
+                          {removeButton && <span className="hidden sm:flex">{removeButton}</span>}
+                        </div>
+
+                        {/* Peringatan fraksi harga */}
+                        {tickInvalid && (
+                          <span className="flex items-center gap-1 pt-1.5 sm:pl-8 text-[10px] font-semibold text-amber-400">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />
+                            {t('calculator.tickWarning').replace('{tick}', String(getIdxTickSize(priceNum)))}
+                          </span>
+                        )}
                       </div>
-
-                      <div className="flex-2 min-w-[90px] relative">
-                        <input
-                          type="text"
-                          value={tranche.price}
-                          onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
-                          onBlur={() => handleTrancheBlur(tranche.id, 'price')}
-                          placeholder={t('calculator.tranchePrice')}
-                          className="w-full glass-input pl-2 pr-7 py-2 text-xs text-center font-semibold border-emerald-500/10 focus:border-emerald-500 bg-black/20"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRefreshTranchePrice(tranche.id)}
-                          disabled={fetchingTrancheId !== null || isFetchingTicker || ticker.toUpperCase().trim().length < 4}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-emerald-400 hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          title="Set / Refresh Harga saat ini"
-                        >
-                          <RefreshCw className={`h-3 w-3 ${(fetchingTrancheId === tranche.id || isFetchingTicker) ? 'animate-spin' : ''}`} />
-                        </button>
-                      </div>
-
-                      <span className="w-24 shrink-0 text-center text-[11px] font-bold text-emerald-400 truncate" title={formatIDR(trancheCapital, language)}>
-                        {trancheCapital > 0 ? formatIDR(trancheCapital, language) : '-'}
-                      </span>
-
-                      {tranches.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTranche(tranche.id)}
-                          className="p-1.5 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
-                          title="Hapus Tahap Ini"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
                     </motion.div>
                     );
                   })}
@@ -588,36 +754,34 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             {/* Total Dana Dibutuhkan untuk seluruh tranche */}
             <div className="flex items-center justify-between gap-2 px-1 pt-2 mt-1 border-t border-white/10">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                {language === 'id' ? 'Total Dana Pembelian' : 'Total Purchase Capital'}
+                {t('calculator.totalPurchase')}
               </span>
               <span className="text-xs md:text-sm font-black text-emerald-400">
-                {formatIDR(
-                  tranches.reduce(
-                    (sum, tr) => sum + getTrancheCapital(tr.lot, tr.price, includeFees, feeBeli),
-                    0
-                  ),
-                  language
-                )}
+                {formatIDR(totalPurchaseCapital, language)}
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleAddTranche}
-              className="mt-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-dashed border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 font-bold text-xs transition-all cursor-pointer select-none"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              {t('calculator.addTranche')}
-            </button>
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={handleAddTranche}
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-dashed border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 font-bold text-xs transition-all cursor-pointer select-none"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t('calculator.addTranche')}
+              </button>
+              <p className="text-[10px] text-slate-500 text-center">{t('calculator.ladderHint')}</p>
+            </div>
           </div>
 
           {/* Sub-Card Step 4: Broker Fee Settings */}
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full">
+          <div className={`${SUB_CARD_CLASS} xl:col-span-4`}>
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-300 block">
+              <label htmlFor={`${fieldId}-broker`} className="text-xs font-bold text-slate-300 block">
                 {t('calculator.step4')}
               </label>
               <select
+                id={`${fieldId}-broker`}
                 value={brokerPreset}
                 onChange={(e) => handlePresetChange(e.target.value)}
                 className="w-full glass-input px-3 py-2.5 text-xs font-semibold cursor-pointer text-foreground bg-background rounded-xl"
@@ -628,68 +792,103 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 <option value="custom">{t('calculator.presetCustom')}</option>
                 <option value="none">{t('calculator.presetNone')}</option>
               </select>
-              
+
               {brokerPreset === 'custom' && (
                 <div className="grid grid-cols-2 gap-2 mt-2 animate-fadeIn">
                   <div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="10"
-                        value={feeBeli}
-                        onChange={(e) => setFeeBeli(parseFloat(e.target.value) || 0)}
-                        className="w-full glass-input pl-2 pr-5 py-2 text-xs text-center font-semibold"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
-                    </div>
-                    <span className="text-[9px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeBeli')}</span>
+                    <StepperInput
+                      id={`${fieldId}-fee-beli`}
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      max="10"
+                      value={feeBeli}
+                      onChange={(e) => setFeeBeli(parseFloat(e.target.value) || 0)}
+                      onStep={(dir) => setFeeBeli(prev => stepFee(prev, dir))}
+                      canDecrement={feeBeli > 0}
+                      canIncrement={feeBeli < 10}
+                      decrementLabel={`${t('calculator.decrease')} ${t('calculator.feeBeli')}`}
+                      incrementLabel={`${t('calculator.increase')} ${t('calculator.feeBeli')}`}
+                      inputClassName="py-2"
+                      adornment={<span className="flex items-center pr-0.5 text-xs text-slate-500">%</span>}
+                    />
+                    <label htmlFor={`${fieldId}-fee-beli`} className="text-[9px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeBeli')}</label>
                   </div>
                   <div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="10"
-                        value={feeJual}
-                        onChange={(e) => setFeeJual(parseFloat(e.target.value) || 0)}
-                        className="w-full glass-input pl-2 pr-5 py-2 text-xs text-center font-semibold"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
-                    </div>
-                    <span className="text-[9px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeJual')}</span>
+                    <StepperInput
+                      id={`${fieldId}-fee-jual`}
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      max="10"
+                      value={feeJual}
+                      onChange={(e) => setFeeJual(parseFloat(e.target.value) || 0)}
+                      onStep={(dir) => setFeeJual(prev => stepFee(prev, dir))}
+                      canDecrement={feeJual > 0}
+                      canIncrement={feeJual < 10}
+                      decrementLabel={`${t('calculator.decrease')} ${t('calculator.feeJual')}`}
+                      incrementLabel={`${t('calculator.increase')} ${t('calculator.feeJual')}`}
+                      inputClassName="py-2"
+                      adornment={<span className="flex items-center pr-0.5 text-xs text-slate-500">%</span>}
+                    />
+                    <label htmlFor={`${fieldId}-fee-jual`} className="text-[9px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeJual')}</label>
                   </div>
                 </div>
               )}
             </div>
-            
+
             <span className="text-[10px] text-slate-400 text-center block font-medium">
-              {includeFees 
-                ? (language === 'id' ? 'Potongan fee dihitung' : 'Fees calculation included') 
-                : (language === 'id' ? 'Murni tanpa biaya broker' : 'Purely without broker fees')}
+              {includeFees ? t('calculator.feesIncluded') : t('calculator.feesExcluded')}
             </span>
           </div>
         </div>
 
-        {/* Action Row */}
-        <div className="flex items-center justify-end pt-3 border-t border-slate-200/50 dark:border-white/5 w-full">
-          <button
-            type="submit"
-            disabled={
-              isSaving ||
-              parseFormattedNumber(lotAwal) <= 0 ||
-              parseFormattedNumber(avgPriceAwal) <= 0 ||
-              tranches.some(t => parseFormattedNumber(t.lot) <= 0 || parseFormattedNumber(t.price) <= 0)
-            }
-            className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
-          >
-            {isSaving ? (
-              <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
-            ) : null}
-            <span>{user ? t('common.save') : t('common.saveLocal')}</span>
-          </button>
+        {/* Action Row: ringkasan hasil live + tombol simpan */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200/50 dark:border-white/5 w-full">
+          {hasLiveResult && result ? (
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-6 text-left" aria-live="polite">
+              <div className="min-w-0">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveNewAvg')}</span>
+                <span className="text-xs md:text-sm font-black text-white block truncate">{formatIDR(result.avgPriceBaru, language)}</span>
+                <span className={`text-[10px] font-bold ${result.avgPriceReductionPct >= 0 ? 'text-bullish-green' : 'text-amber-400'}`}>
+                  {formatPercent(-result.avgPriceReductionPct, { language, signed: true })}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveBep')}</span>
+                <span className="text-xs md:text-sm font-black text-white block truncate">{formatIDR(result.breakEvenPriceBaru, language)}</span>
+                <span className={`text-[10px] font-bold ${result.gainToBreakEvenBaruPct > 0 ? 'text-slate-400' : 'text-bullish-green'}`}>
+                  {formatPercent(result.gainToBreakEvenBaruPct, { language, signed: true })}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveCapital')}</span>
+                <span className="text-xs md:text-sm font-black text-emerald-400 block truncate">{formatIDR(result.capitalRequired, language)}</span>
+              </div>
+            </div>
+          ) : (
+            <span />
+          )}
+
+          <div className="flex flex-col items-stretch sm:items-end gap-1">
+            <button
+              type="submit"
+              disabled={isSaving || !canSave}
+              className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
+              ) : null}
+              <span>{user ? t('common.save') : t('common.saveLocal')}</span>
+            </button>
+            {!canSave && (
+              <span className="text-[10px] text-amber-400 font-semibold text-center sm:text-right">
+                {t('calculator.saveDisabledHint')}
+              </span>
+            )}
+          </div>
         </div>
       </form>
     </div>
