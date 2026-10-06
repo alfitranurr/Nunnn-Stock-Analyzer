@@ -2,24 +2,25 @@
 
 import * as React from 'react';
 import { 
-  Calculator, 
-  Briefcase, 
-  History, 
-  Star, 
-  TrendingUp, 
-  ChevronLeft, 
-  ChevronRight, 
-  Menu, 
+  Calculator,
+  Briefcase,
+  History,
+  Star,
+  ChartCandlestick,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
   X,
   LogOut,
   User,
   Lock,
-  BookOpen,
+  Newspaper,
   ShieldCheck,
   Percent,
-  Coins,
-  Home,
-  TrendingUpDown
+  Sprout,
+  HandCoins,
+  Rocket,
+  Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
@@ -46,13 +47,13 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
   const menuItems = [
     { id: 'home', label: t('sidebar.home') || 'Home', icon: Home, active: true },
-    { id: 'news', label: t('sidebar.news'), icon: BookOpen, active: true },
+    { id: 'news', label: t('sidebar.news'), icon: Newspaper, active: true },
     { id: 'avg-down', label: t('sidebar.avgDown'), icon: Calculator, active: true },
-    { id: 'compounding', label: t('sidebar.compounding'), icon: Percent, active: true },
-    { id: 'percentage', label: t('sidebar.percentage'), icon: TrendingUpDown, active: true },
-    { id: 'dividend', label: t('sidebar.dividend'), icon: Coins, active: true },
-    { id: 'ipo', label: t('sidebar.ipo'), icon: Coins, active: true },
-    { id: 'analysis', label: t('sidebar.analysis'), icon: TrendingUp, active: true, isLocked: !user },
+    { id: 'compounding', label: t('sidebar.compounding'), icon: Sprout, active: true },
+    { id: 'percentage', label: t('sidebar.percentage'), icon: Percent, active: true },
+    { id: 'dividend', label: t('sidebar.dividend'), icon: HandCoins, active: true },
+    { id: 'ipo', label: t('sidebar.ipo'), icon: Rocket, active: true },
+    { id: 'analysis', label: t('sidebar.analysis'), icon: ChartCandlestick, active: true, isLocked: !user },
     { id: 'portfolio', label: t('sidebar.portfolio'), icon: Briefcase, active: true, isLocked: !user },
     ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true }] : []),
     { id: 'history', label: t('sidebar.history'), icon: History, active: false, labelBadge: t('common.soon') },

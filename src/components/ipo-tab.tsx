@@ -5,7 +5,7 @@ import {
   Sparkles,
   Info,
   Trash2,
-  Coins,
+  Rocket,
   User,
   ChevronDown,
   ChevronUp,
@@ -297,7 +297,7 @@ export function IpoTab({ user }: IpoTabProps) {
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 w-full">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-              <Coins className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <Rocket className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
               <span>{language === 'id' ? 'Analisis Penjatahan Saham E-IPO' : 'Initial Public Offering Allocation'}</span>
             </div>
             

@@ -16,7 +16,6 @@ import {
   Sigma,
   Sparkles,
   Trash2,
-  TrendingUpDown,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
 import { formatNumberForInput, formatPercent, parseFormattedNumber, type Language } from '@/lib/format';
@@ -492,7 +491,7 @@ export function PercentageTab() {
 
         <div className="relative z-10 space-y-2 w-full">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-            <TrendingUpDown className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+            <Percent className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
             <span>{t('percentage.badge')}</span>
           </div>
 

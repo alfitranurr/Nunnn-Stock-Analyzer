@@ -6,6 +6,7 @@ import {
   TrendingUp,
   Calendar,
   Coins,
+  HandCoins,
   RefreshCw,
   Search,
   CheckCircle2
@@ -335,7 +336,7 @@ export function DividendTab(_props: DividendTabProps) {
         
         <div className="relative z-10 space-y-2 w-full">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-            <Coins className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+            <HandCoins className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
             <span>{isEn ? 'Dividend & Passive Income Analysis' : 'Analisis Dividen & Passive Income'}</span>
           </div>
           
