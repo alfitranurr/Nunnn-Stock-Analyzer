@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `3c29703` (branch `main`, 2026-10-02).
+> Kondisi kode: commit `f2c68f1` (branch `main`, 2026-10-07). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -44,7 +44,7 @@
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 100 file ter-track git, sekitar 20,8k LOC di `src/`, 10 menu, 9 API route, 6 tabel DB |
+| Ukuran | 102 file ter-track git, sekitar 21,5k LOC di `src/`, 10 menu, 9 API route, 6 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
@@ -176,16 +176,16 @@ Sumber: [package.json](package.json)
     │       ├── dividend/route.ts              (371)
     │       ├── market-summary/route.ts        (184)  IHSG + top gainers/losers
     │       └── keepalive/route.ts             (36)   ping Supabase (cron)
-    ├── components/            22 komponen (lihat §5)
-    │   analysis-tab (2374) · compounding-tab (1498) · ipo-tab (1032) · dividend-tab (994)
-    │   portfolio-tab (957) · admin-panel-tab (777) · percentage-tab (776) · calculator-form (697)
-    │   news-tab (603) · results-display (419) · sidebar (387) · history-table (331)
+    ├── components/            23 komponen (lihat §5)
+    │   analysis-tab (2374) · compounding-tab (1720) · ipo-tab (1032) · dividend-tab (995)
+    │   portfolio-tab (957) · calculator-form (896) · admin-panel-tab (777) · percentage-tab (775)
+    │   news-tab (604) · results-display (423) · sidebar (387) · history-table (352)
     │   auth-modal (320) · client-bootstrap (294) · portfolio-snapshot (279) · watchlist-mini (276)
-    │   market-summary (215) · quick-search-ticker (177) · confirm-modal (135)
+    │   market-summary (215) · quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
     │   educational-tip-card (117) · trending-news-strip (106) · theme-provider (11)
     └── lib/
-        translations.ts (850) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (283)
-        e-ipo.ts (261) · dividend.ts (209) · calculator.ts (176) · percentage.ts (121)
+        translations.ts (882) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
+        e-ipo.ts (261) · calculator.ts (238) · dividend.ts (209) · percentage.ts (121)
         format.ts (116) · rate-limit.ts (86) · language-context.tsx (70) · crypto.ts (48)
         supabase.ts (41) · utils.ts (35) · supabase-server.ts (34) · auth-guard.ts (32)
         types.ts (26) · validators.ts (17)
@@ -202,7 +202,7 @@ Ringkasan akses tiap menu:
 | 0 | Beranda | `page.tsx` + 6 widget | Publik (sebagian widget hanya untuk yang login) | Watchlist (lokal) |
 | 1 | Berita & Sentimen | `news-tab.tsx` | Publik; Rangkuman AI wajib login | — |
 | 2 | Kalkulator Avg Down | `calculator-form`, `results-display`, `history-table` | Publik | Supabase / lokal |
-| 3 | Compounding | `compounding-tab.tsx` | Publik | Muat/hapus saja (save tidak terjangkau, [L-01](#l-01)) |
+| 3 | Compounding | `compounding-tab.tsx` | Publik | Supabase / lokal (simpan, muat, hapus) |
 | 4 | Persentase | `percentage-tab.tsx` | Publik | Riwayat lokal (5) |
 | 5 | Dividen | `dividend-tab.tsx` | Publik | — |
 | 6 | E-IPO | `ipo-tab.tsx` | Publik | Muat/hapus saja (tidak ada tombol save) |
@@ -216,6 +216,7 @@ Ringkasan akses tiap menu:
 - **Daftar menu:** [sidebar.tsx:47-60](src/components/sidebar.tsx#L47-L60).
   - Menu `analysis` dan `portfolio` tampil dengan ikon gembok bila belum login.
   - Menu `admin` hanya muncul bila email pengguna sama dengan `NEXT_PUBLIC_ADMIN_EMAIL` (default `admin@nunnnstock.com`, [sidebar.tsx:44](src/components/sidebar.tsx#L44)).
+- **Ikon (lucide-react), unik per menu:** Beranda `Home`, Berita `Newspaper`, Avg Down `Calculator`, Compounding `Sprout`, Persentase `Percent`, Dividen `HandCoins`, E-IPO `Rocket`, Analisis `ChartCandlestick`, Portofolio `Briefcase`, Admin `ShieldCheck`, Riwayat `History`, Watchlist `Star`. Badge judul di setiap tab memakai ikon yang sama dengan sidebar.
 - **Desktop:**
   - Sidebar fixed yang bisa diciutkan (260px ↔ 80px). Chevron untuk menciutkan baru muncul saat hover.
   - Klik logo membuka Beranda.
@@ -254,74 +255,109 @@ Ringkasan akses tiap menu:
 
 ### 5.3 Kalkulator Average Down
 
-File: [calculator-form.tsx](src/components/calculator-form.tsx), [results-display.tsx](src/components/results-display.tsx), [history-table.tsx](src/components/history-table.tsx), dan logika di [lib/calculator.ts](src/lib/calculator.ts).
+File: [calculator-form.tsx](src/components/calculator-form.tsx), [results-display.tsx](src/components/results-display.tsx), [history-table.tsx](src/components/history-table.tsx), [stepper-input.tsx](src/components/stepper-input.tsx), dan logika di [lib/calculator.ts](src/lib/calculator.ts).
 
-**Form.** Hasil dihitung ulang setiap kali input berubah ([calculator-form.tsx:267-302](src/components/calculator-form.tsx#L267-L302)).
+**Form.** Hasil dihitung ulang setiap kali input berubah ([calculator-form.tsx:310](src/components/calculator-form.tsx#L310)).
+
+- **Contoh awal:** GTSI (GTS Internasional), 100 lot @ Rp160, beli 100 lot lagi ([calculator-form.tsx:20](src/components/calculator-form.tsx#L20)). Harga sekarang langsung diambil live saat halaman dibuka.
+- **Tombol Reset** di header form mengembalikan semua isian ke contoh awal.
+- **Tata letak:** satu kolom di layar sempit; mulai `xl` memakai grid 12 kolom (Step 1 & 2 di baris pertama, Step 3 lebar 8/12 dan Step 4 lebar 4/12 di baris kedua).
 
 1. **Saham & Emiten.**
-   - Logo, ticker (default `ANTM`), dan nama perusahaan.
-   - Setelah ≥4 karakter, aplikasi mencari nama dan harga di kamus lokal dan `/api/ticker`.
+   - Logo, ticker (maks 5 karakter, hanya huruf/angka), dan nama perusahaan.
+   - Nama dari kamus lokal tampil instan; nama & harga dari `/api/ticker` diambil 400 ms setelah berhenti mengetik (≥4 karakter).
 2. **Posisi Awal.**
-   - Lot Awal, Avg Price, dan Harga Sekarang (dengan tombol refresh harga).
+   - Lot Awal, Avg Price, dan Harga Sekarang (dengan tombol isi harga pasar).
    - Checkbox "Avg Price awal sudah termasuk fee beli" (hanya muncul bila fee aktif).
 3. **Rencana Beli Baru.**
-   - Bisa lebih dari satu tahap ("Tahap N"). Tiap tahap berisi lot, harga beli (dengan refresh per baris), dan dana dibutuhkan.
-   - Ditampilkan juga total dana pembelian, tombol "Tambah Tahap Pembelian", dan tombol hapus tahap.
+   - Bisa lebih dari satu tahap. Tiap tahap berisi lot, harga beli (dengan tombol isi harga pasar), dan dana dibutuhkan.
+   - **Tahap baru terisi otomatis:** lot sama dengan tahap terakhir, harga 5% di bawahnya dan dibulatkan ke fraksi BEI ([calculator-form.tsx:349](src/components/calculator-form.tsx#L349)).
+   - **Peringatan fraksi harga** (kuning) bila harga beli bukan kelipatan fraksi BEI.
+   - Di HP, setiap tahap tampil sebagai kartu: baris atas berisi nomor tahap, dana, dan tombol hapus; di bawahnya Lot dan Harga Beli berdampingan.
 4. **Broker Fee.**
-   - Pilihan preset: Stockbit 0,15/0,25, Ajaib 0,15/0,25, IPOT 0,19/0,29, Custom, atau Tanpa Fee ([calculator-form.tsx:51-56](src/components/calculator-form.tsx#L51-L56)).
+   - Preset: Stockbit 0,15/0,25, Ajaib 0,15/0,25, IPOT 0,19/0,29, Custom, atau Tanpa Fee ([calculator-form.tsx:84](src/components/calculator-form.tsx#L84)).
    - Custom membuka input % beli dan % jual.
 
-**Tombol Simpan:**
-- Label "Simpan" (cloud) atau "Simpan Lokal". Tombol nonaktif bila ada lot, harga, atau tahap yang ≤ 0.
-- Data disimpan ke tabel `avg_down_plans` atau localStorage `nunnn_stock_saved_plans` ([page.tsx:375-454](src/app/page.tsx#L375-L454)).
+**Tombol −/+ ([StepperInput](src/components/stepper-input.tsx)).** Semua kolom angka punya tombol −/+ di kedua sisi; bisa diklik, ditahan (mengulang otomatis), atau memakai panah ↑/↓ keyboard. Angka tetap bisa diketik manual.
 
-> ⚠️ Saat disimpan, semua tahap digabung jadi satu lot dan satu harga rata-rata tertimbang ([page.tsx:382-391](src/app/page.tsx#L382-L391)). Rincian per tahap hilang, dan flag `avgPriceAwalIncludesFee` hanya ikut tersimpan di mode lokal. Lihat [M-14](#m-14).
+| Kolom | Langkah |
+|---|---|
+| Lot Awal, Lot per tahap | ±1 lot (minimal 1) |
+| Harga Sekarang, Harga Beli | ±1 fraksi BEI lewat `stepIdxPrice` (199 → 200 → 202; harga tidak valid di-snap, 2.755 → 2.760/2.750) |
+| Avg Price | ±1 fraksi, desimal dipertahankan |
+| Fee custom | ±0,01% (0–10%) |
 
-**Hasil:**
+**Baris aksi** ([calculator-form.tsx:848](src/components/calculator-form.tsx#L848)):
+- Ringkasan live: Avg Baru (+ % perubahan), Harga BEP (+ % jarak dari harga sekarang), dan Modal Baru.
+- Tombol "Simpan" (cloud) atau "Simpan Lokal"; bila nonaktif, alasannya ditampilkan.
+- Data disimpan ke tabel `avg_down_plans` atau localStorage `nunnn_stock_saved_plans` ([page.tsx:375](src/app/page.tsx#L375)).
+
+> ⚠️ Saat disimpan, semua tahap masih digabung jadi satu lot dan satu harga rata-rata tertimbang ([page.tsx:389](src/app/page.tsx#L389)). Rincian per tahap hilang, dan flag `avgPriceAwalIncludesFee` hanya ikut tersimpan di mode lokal. Lihat [M-14](#m-14).
+
+**Hasil ([results-display.tsx](src/components/results-display.tsx)):**
 - Tampilan kosong "Menunggu Input Data".
-- Kartu Modal Baru (lembar/lot) dan Total Lot Akhir.
-- **SEBELUM vs SESUDAH**: avg price, modal, market value, dan floating P&L (Rp/%). Muncul badge "Turned Profit!" bila posisi berbalik untung.
+- Baris atas 3 kartu: Emiten (logo, ticker, nama), Modal Baru (+lot/lembar), Total Lot Akhir.
+- **SEBELUM vs SESUDAH**: avg price, modal, market value, **Harga BEP (impas setelah fee jual)** dengan keterangan "Butuh naik x%", dan floating P&L (Rp/%). Badge "Berbalik Profit!" beranimasi sekali bila posisi berbalik untung.
 - **Rangkuman Perbaikan Posisi**:
-  - % penurunan avg price (dengan bar animasi).
-  - % pengurangan floating loss ("100% (Sembuh!)" bila sudah impas atau untung).
+  - % perubahan avg price. Bila harga beli baru di atas avg, label berubah menjadi "Harga Rata-Rata Naik" (kuning) dengan catatan bahwa ini sebenarnya average up.
+  - % pengurangan floating loss ("100% (Sembuh!)" bila impas/untung; "Floating Loss Membesar" bila justru bertambah).
+  - Kalimat jarak ke BEP sebelum vs sesudah, misalnya "harga perlu naik 9,61% (sebelumnya 18,82%)".
   - Bila posisi awal sudah untung, yang tampil pesan "Posisi Portofolio Sehat".
+- Format angka mengikuti bahasa (id-ID / en-US).
 
-**Rencana tersimpan (history-table):**
-- Desktop: tabel dengan kolom Saham, Posisi Awal, Rencana Baru, Estimasi Baru, Tanggal, dan Aksi (Muat/Hapus dengan modal konfirmasi). Mobile: tampilan kartu.
-- Peringatan localStorage untuk pengguna yang belum login. Link "Masuk ke akun" di peringatan ini rusak, lihat [L-04](#l-04).
-- Aksi "Avg Down" dari tab Portofolio mengisi form ini secara otomatis ([page.tsx:507-527](src/app/page.tsx#L507-L527)).
+**Rencana tersimpan ([history-table.tsx](src/components/history-table.tsx)):**
+- Kartu berjudul "Rencana Tersimpan" dengan jumlah rencana; semua teks dwibahasa.
+- Desktop: tabel Saham, Posisi Awal, Rencana Baru, Estimasi Avg Baru (badge Turun/Naik), Tanggal, Aksi. Mobile: kartu.
+- Estimasi memakai `calculateAvgDown` yang sama dengan kalkulator, termasuk fee.
+- Tombol "Muat" berlabel; setelah diklik halaman otomatis scroll kembali ke form ([page.tsx:498](src/app/page.tsx#L498)). Hapus memakai modal konfirmasi.
+- Peringatan localStorage untuk pengguna yang belum login, dengan link "Masuk ke akun" yang membuka modal login lewat prop `onSignInClick`.
+- Aksi "Avg Down" dari tab Portofolio mengisi form ini secara otomatis ([page.tsx:509](src/app/page.tsx#L509)).
 
 ### 5.4 Kalkulator Compounding ([compounding-tab.tsx](src/components/compounding-tab.tsx), [lib/compounding.ts](src/lib/compounding.ts))
 
-Ada dua mode yang bisa ditukar. Saat ditukar, nilai default ikut diganti.
+Ada dua mode: **Rencana Trading** (default) dan **Investasi Jangka Panjang**. Header form berisi tombol Reset, Cetak (`window.print`, desktop), dan **Simpan Rencana**.
 
-**Rencana Trading Harian** (default):
-- Input: modal awal, target profit per hari (%), durasi (1–1000 hari), setoran tambahan per hari, dan preset fee broker atau fee custom.
-- Kartu ringkasan: modal akhir, total return %, total setoran, dan total profit.
+**Rencana Trading: Harian / Bulanan / Tahunan**
+- Pilihan periode muncul di samping pemilih mode. Setiap periode menyimpan nilainya sendiri (target, durasi, setoran), jadi berpindah periode tidak menghapus isian.
+- Default ([compounding-tab.tsx:79](src/components/compounding-tab.tsx#L79)):
+
+  | Periode | Target | Durasi | Batas durasi |
+  |---|---|---|---|
+  | Harian | 1%/hari | 20 hari | 2.520 hari |
+  | Bulanan | 5%/bulan | 12 bulan | 600 bulan |
+  | Tahunan | 20%/tahun | 10 tahun | 100 tahun |
+
+- Input: modal awal, target profit per periode (%), durasi (dengan tombol pintas, mis. 1 bln/3 bln/6 bln/1 thn), setoran tambahan per periode, dan broker fee (preset atau custom).
+- **Konversi target** di bawah kolom target, misalnya "1%/hari ≈ 23,24%/bulan · ≈ 1.127%/tahun (majemuk, sebelum fee)". Muncul peringatan kuning bila setara lebih dari 100% per tahun.
+- Asumsi hari bursa: 21 hari per bulan, 252 per tahun.
+- Fee broker dipotong 1× beli + 1× jual setiap periode.
+- Kartu ringkasan: Modal Akhir, Profit Bersih (+ return %), Total Disetor, **Total Fee Broker**.
 
 **Investasi Jangka Panjang:**
-- Input:
-  - modal awal
-  - setoran rutin dan frekuensinya (harian/mingguan/bulanan/tahunan)
-  - return tahunan % dan frekuensi compounding (harian/bulanan/kuartalan/tahunan)
-  - durasi (tahun + 0–11 bulan)
-  - inflasi % dan pajak %
-- Kartu ringkasan: saldo akhir, total setoran, total bunga, dan **saldo riil** (sudah disesuaikan inflasi).
-- Angka besar disingkat Juta/Miliar/Triliun … Septiliun.
+- Input: modal awal, setoran berkala + frekuensinya (harian/mingguan/bulanan/tahunan), return tahunan % + frekuensi bunga (harian/bulanan/kuartalan/tahunan), jangka waktu (0–100 tahun + 0–11 bulan), inflasi % dan pajak bunga %.
+- Kartu ringkasan: Total Saldo Akhir (+ return %), Akumulasi Setoran, Akumulasi Bunga (kotor, + total pajak), dan **Saldo Riil** (disesuaikan inflasi).
 
-**Grafik dan tabel:**
-- Grafik SVG kustom ([compounding-tab.tsx:1041-1230](src/components/compounding-tab.tsx#L1041-L1230)):
-  - Isi: area saldo nominal, garis total setoran, dan garis putus-putus nilai riil (khusus mode jangka panjang).
-  - Hover menampilkan crosshair dan tooltip.
-  - Titik data per tahun bila durasi lebih dari 36 bulan, selain itu per bulan.
-- Tabel: mode jangka panjang punya toggle Tahunan/Bulanan, dan kolom pajak serta nilai riil hanya muncul bila tarifnya > 0. Mode harian berkolom Hari, Awal, Setoran, Profit, % Kumulatif, Akhir.
+**Input angka.** Semua kolom angka memakai tombol −/+:
+- Nominal Rupiah: langkah mengikuti besarnya angka (10 juta → ±1 juta; di bawah 1 juta → ±100 ribu).
+- Persen: target ±0,1 (harian) / ±0,5 (bulanan) / ±1 (tahunan); return & inflasi & pajak ±0,5; fee ±0,01.
+- Persen menerima koma maupun titik sebagai desimal ("0,5" = "0.5").
 
-**Rencana tersimpan:**
-- Bisa dimuat dan dihapus dari Supabase `compounding_plans` atau localStorage `nunnn_stock_compounding_plans`.
-- Untuk rencana mode harian, kolom `tax_rate`/`inflation_rate` dipakai untuk menyimpan fee beli/jual, dan `duration_months` dipakai untuk menyimpan jumlah hari ([compounding-tab.tsx:197-217](src/components/compounding-tab.tsx#L197-L217)).
-- Ada CSS khusus cetak ([compounding-tab.tsx:538-584](src/components/compounding-tab.tsx#L538-L584)), tetapi tidak ada tombol cetak.
+**Grafik** ([compounding-tab.tsx:1314](src/components/compounding-tab.tsx#L1314)):
+- Dimulai dari titik modal awal. Isi: area saldo nominal, garis total setoran, dan garis nilai riil (khusus jangka panjang).
+- Bisa di-hover dengan mouse maupun disentuh di HP; tooltip mengikuti titik yang disorot.
+- Jangka panjang: titik per tahun bila durasi > 36 bulan, selain itu per bulan.
+- Angka besar disingkat Juta/Miliar/Triliun … (EN: Million/Billion/Trillion …).
 
-> ⚠️ Modal simpan sudah ada, tetapi tidak pernah dibuka: `setIsSaveModalOpen(true)` tidak dipanggil di mana pun. Lihat [L-01](#l-01).
+**Tabel** ([compounding-tab.tsx:1463](src/components/compounding-tab.tsx#L1463)):
+- Header tetap terlihat saat di-scroll; jumlah baris ditampilkan.
+- Kolom: Periode, Saldo Awal, Setoran, Profit/Bunga, Fee Broker atau Pajak (bila > 0), Saldo Akhir, Saldo Riil (bila inflasi > 0), Return Kumulatif.
+- Rencana Trading: Harian bisa dilihat **Per Hari / Rekap Bulanan / Rekap Tahunan**; Bulanan bisa **Per Bulan / Rekap Tahunan**; Tahunan per tahun ([compounding-tab.tsx:711](src/components/compounding-tab.tsx#L711)).
+- Jangka panjang: toggle Tahunan/Bulanan.
+
+**Rencana tersimpan** ([compounding-tab.tsx:1533](src/components/compounding-tab.tsx#L1533)):
+- Simpan lewat dialog dengan judul otomatis (mis. "Trading Harian 1% × 20 Hari"); bisa dimuat dan dihapus (dengan konfirmasi).
+- Disimpan di Supabase `compounding_plans` atau localStorage `nunnn_stock_compounding_plans`. Lihat §8.1 untuk pemetaan kolom rencana trading.
+- Ada CSS khusus cetak ([compounding-tab.tsx:806](src/components/compounding-tab.tsx#L806)).
 
 ### 5.5 Kalkulator Persentase ([percentage-tab.tsx](src/components/percentage-tab.tsx), [lib/percentage.ts](src/lib/percentage.ts))
 
@@ -476,7 +512,7 @@ Ada dua mode yang bisa ditukar. Saat ditukar, nilai default ikut diganti.
 
 ## 6. Logika Kalkulasi & Rumus
 
-### 6.1 Average Down: `calculateAvgDown` ([calculator.ts:54](src/lib/calculator.ts#L54))
+### 6.1 Average Down: `calculateAvgDown` ([calculator.ts:97](src/lib/calculator.ts#L97))
 
 ```
 lembar         = lot × 100
@@ -485,9 +521,26 @@ modalAwal      = lembarAwal × avgAwalRiil
 P/L awal       = (includeFees ? MV × (1 − feeJual) : MV) − modalAwal
 modalBaru      = Σ tahap (lot×100 × harga × (1 + feeBeli bila includeFees))
 avgBaru        = (modalAwal + modalBaru) / (lembarAwal + lembarBaru)
-avgReduction%  = (avg − avgBaru) / avg × 100          ← memakai avg mentah, lihat M-09
-lossShrunk%    = (PL%awal − PL%akhir) / PL%awal × 100 ; 100 bila berbalik untung
+avgReduction%  = (avgAwalRiil − avgBaru) / avgAwalRiil × 100   ← negatif = average up
+lossShrunk%    = (PL%awal − PL%akhir) / PL%awal × 100 ; 100 bila berbalik untung, negatif bila loss membesar
+hargaBEP       = modal / (lembar × (1 − feeJual bila includeFees))     ← harga jual impas
+butuhNaik%     = (hargaBEP − hargaSekarang) / hargaSekarang × 100
 ```
+
+Contoh default GTSI (100 lot @160, beli 100 lot @135, harga 135, fee Stockbit): avg 160 → 147,60 (−7,75%), BEP 160,40 → 147,97, butuh naik 18,82% → 9,61%.
+
+**Fraksi harga BEI** ([calculator.ts:60-95](src/lib/calculator.ts#L60-L95)):
+
+| Rentang harga | Fraksi |
+|---|---|
+| < Rp200 | Rp1 |
+| Rp200 – < Rp500 | Rp2 |
+| Rp500 – < Rp2.000 | Rp5 |
+| Rp2.000 – < Rp5.000 | Rp10 |
+| ≥ Rp5.000 | Rp25 |
+
+- `getIdxTickSize`, `isValidIdxPrice`, `roundDownToIdxTick`.
+- `stepIdxPrice(harga, ±1)`: naik/turun satu fraksi. Turun memakai fraksi rentang di bawahnya (200 → 199, 500 → 498); harga yang tidak valid di-snap ke arah yang dituju.
 
 ### 6.2 Compounding jangka panjang: `calculateCompounding` ([compounding.ts:54](src/lib/compounding.ts#L54))
 
@@ -517,13 +570,19 @@ Simulasi dihitung **per bulan**, selama `totalMonths = max(1, tahun×12 + bulan)
 3. Saldo baru = saldo + setoran + (bunga − pajak). Setoran masuk di akhir bulan, jadi belum berbunga pada bulan itu.
 4. Saldo riil = saldo / (1 + i_monthly)^m, dengan i_monthly = (1+inflasi)^(1/12) − 1.
 
-### 6.3 Compounding harian: `calculateDailyCompounding` ([compounding.ts:220](src/lib/compounding.ts#L220))
+### 6.3 Rencana Trading: `calculateTradingCompounding` ([compounding.ts:246](src/lib/compounding.ts#L246))
+
+Satu fungsi untuk periode harian, bulanan, dan tahunan. Per periode:
 
 ```
-profit = saldo × r
-fee    = saldo × feeBeli + (saldo + profit) × feeJual    ← asumsi seluruh saldo diputar setiap hari
+profit = saldo × r                                       ← r = target % per periode
+fee    = saldo × feeBeli + (saldo + profit) × feeJual    ← asumsi seluruh saldo diputar 1× per periode
 saldo  = saldo + setoran + (profit − fee)
 ```
+
+- **Asumsi hari bursa** ([compounding.ts:195-212](src/lib/compounding.ts#L195-L212)): 21 hari per bulan, 252 per tahun. Batas jumlah periode: 2.520 hari, 600 bulan, 100 tahun.
+- **Konversi target antar periode** `convertTradingRate` ([compounding.ts:351](src/lib/compounding.ts#L351)): `(1 + r)^(hari_tujuan / hari_asal) − 1`, majemuk dan sebelum fee. Contoh: 1%/hari ≈ 23,24%/bulan ≈ 1.127%/tahun; 5%/bulan ≈ 79,59%/tahun.
+- **Rekap** `groupTradingDetails` ([compounding.ts:323](src/lib/compounding.ts#L323)): menggabungkan N periode menjadi satu baris (21 hari → bulan, 252 hari → tahun, 12 bulan → tahun). Kelompok terakhir boleh tidak penuh (mis. 50 hari → 1–21, 22–42, 43–50). Return kumulatif = (saldo akhir − total setoran) / total setoran.
 
 ### 6.4 Dividen: `calculateDividend` ([dividend.ts:84](src/lib/dividend.ts#L84))
 
@@ -725,9 +784,21 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | `avg_down_plans` | ticker, company_name, lot_awal, avg_price_awal, current_price, lot_baru, harga_beli_baru, fee_beli, fee_jual. Semua angka dibatasi CHECK > 0 | page.tsx:335/409/465 |
 | `portfolio_holdings` | ticker, company_name, lot ≥ 0, avg_price ≥ 0 | portfolio-tab, portfolio-snapshot |
 | `portfolio_cash` | user_id (PK), cash_balance ≥ 0 | portfolio-tab, portfolio-snapshot |
-| `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (mode harian memakai ulang kolom-kolom ini) |
+| `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (rencana trading memakai ulang kolom-kolom ini, lihat di bawah) |
 | `ipo_plans` | price, total_lots, oversubscription ≥ 1, total_subscribers, retail_ratio 0–100, personal_order_lots | ipo-tab |
 | `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel |
+
+**Pemetaan kolom untuk rencana trading di `compounding_plans`** ([compounding-tab.tsx:475](src/components/compounding-tab.tsx#L475)). Tidak butuh migrasi karena kolomnya `varchar(20)`/`numeric` tanpa batasan nilai:
+
+| Kolom | Rencana Trading | Investasi Jangka Panjang |
+|---|---|---|
+| `compounding_frequency` | `trading_daily` / `trading_monthly` / `trading_yearly` | `daily` / `monthly` / `quarterly` / `yearly` |
+| `contribution_frequency` | periode (`daily` / `monthly` / `yearly`) | frekuensi setoran |
+| `annual_return_rate` | target % per periode | return % per tahun |
+| `duration_years` / `duration_months` | 0 / jumlah periode | tahun / bulan |
+| `tax_rate` / `inflation_rate` | fee beli / fee jual (%) | pajak / inflasi (%) |
+
+Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 
 **Fungsi (RPC) dan trigger:**
 - `is_admin()`
@@ -815,8 +886,8 @@ Belum ada `.env.example`.
 - **Kamus:** [translations.ts](src/lib/translations.ts), dengan blok `id` (baris 4-426) dan `en` (427+). Section: common, sidebar, cover, news, calculator, results, percentage, compounding, portfolio, ipo, analysis, admin.
 - **Inkonsistensi:**
   - Banyak komponen memakai `language === 'id' ? … : …` langsung di JSX, bukan `t()`.
-  - Teks yang masih *hardcoded* ID: `history-table.tsx`, `auth-modal.tsx`, toast di Compounding, dan subjudul quick-nav Beranda.
-  - Kunci terjemahan `exportExcel`, `printPdf`, dan `saveSim` sudah ada tetapi fitur yang memakainya tidak ada.
+  - Teks yang masih *hardcoded* ID: `auth-modal.tsx` dan subjudul quick-nav Beranda. (`history-table.tsx` dan halaman Compounding sudah dwibahasa sejak `b9db7a6` / `f2c68f1`.)
+  - Kunci terjemahan `exportExcel` dan `saveSim` sudah ada tetapi fitur yang memakainya tidak ada. `printPdf` kini dipakai tombol Cetak di Compounding.
 
 ### 10.2 Styling
 
@@ -881,7 +952,7 @@ Belum ada `.env.example`.
 
 Ringkasan jumlah temuan: **2 Critical · 7 High · 18 Medium · 10 Low**.
 
-Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi runtime.
+Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi runtime · **✅** = sudah diperbaiki (lihat [§12.1](#121-status-perbaikan)).
 
 ### Critical
 
@@ -997,12 +1068,12 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 | M-06 | Indikator | technical/route.ts:714-737 | Pivot dihitung dari bar hari ini yang belum selesai saat jam bursa | Pakai sesi terakhir yang sudah selesai |
 | M-07 | Label | technical/route.ts:796-807 | Tren "Hourly" dihitung dari data harian | Ganti nama jadi "Short-term" atau ambil data interval 1 jam |
 | <a id="m-08"></a>M-08 | Skor | [analysis-tab.tsx:617](src/components/analysis-tab.tsx#L617) | `minPossible = −5` di-*hardcode* (minimum sebenarnya −7, dan bergantung pada metrik yang ada); ROE 0–8 diberi 0 poin tetapi dicatat sebagai "kontra" | Hitung min/max dari metrik yang tersedia |
-| M-09 | Kalkulasi | [calculator.ts:134](src/lib/calculator.ts#L134) | `avgPriceReductionPct` memakai avg mentah, bukan `realAvgPriceAwal` (yang sudah termasuk fee) | Pakai `realAvgPriceAwal` |
+| M-09 ✅ | Kalkulasi | calculator.ts | ~~`avgPriceReductionPct` memakai avg mentah, bukan `realAvgPriceAwal`~~ | Diperbaiki di `b9db7a6` |
 | <a id="m-10"></a>M-10 | Kalkulasi | [dividend.ts:96-102](src/lib/dividend.ts#L96-L102) | Di mode nominal, `totalInvestmentRp` tidak dihitung ulang setelah dibulatkan ke lot, sehingga yield jadi lebih kecil dari seharusnya (komentar kode mengklaim sudah dihitung ulang) | `totalInvestmentRp = totalShares × buyPrice` |
 | M-11 | Kalkulasi | [e-ipo.ts:84-98](src/lib/e-ipo.ts#L84-L98) | Harga 0 atau lot 0 menghasilkan Infinity/NaN | Guard input ≤ 0 |
 | M-12 | Data | dividend/route.ts:306-313 | Tanggal ex-date diberi label `cumDate`; `paymentDate` hanya salinan tanggal yang sama; tahun diambil dari waktu lokal, tanggal dari UTC | Beri label "Ex-Date", pakai UTC secara konsisten |
 | M-13 | Sentimen | analysis/news/route.ts:84-98, 180-184 | Kata kunci dicocokkan sebagai substring ("up" ikut cocok di "Rupiah", "jatuh" di "jatuh tempo"); parsing jawaban LLM cenderung menghasilkan Bullish | Cocokkan per kata utuh; minta output JSON terstruktur |
-| <a id="m-14"></a>M-14 | Data | [page.tsx:382-404](src/app/page.tsx#L382-L404) | Rincian tahap pembelian digabung saat disimpan; `avgPriceAwalIncludesFee` tidak tersimpan di Supabase | Tambah kolom `tranches jsonb` dan `avg_includes_fee` |
+| <a id="m-14"></a>M-14 | Data | [page.tsx:382-406](src/app/page.tsx#L382-L406) | Rincian tahap pembelian digabung saat disimpan; `avgPriceAwalIncludesFee` tidak tersimpan di Supabase | Tambah kolom `tranches jsonb` dan `avg_includes_fee` |
 | M-15 | Performa | market-summary/route.ts:89-170 | Scan sekitar 940 ticker (47 batch, 5 paralel, sekitar 10 putaran) dibandingkan `maxDuration` 15 detik; cek IHSG baru dilakukan setelah semua batch | Cache 30–60 detik, kurangi jumlah ticker, cek IHSG lebih dulu |
 | <a id="m-16"></a>M-16 | DB | migrasi 000005/000006 | Trigger `force_pending` bisa menimpa `is_admin` pada jalur insert `claim_first_admin`; saat ini hanya aman karena klien sudah insert baris lebih dulu | Kecualikan fungsi SECURITY DEFINER dari trigger |
 | <a id="m-17"></a>M-17 | Security | [keepalive/route.ts](src/app/api/keepalive/route.ts) | Tanpa `CRON_SECRET`, siapa pun bisa memicu query; komentar masih menulis "6 jam" padahal cron berjalan harian | Cek `Authorization: Bearer ${CRON_SECRET}` |
@@ -1018,16 +1089,26 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 | ID | Lokasi | Masalah |
 |---|---|---|
-| <a id="l-01"></a>L-01 | [compounding-tab.tsx:86](src/components/compounding-tab.tsx#L86) | Modal simpan Compounding tidak pernah dibuka (tidak ada pemanggilan `setIsSaveModalOpen(true)`); E-IPO tidak punya tombol simpan sama sekali |
+| <a id="l-01"></a>L-01 (sebagian ✅) | [ipo-tab.tsx](src/components/ipo-tab.tsx) | ~~Modal simpan Compounding tidak pernah dibuka~~ (diperbaiki di `f2c68f1`). E-IPO masih tidak punya tombol simpan sama sekali |
 | <a id="l-02"></a>L-02 | [dividend-tab.tsx:608-612, 847](src/components/dividend-tab.tsx#L608) | Mojibake "â‰ˆ" (seharusnya ≈) dan "â†" (seharusnya ←/→) |
 | L-03 | analysis-tab.tsx:2340-2349 vs 220/230 | Warna legenda grafik fundamental tidak sama dengan warna batang |
-| <a id="l-04"></a>L-04 | [history-table.tsx:319](src/components/history-table.tsx#L319) | Selector `[title="Masuk ke Akun"]` gagal di mode EN karena title tombol diterjemahkan |
+| <a id="l-04"></a>L-04 ✅ | history-table.tsx | ~~Selector `[title="Masuk ke Akun"]` gagal di mode EN~~. Diganti prop `onSignInClick` di `b9db7a6` |
 | L-05 | layout.tsx:13-18 | `userScalable:false` memblok zoom (aksesibilitas, WCAG 1.4.4) |
 | L-06 | next.config.ts:8-13 | CSP masih `'unsafe-inline'` di script-src; host AI di `connect-src` tidak dibutuhkan karena AI dipanggil dari server |
-| L-07 | Berbagai file | Teks *hardcoded* ID (history-table, auth-modal, toast compounding, quick-nav) |
+| L-07 (sebagian ✅) | Berbagai file | Teks *hardcoded* ID masih ada di auth-modal dan quick-nav. History-table dan Compounding sudah dwibahasa |
 | L-08 | README.md | Usang: versi Next, xlsx, confetti, link LICENSE yang tidak ada, tree salah, env var kurang, endpoint kurang |
 | L-09 | dividend-tab.tsx:112 | Props tidak dipakai; state toast tidak pernah di-set |
 | L-10 | portfolio-tab.tsx | Error ditampilkan dengan `alert()` padahal sudah ada sistem toast |
+
+### 12.1 Status perbaikan
+
+| Commit | Tanggal | Temuan audit yang ditutup | Perbaikan lain di luar daftar audit |
+|---|---|---|---|
+| `b9db7a6` | 2026-10-07 | M-09, L-04, sebagian L-07 (history-table) | Avg Down: baris tahap terpotong di HP dan kolom sempit; tampilan "--x%" saat average up atau loss membesar; estimasi riwayat yang mengabaikan fee; teks riwayat yang hanya berbahasa Indonesia |
+| `64d6a96` | 2026-10-07 | — | Ikon sidebar Dividen dan E-IPO sama (`Coins`); ikon `Percent` dipakai Compounding, bukan Persentase |
+| `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
+
+**Masih terbuka:** semua temuan Critical dan High, M-01–M-08, M-10–M-18, L-01 (E-IPO), L-02, L-03, L-05, L-06, L-07 (auth-modal, quick-nav), L-08–L-10.
 
 ---
 
@@ -1035,16 +1116,17 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 **File raksasa** (lebih dari 900 LOC):
 - `analysis-tab.tsx` (2374): chart, skeleton, scoring, dan UI dalam satu file, dengan 16 `useState`.
-- `compounding-tab.tsx` (1498).
-- `page.tsx` (1133): auth, demo user, CRUD, dan routing tab.
-- `ipo-tab.tsx` (1032), `technical/route.ts` (997), `dividend-tab.tsx` (994), `portfolio-tab.tsx` (957).
+- `compounding-tab.tsx` (1720): sudah dipecah ke komponen kecil (`Field`, `Segmented`, `StatCard`) dan logika dipindah ke `lib/compounding.ts`, tetapi masih satu file besar.
+- `page.tsx` (1138): auth, demo user, CRUD, dan routing tab.
+- `ipo-tab.tsx` (1032), `technical/route.ts` (997), `dividend-tab.tsx` (995), `portfolio-tab.tsx` (957).
 
 **Duplikasi:**
 
 | Pola | Jumlah | Konsolidasi ke |
 |---|---|---|
 | Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo, CompanyLogo, IpoEmitenLogo, PortfolioEmitenLogo) | 6× | `components/emiten-logo.tsx` |
-| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 6× | `@/lib/format` |
+| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 4× (dividend, ipo, portfolio, compounding versi singkat Juta/Miliar); results-display & history-table sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
+| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down & Compounding | Pakai juga di Dividen, E-IPO, Persentase, Portofolio |
 | Rantai fallback Gemini → Groq → OpenAI | 2× | `lib/llm.ts` |
 | Parser RSS | 2× | `lib/rss.ts` |
 | String User-Agent Mozilla | 15× di 8 file | `lib/yahoo.ts` |
@@ -1056,7 +1138,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 - `resolveTickerName` ([tickers.ts:958](src/lib/tickers.ts#L958)).
 - Array `open`, high/low mingguan, dan `_status` di `technical/route.ts`.
 - Export di `e-ipo.ts` yang hanya dipakai di file itu sendiri.
-- Kunci terjemahan `exportExcel`/`printPdf`/`saveSim`.
+- Kunci terjemahan `exportExcel`/`saveSim`.
+- Kunci terjemahan `compounding.targetReturn`, `durasiHari`, `setoranTambahan`, dan sejenisnya tidak lagi dipakai sejak label Compounding dibuat dinamis per periode.
 - Aset bawaan di `public/*.svg`.
 
 **Kebersihan lain:**
@@ -1079,8 +1162,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 2. **C-02:** limiter AI hanya untuk route LLM, dan auto-refresh LIVE tidak memanggil AI.
 3. **H-04:** pindah ke `next/font/google`.
 4. **H-01:** tambahkan flag `isFallback`/`isSynthetic` dan badge di UI.
-5. **M-01, M-02, M-10, M-09, M-03:** perbaikan satu baris di logika kalkulasi.
-6. **L-01, L-02, L-04:** sambungkan tombol simpan Compounding/E-IPO, perbaiki mojibake dan selector login.
+5. **M-01, M-02, M-10, M-03:** perbaikan satu baris di logika kalkulasi. (M-09 ✅ `b9db7a6`.)
+6. **L-01, L-02:** tambahkan tombol simpan E-IPO dan perbaiki mojibake. (Simpan Compounding ✅ `f2c68f1`; selector login L-04 ✅ `b9db7a6`.)
 
 ### P1: keamanan & keandalan (1 minggu)
 1. **H-02:** approval dicek di server dan di RLS.
@@ -1105,7 +1188,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (100 commit)
+### 15.1 Riwayat pengembangan (104 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1116,6 +1199,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | Pertengahan 2026 | Pembersihan: hapus `any` (`2c89fd5`, `a807adf`, `23dafa8`), next/image `c7a7e1b`, hash password demo `21726bf`, keepalive `840275e`, hapus confetti |
 | 2026-09-02/03 | Sprint keamanan: authz, SSRF, RLS, rate limit, upgrade Next `f24e8ce`; headers, validator, hapus xlsx, CSRF `56beb3d`; pin SHA `01950d7`; laporan final `a7f4dfa` |
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
+| 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
+| 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1` |
 
 ### 15.2 Glosarium
 
