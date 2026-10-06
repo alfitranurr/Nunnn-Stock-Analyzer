@@ -187,70 +187,96 @@ export function calculateCompounding(input: CompoundingInput): CompoundingResult
   };
 }
 
-export interface DailyCompoundingInput {
+// ─── Rencana Trading (target profit per periode: harian / bulanan / tahunan) ───
+
+export type TradingPeriod = 'daily' | 'monthly' | 'yearly';
+
+// Asumsi hari bursa: ±21 hari per bulan, 252 hari per tahun.
+export const TRADING_DAYS_PER_MONTH = 21;
+export const TRADING_DAYS_PER_YEAR = 252;
+
+/** Lama satu periode dalam satuan hari bursa. */
+export const TRADING_PERIOD_DAYS: Record<TradingPeriod, number> = {
+  daily: 1,
+  monthly: TRADING_DAYS_PER_MONTH,
+  yearly: TRADING_DAYS_PER_YEAR,
+};
+
+/** Batas jumlah periode agar tabel & grafik tetap ringan. */
+export const TRADING_MAX_PERIODS: Record<TradingPeriod, number> = {
+  daily: 2520, // 10 tahun bursa
+  monthly: 600, // 50 tahun
+  yearly: 100,
+};
+
+export interface TradingCompoundingInput {
   title: string;
   initialAmount: number;
-  contributionAmount: number;
-  dailyReturnRate: number;
-  durationDays: number;
+  contributionAmount: number; // Setoran tambahan per periode
+  returnRatePerPeriod: number; // Target profit (%) per periode
+  periods: number; // Jumlah periode
   feeBeli: number;
   feeJual: number;
 }
 
-export interface DailyCompoundingDetail {
-  period: number; // Hari ke-n
+export interface TradingCompoundingDetail {
+  period: number; // Periode ke-n
   startingBalance: number;
   deposit: number;
-  interestEarned: number; // Profit hari ini
-  taxDeducted: number;
+  interestEarned: number; // Profit kotor periode ini
+  taxDeducted: number; // Fee broker (beli + jual) periode ini
   endingBalance: number;
   cumulativeDeposits: number;
   cumulativeInterest: number;
   cumulativeTax: number;
 }
 
-export interface DailyCompoundingResult {
+export interface TradingCompoundingResult {
   nominalEndingBalance: number;
   totalDeposits: number;
   totalInterestEarned: number;
   totalTaxDeducted: number;
-  details: DailyCompoundingDetail[];
+  details: TradingCompoundingDetail[];
 }
 
-export function calculateDailyCompounding(input: DailyCompoundingInput): DailyCompoundingResult {
+/**
+ * Simulasi compounding rencana trading. Setiap periode diasumsikan satu kali
+ * putaran beli-jual seluruh saldo, sehingga fee beli & jual dipotong sekali per periode.
+ */
+export function calculateTradingCompounding(input: TradingCompoundingInput): TradingCompoundingResult {
   const {
     initialAmount,
     contributionAmount,
-    dailyReturnRate,
-    durationDays,
+    returnRatePerPeriod,
+    periods,
     feeBeli,
     feeJual
   } = input;
 
-  const r_daily = dailyReturnRate / 100;
+  const r = returnRatePerPeriod / 100;
   const f_beli = feeBeli / 100;
   const f_jual = feeJual / 100;
 
-  const details: DailyCompoundingDetail[] = [];
+  const details: TradingCompoundingDetail[] = [];
   let currentBalance = initialAmount;
   let cumulativeDeposits = initialAmount;
   let cumulativeInterest = 0;
   let cumulativeTax = 0;
 
-  const totalDays = Math.max(1, durationDays);
+  const totalPeriods = Math.max(1, Math.floor(periods));
 
-  for (let d = 1; d <= totalDays; d++) {
+  for (let p = 1; p <= totalPeriods; p++) {
     const startingBalance = currentBalance;
     const deposit = contributionAmount;
 
-    // Gross daily target profit
-    const interestEarned = startingBalance * r_daily;
-    
-    // Broker Buy and Sell fees
+    // Target profit kotor periode ini
+    const interestEarned = startingBalance * r;
+
+    // Fee broker beli & jual
     const buyFee = startingBalance * f_beli;
     const sellFee = (startingBalance + interestEarned) * f_jual;
     const taxDeducted = buyFee + sellFee;
-    
+
     const netInterest = interestEarned - taxDeducted;
 
     currentBalance = startingBalance + deposit + netInterest;
@@ -260,7 +286,7 @@ export function calculateDailyCompounding(input: DailyCompoundingInput): DailyCo
     cumulativeTax += taxDeducted;
 
     details.push({
-      period: d,
+      period: p,
       startingBalance,
       deposit,
       interestEarned,
@@ -279,5 +305,53 @@ export function calculateDailyCompounding(input: DailyCompoundingInput): DailyCo
     totalTaxDeducted: cumulativeTax,
     details
   };
+}
+
+export interface TradingGroupSummary {
+  group: number; // Kelompok ke-n (mis. bulan ke-n)
+  fromPeriod: number;
+  toPeriod: number;
+  startingBalance: number;
+  totalDeposits: number;
+  totalProfit: number; // Profit kotor
+  totalFees: number;
+  endingBalance: number;
+  cumulativeReturnPct: number; // Return bersih kumulatif terhadap total setoran
+}
+
+/** Rekap detail per periode menjadi kelompok berisi `groupSize` periode (mis. 21 hari → 1 bulan). */
+export function groupTradingDetails(details: TradingCompoundingDetail[], groupSize: number): TradingGroupSummary[] {
+  const size = Math.max(1, Math.floor(groupSize));
+  const groups: TradingGroupSummary[] = [];
+  for (let i = 0; i < details.length; i += size) {
+    const chunk = details.slice(i, i + size);
+    const first = chunk[0];
+    const last = chunk[chunk.length - 1];
+    groups.push({
+      group: groups.length + 1,
+      fromPeriod: first.period,
+      toPeriod: last.period,
+      startingBalance: first.startingBalance,
+      totalDeposits: chunk.reduce((sum, d) => sum + d.deposit, 0),
+      totalProfit: chunk.reduce((sum, d) => sum + d.interestEarned, 0),
+      totalFees: chunk.reduce((sum, d) => sum + d.taxDeducted, 0),
+      endingBalance: last.endingBalance,
+      cumulativeReturnPct: last.cumulativeDeposits > 0
+        ? ((last.endingBalance - last.cumulativeDeposits) / last.cumulativeDeposits) * 100
+        : 0,
+    });
+  }
+  return groups;
+}
+
+/**
+ * Konversi target return majemuk antar periode trading.
+ * Contoh: 1%/hari ≈ 23,2%/bulan (21 hari bursa) ≈ 1.127%/tahun (252 hari bursa).
+ */
+export function convertTradingRate(ratePct: number, from: TradingPeriod, to: TradingPeriod): number {
+  const exponent = TRADING_PERIOD_DAYS[to] / TRADING_PERIOD_DAYS[from];
+  const base = 1 + ratePct / 100;
+  if (base <= 0) return -100;
+  return (Math.pow(base, exponent) - 1) * 100;
 }
 
