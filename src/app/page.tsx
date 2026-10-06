@@ -1041,7 +1041,7 @@ export default function Dashboard() {
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6 md:space-y-8"
             >
-              <AdminPanelTab user={user} />
+              <AdminPanelTab user={user} isActive={currentTab === 'admin'} />
             </motion.div>
           </div>
 

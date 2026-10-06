@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, isNetworkError } from '@/lib/utils';
 import { 
   ShieldCheck, 
   Users, 
@@ -29,6 +29,8 @@ import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
 
 interface AdminPanelTabProps {
   user: AppUser | null;
+  /** Tab sedang dibuka. Data hanya diambil saat aktif karena semua tab selalu ter-mount. */
+  isActive?: boolean;
 }
 
 interface UserApproval {
@@ -39,7 +41,7 @@ interface UserApproval {
   isLocal?: boolean;
 }
 
-export function AdminPanelTab({ user }: AdminPanelTabProps) {
+export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
   const { language, t } = useLanguage();
   const [users, setUsers] = React.useState<UserApproval[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -58,6 +60,22 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     simulatedUsers: 0
   });
   const [showResetConfirm, setShowResetConfirm] = React.useState(false);
+
+  // Tampilkan pesan yang bisa dibaca; kegagalan jaringan cukup di-warn agar tidak memicu overlay error.
+  const reportError = React.useCallback((err: unknown, fallbackId: string, fallbackEn: string) => {
+    const message = getErrorMessage(err);
+    if (isNetworkError(err)) {
+      console.warn('[AdminPanel] Supabase tidak dapat dijangkau:', message);
+      setError(
+        language === 'id'
+          ? 'Tidak dapat terhubung ke Supabase. Periksa koneksi internet atau nilai NEXT_PUBLIC_SUPABASE_URL.'
+          : 'Cannot reach Supabase. Check your internet connection or the NEXT_PUBLIC_SUPABASE_URL value.'
+      );
+      return;
+    }
+    console.error('[AdminPanel]', message);
+    setError(message || (language === 'id' ? fallbackId : fallbackEn));
+  }, [language]);
 
   const fetchLocalStats = React.useCallback(() => {
     try {
@@ -110,8 +128,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
       fetchLocalStats();
       fetchUsers();
     } catch (err: unknown) {
-      console.error(err);
-      setError(language === 'id' ? 'Gagal membersihkan data simulasi.' : 'Failed to clear simulated data.');
+      reportError(err, 'Gagal membersihkan data simulasi.', 'Failed to clear simulated data.');
     } finally {
       setShowResetConfirm(false);
     }
@@ -152,19 +169,19 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         setUsers(data || []);
       }
     } catch (err: unknown) {
-      console.error(err);
-      setError(getErrorMessage(err) || (language === 'id' ? 'Gagal mengambil data user approvals.' : 'Failed to retrieve user approval data.'));
+      reportError(err, 'Gagal mengambil data user approvals.', 'Failed to retrieve user approval data.');
     } finally {
       setLoading(false);
     }
-  }, [language]);
+  }, [reportError]);
 
   React.useEffect(() => {
+    if (!isActive) return;
     const timer = setTimeout(() => {
       fetchUsers();
     }, 0);
     return () => clearTimeout(timer);
-  }, [fetchUsers]);
+  }, [fetchUsers, isActive]);
 
   // Automatically clear notifications after 4 seconds
   React.useEffect(() => {
@@ -240,8 +257,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         );
       }
     } catch (err: unknown) {
-      console.error(err);
-      setError(getErrorMessage(err) || (language === 'id' ? 'Gagal mengubah status persetujuan.' : 'Failed to change approval status.'));
+      reportError(err, 'Gagal mengubah status persetujuan.', 'Failed to change approval status.');
     }
   };
 
@@ -278,8 +294,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         );
       }
     } catch (err: unknown) {
-      console.error(err);
-      setError(getErrorMessage(err) || (language === 'id' ? 'Gagal menghapus user.' : 'Failed to delete user.'));
+      reportError(err, 'Gagal menghapus user.', 'Failed to delete user.');
     }
   };
 

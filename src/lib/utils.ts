@@ -9,11 +9,20 @@ export function cn(...inputs: ClassValue[]) {
 export function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
+  // Error Supabase/PostgREST berupa objek biasa { message, details, hint, code }.
+  if (err && typeof err === 'object' && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message;
+  }
   try {
     return JSON.stringify(err);
   } catch {
     return String(err);
   }
+}
+
+/** True bila error berasal dari kegagalan jaringan (server tidak terjangkau), bukan dari server. */
+export function isNetworkError(err: unknown): boolean {
+  return /failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(getErrorMessage(err));
 }
 
 export function cleanCompanyName(name: string | null | undefined): string {
