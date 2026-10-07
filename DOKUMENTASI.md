@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `f2c68f1` (branch `main`, 2026-10-07). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
+> Kondisi kode: commit `db0cca3` (branch `main`, 2026-10-07). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -40,11 +40,11 @@
 | Bahasa | TypeScript strict |
 | Styling | Tailwind CSS v4, framer-motion, lucide-react, hanya mode gelap |
 | Backend | Next.js Route Handlers (9 route), tanpa server actions |
-| Data eksternal | Yahoo Finance (endpoint tidak resmi), Google News RSS, Gemini → Groq → OpenAI |
+| Data eksternal | Yahoo Finance (endpoint tidak resmi, lewat lapisan provider `lib/market-data` yang bisa diganti vendor berlisensi), Google News RSS, Gemini → Groq → OpenAI |
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 102 file ter-track git, sekitar 21,5k LOC di `src/`, 10 menu, 9 API route, 6 tabel DB |
+| Ukuran | 112 file ter-track git, sekitar 22,9k LOC di `src/`, 11 menu, 11 API route, 7 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
@@ -82,11 +82,13 @@
 flowchart LR
   B[Browser<br/>page.tsx + tab components] -->|fetch /api/*| P{proxy.ts<br/>cek cookie sb-*}
   P -->|/api/analysis/*, /api/news/summary| R1[Route terproteksi<br/>requireUser + rate limit]
-  B -->|/api/ticker, /api/news,<br/>/api/dividend, /api/market-summary| R2[Route publik<br/>rate limit IP]
-  R1 --> Y[(Yahoo Finance<br/>chart/quote/quoteSummary)]
+  B -->|/api/ticker, /api/quotes, /api/market-summary,<br/>/api/global-markets, /api/news, /api/dividend| R2[Route publik<br/>rate limit IP]
+  R2 -->|harga saham BEI| MD[lib/market-data<br/>provider + validasi + cache]
+  MD --> Y[(Yahoo Finance<br/>chart/spark/quoteSummary)]
+  R1 --> Y
   R1 --> G[(Google News RSS)]
   R1 --> AI[(Gemini → Groq → OpenAI)]
-  R2 --> Y
+  R2 -->|global & dividen| Y
   R2 --> G
   R1 & R2 --> U[(Upstash Redis<br/>rate limit)]
   B -->|supabase-js langsung| S[(Supabase Auth + Postgres RLS)]
@@ -98,6 +100,7 @@ flowchart LR
 Poin penting:
 - **CRUD data pengguna** (rencana, portofolio, approval) dilakukan langsung dari browser ke Supabase lewat anon key. Keamanannya bergantung penuh pada RLS.
 - **Data pasar dan AI** selalu lewat API route di server, sehingga API key AI tidak sampai ke klien.
+- **Harga saham BEI** (IHSG, scan pasar, watchlist, portofolio, `/api/ticker`) dibaca lewat satu antarmuka provider dan dicek kewajarannya. Lihat [§7.1](#71-lapisan-data-pasar).
 
 ### 2.4 Dua mode operasi
 
@@ -155,7 +158,7 @@ Sumber: [package.json](package.json)
 ├── .gitleaks.toml             aturan secret scan kustom
 ├── .pre-commit-config.yaml    gitleaks + semgrep (belum ter-install di .git/hooks)
 ├── security-reports/          FASE-1..6, FINAL-REPORT.md, contoh fix (.ts/.json/.sql)
-├── supabase/migrations/       7 migrasi SQL (tabel, RLS, RPC, trigger)
+├── supabase/migrations/       8 migrasi SQL (tabel, RLS, RPC, trigger)
 ├── public/                    aset default Next (tidak dipakai)
 ├── deploy.js                  sinkron .env.local → Vercel + deploy --prod
 ├── next.config.ts             CSP & security headers, images.remotePatterns
@@ -164,7 +167,7 @@ Sumber: [package.json](package.json)
     ├── proxy.ts               (50)   gerbang cookie untuk /api/analysis/* & /api/news/summary
     ├── app/
     │   ├── layout.tsx         (43)   metadata, viewport, providers
-    │   ├── page.tsx           (1133) Dashboard: semua tab + auth + CRUD Avg Down
+    │   ├── page.tsx           (953)  Dashboard: semua tab + auth + CRUD Avg Down
     │   ├── globals.css        (126)  Tailwind v4 @theme tokens, glass-card, dll.
     │   └── api/
     │       ├── analysis/fundamentals/route.ts (425)
@@ -172,23 +175,29 @@ Sumber: [package.json](package.json)
     │       ├── analysis/news/route.ts         (464)  sentimen per ticker (AI)
     │       ├── news/route.ts                  (118)  feed berita
     │       ├── news/summary/route.ts          (504)  rangkuman AI + SSRF guard
-    │       ├── ticker/route.ts                (176)  harga & pencarian ticker
+    │       ├── ticker/route.ts                (135)  harga & pencarian ticker (via provider)
+    │       ├── quotes/route.ts                (56)   harga + intraday banyak saham (watchlist, portofolio)
+    │       ├── market-summary/route.ts        (137)  IHSG, breadth, movers (scan 886 saham, cache 45 dtk)
+    │       ├── global-markets/route.ts        (37)   USD/IDR, LQ45, komoditas, indeks global
     │       ├── dividend/route.ts              (371)
-    │       ├── market-summary/route.ts        (184)  IHSG + top gainers/losers
     │       └── keepalive/route.ts             (36)   ping Supabase (cron)
-    ├── components/            23 komponen (lihat §5)
+    ├── components/            22 komponen + folder home/ (lihat §5)
     │   analysis-tab (2374) · compounding-tab (1720) · ipo-tab (1032) · dividend-tab (995)
     │   portfolio-tab (957) · calculator-form (896) · admin-panel-tab (777) · percentage-tab (775)
     │   news-tab (604) · results-display (423) · sidebar (387) · history-table (352)
-    │   auth-modal (320) · client-bootstrap (294) · portfolio-snapshot (279) · watchlist-mini (276)
-    │   market-summary (215) · quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
+    │   auth-modal (320) · watchlist-panel (296) · client-bootstrap (294) · portfolio-snapshot (250)
+    │   quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
     │   educational-tip-card (117) · trending-news-strip (106) · theme-provider (11)
+    │   home/  home-dashboard (232) · market-overview (187) · market-movers (161)
+    │          global-markets (91) · sparkline (78) · market-status-bar (69) · types (45)
     └── lib/
         translations.ts (882) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
-        e-ipo.ts (261) · calculator.ts (238) · dividend.ts (209) · percentage.ts (121)
-        format.ts (116) · rate-limit.ts (86) · language-context.tsx (70) · crypto.ts (48)
-        supabase.ts (41) · utils.ts (35) · supabase-server.ts (34) · auth-guard.ts (32)
-        types.ts (26) · validators.ts (17)
+        calculator.ts (278) · e-ipo.ts (261) · yahoo.ts (237) · dividend.ts (209) · format.ts (142)
+        watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (86) · market-hours.ts (85)
+        language-context.tsx (70) · use-polling.ts (66) · crypto.ts (48) · supabase.ts (41)
+        utils.ts (35) · supabase-server.ts (34) · auth-guard.ts (32) · quotes.ts (28)
+        types.ts (26) · global-markets.ts (19) · validators.ts (17)
+        market-data/  index (64) · yahoo-provider (57) · validate (54) · types (37)
 ```
 
 ---
@@ -199,7 +208,8 @@ Ringkasan akses tiap menu:
 
 | # | Menu (ID) | Komponen utama | Akses | Simpan data |
 |---|---|---|---|---|
-| 0 | Beranda | `page.tsx` + 6 widget | Publik (sebagian widget hanya untuk yang login) | Watchlist (lokal) |
+| 0 | Beranda | `home/home-dashboard.tsx` + widget | Publik (sapaan & ringkasan portofolio hanya untuk yang login) | — |
+| 0b | Watchlist | `watchlist-panel.tsx` (varian penuh) | Publik | Supabase `user_watchlists` / lokal |
 | 1 | Berita & Sentimen | `news-tab.tsx` | Publik; Rangkuman AI wajib login | — |
 | 2 | Kalkulator Avg Down | `calculator-form`, `results-display`, `history-table` | Publik | Supabase / lokal |
 | 3 | Compounding | `compounding-tab.tsx` | Publik | Supabase / lokal (simpan, muat, hapus) |
@@ -209,12 +219,13 @@ Ringkasan akses tiap menu:
 | 7 | Analisis Saham Pro | `analysis-tab.tsx` | **Wajib login** | — |
 | 8 | Portofolio Saya | `portfolio-tab.tsx` | **Wajib login** | Supabase / lokal |
 | 9 | Admin Panel | `admin-panel-tab.tsx` | **Hanya email admin** | Supabase RPC |
-| — | Riwayat, Watchlist | — | Nonaktif (badge "Segera") | — |
+| — | Riwayat | — | Nonaktif (badge "Segera") | — |
 
 ### 5.0 Sidebar & Navigasi ([sidebar.tsx](src/components/sidebar.tsx))
 
 - **Daftar menu:** [sidebar.tsx:47-60](src/components/sidebar.tsx#L47-L60).
   - Menu `analysis` dan `portfolio` tampil dengan ikon gembok bila belum login.
+  - Menu `watchlist` aktif sejak `db0cca3`; hanya `history` yang masih berstatus "Segera".
   - Menu `admin` hanya muncul bila email pengguna sama dengan `NEXT_PUBLIC_ADMIN_EMAIL` (default `admin@nunnnstock.com`, [sidebar.tsx:44](src/components/sidebar.tsx#L44)).
 - **Ikon (lucide-react), unik per menu:** Beranda `Home`, Berita `Newspaper`, Avg Down `Calculator`, Compounding `Sprout`, Persentase `Percent`, Dividen `HandCoins`, E-IPO `Rocket`, Analisis `ChartCandlestick`, Portofolio `Briefcase`, Admin `ShieldCheck`, Riwayat `History`, Watchlist `Star`. Badge judul di setiap tab memakai ikon yang sama dengan sidebar.
 - **Desktop:**
@@ -224,20 +235,35 @@ Ringkasan akses tiap menu:
   - Footer profil berisi email dan tombol logout, atau tombol "Masuk ke Akun".
 - **Mobile:** header atas 64px dengan tombol hamburger, lalu drawer geser 280px yang berisi menu, pengalih bahasa, dan area profil.
 
-### 5.1 Beranda ([page.tsx:613-833](src/app/page.tsx#L613-L833))
+### 5.1 Beranda ([home/home-dashboard.tsx](src/components/home/home-dashboard.tsx))
 
-| Widget | File | Perilaku |
+`page.tsx` hanya merender `<HomeDashboard isActive={currentTab === 'home'} />`. Semua kartu pasar memakai **satu** request `/api/market-summary` yang di-refresh tiap menit **hanya** saat jam bursa, tab Beranda aktif, dan browser terlihat ([home-dashboard.tsx:91](src/components/home/home-dashboard.tsx#L91), hook [use-polling.ts](src/lib/use-polling.ts)). Di luar itu data diambil sekali saat tab dibuka.
+
+Urutan dari atas:
+
+| Bagian | File | Isi & perilaku |
 |---|---|---|
-| Hero | page.tsx | Badge, judul, deskripsi; CTA login bila belum masuk |
-| Quick-nav | page.tsx:660-715 | 5 tombol pintas: Avg Down, Dividen, Compounding, Persentase, E-IPO. Subjudul masih *hardcoded* ID |
-| QuickSearchTicker | [quick-search-ticker.tsx](src/components/quick-search-ticker.tsx) | Debounce 350ms ke `/api/ticker?q=` (maks 10 hasil). Navigasi ↑/↓/Enter/Esc, tombol hapus, klik di luar menutup dropdown. Memilih ticker membuka **Analisis** |
-| Badge koneksi | page.tsx:729-742 | Hanya saat login: "Terhubung", email, dan mode Cloud/Lokal |
-| MarketSummary | [market-summary.tsx](src/components/market-summary.tsx) | Refresh tiap 30 detik. Kartu IHSG (harga, perubahan, high/low, volume, indikator LIVE), Top 5 Gainers, Top 5 Losers. Ada skeleton, kartu error, dan pesan saat kosong |
-| PortfolioSnapshot | [portfolio-snapshot.tsx](src/components/portfolio-snapshot.tsx) | Hanya saat login: Total Equity, Market Value, P&L (Rp/%), Buying Power (kas RDN). Angka disingkat T/B/M/K. Tombol "Lihat Detail" ke Portofolio. Dimuat ulang lewat `refreshKey` saat kembali dari tab Portofolio |
-| TrendingNewsStrip | [trending-news-strip.tsx](src/components/trending-news-strip.tsx) | 4 berita dari `/api/news?category=saham` dengan waktu relatif |
-| WatchlistMini | [watchlist-mini.tsx](src/components/watchlist-mini.tsx) | localStorage `nunnn_stock_watchlist`, maks 5 ticker. Tiap baris menampilkan harga dan % perubahan. Klik membuka Analisis |
-| EducationalTipCard | [educational-tip-card.tsx](src/components/educational-tip-card.tsx) | 1 tip acak dari 8 tip dwibahasa |
-| Marquee logo | page.tsx:781-825 | 16 logo emiten dari CDN Stockbit, ditutup disclaimer |
+| Sapaan / hero | home-dashboard.tsx | Login: "Selamat pagi/siang/sore/malam, {nama}" (jam WIB) + badge Mode Cloud/Lokal. Pengunjung: hero ringkas + tombol Masuk |
+| Status pasar | [market-status-bar.tsx](src/components/home/market-status-bar.tsx) | Sesi BEI (Pra-Pembukaan, Sesi 1, Istirahat, Sesi 2, Pra-Penutupan, Bursa Tutup, Libur Bursa), jam WIB, waktu scan terakhir, nama sumber data dari provider ("data bisa tertunda"), tombol Refresh |
+| Pencarian | [quick-search-ticker.tsx](src/components/quick-search-ticker.tsx) | Debounce 350ms ke `/api/ticker?q=`; memilih ticker membuka **Analisis** |
+| IHSG | [market-overview.tsx](src/components/home/market-overview.tsx) | Harga, perubahan, tutup kemarin, tertinggi/terendah, grafik intraday 5 menit dengan garis acuan, posisi dalam rentang 52 minggu |
+| Breadth | market-overview.tsx | Jumlah saham naik/tetap/turun + bar, label "Mayoritas naik/turun/berimbang", jumlah ARA/ARB, total nilai transaksi, jumlah saham dipantau, dan jumlah saham yang dilewati karena datanya meragukan |
+| Global & Makro | [global-markets.tsx](src/components/home/global-markets.tsx) | USD/IDR, LQ45, Emas, Brent, Batu Bara (API2), Nikkei 225, Hang Seng, S&P 500 Futures dengan grafik mini; refresh tiap 2 menit saat Beranda aktif ([lib/global-markets.ts](src/lib/global-markets.ts)) |
+| Penggerak Pasar | [market-movers.tsx](src/components/home/market-movers.tsx) | Tab Gainers / Losers / Top Nilai / Top Volume (6 baris). Filter nilai transaksi Semua / ≥ Rp1 M / ≥ Rp10 M (default ≥ Rp1 M, hanya untuk Gainers/Losers). Badge ARA/ARB. Klik kode → Analisis; tombol ☆ → watchlist |
+| Watchlist | [watchlist-panel.tsx](src/components/watchlist-panel.tsx) | Varian ringkas (6 baris + "Lihat semua"); lihat di bawah |
+| Ringkasan Portofolio | [portfolio-snapshot.tsx](src/components/portfolio-snapshot.tsx) | Login saja. Total ekuitas (+ nilai pasar), **P&L hari ini**, P&L total, kas RDN ("Belum diatur" bila kosong, tanpa angka fiktif). Satuan "jt / M / T" ([format.ts](src/lib/format.ts) `formatIDRCompact`). Harga semua saham diambil sekali lewat `/api/quotes`; perubahan yang meragukan tidak dihitung ke P&L hari ini |
+| Berita | [trending-news-strip.tsx](src/components/trending-news-strip.tsx) | 4 berita `/api/news?category=saham` (2 kolom); pesan berbeda untuk gagal dimuat vs kosong |
+| Tips | [educational-tip-card.tsx](src/components/educational-tip-card.tsx) | 1 tip acak dari 8 tip dwibahasa (isi dikoreksi di `db0cca3`) |
+| Akses Cepat | home-dashboard.tsx | 8 menu dengan ikon yang sama seperti sidebar; ikon gembok untuk Analisis/Portofolio bila belum login |
+| Disclaimer | home-dashboard.tsx | Teks `common.disclaimer` |
+
+**Watchlist** ([watchlist-panel.tsx](src/components/watchlist-panel.tsx), store [watchlist-store.ts](src/lib/watchlist-store.ts)):
+- Satu store (`useSyncExternalStore`) dipakai bersama oleh widget Beranda, tab **Watchlist** (menu sidebar), dan tombol ☆ di Penggerak Pasar.
+- Maksimal 20 saham ([watchlist-store.ts:18](src/lib/watchlist-store.ts#L18)); urutkan berdasarkan urutan tambah, naik tertinggi, turun terdalam, atau A–Z.
+- Harga + grafik mini dari `/api/quotes`, di-refresh tiap menit saat jam bursa. Persentase yang tidak lolos pengecekan kewajaran tampil sebagai "?".
+- Tombol hapus selalu terlihat di perangkat sentuh (di desktop muncul saat hover).
+- Saat kosong, ada saran BBCA/BBRI/BMRI/TLKM/ASII/GTSI.
+- Penyimpanan: selalu localStorage `nunnn_stock_watchlist`; bila login ke Supabase, disinkron ke tabel `user_watchlists` ([connectWatchlistToUser](src/lib/watchlist-store.ts#L79)). Versi cloud menang saat login; bila cloud kosong, daftar lokal diunggah.
 
 ### 5.2 Berita & Sentimen ([news-tab.tsx](src/components/news-tab.tsx))
 
@@ -748,8 +774,10 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 
 | Route | Method & param | Auth | Rate limit | Validasi | Sumber eksternal | Bila gagal |
 |---|---|---|---|---|---|---|
-| `/api/ticker` | GET `?q=` (cari) / `?symbol=` (harga) | — | IP | `q` ≤ 20 karakter `[A-Za-z0-9.\s-]`; `symbol` lewat `validateTickerSymbol` | Yahoo search ×2, chart | 500 untuk pencarian |
-| `/api/market-summary` | GET | — | IP | — | Yahoo chart `^JKSE` + spark (sekitar 940 ticker, batch 20, 5 batch paralel) | **502** |
+| `/api/ticker` | GET `?q=` (cari) / `?symbol=` (harga) | — | IP | `q` ≤ 20 karakter `[A-Za-z0-9.\s-]`; `symbol` lewat `validateTickerSymbol`, akhiran `.JK` dibuang | Yahoo search ×2; harga lewat provider | 500 untuk pencarian; `changePercent: null` bila data meragukan |
+| `/api/market-summary` | GET `?minValue=` (Rp, filter Gainers/Losers) | — | IP | `minValue` 0–10¹³ | Provider: IHSG + scan 886 saham (spark 5d/1d, batch 20, 5 paralel). Cache bersama 45 dtk | **502**; data lama tetap disajikan bila ada |
+| `/api/quotes` | GET `?symbols=A,B` (maks 30) | — | IP | Tiap simbol lewat `validateTickerSymbol` | Provider (harian 5d/1d + intraday 1d/5m). Cache 30 dtk per kombinasi | 400 bila tidak ada simbol valid; 502 |
+| `/api/global-markets` | GET | — | IP | — | Yahoo spark (harian + intraday 15m) untuk 8 instrumen. Cache 60 dtk | 502 |
 | `/api/news` | GET `?category=` / `?q=` | — | IP | **`q` tidak divalidasi** | Google News RSS | 200 `{news:[], error}` |
 | `/api/news/summary` | POST `{title, source, link}` | Cek same-origin + proxy + `requireUser` | IP + AI | Hanya `title` wajib, **tanpa batas panjang** | Google batchexecute, fetch artikel, Gemini (≤5 model) → Groq → OpenAI | Fallback ringkasan heuristik |
 | `/api/analysis/fundamentals` | GET `?symbol=` | proxy + `requireUser` | IP + **AI** | validator | Yahoo v7 quote (revalidate 60), v10 quoteSummary | **Data deterministik palsu** |
@@ -765,11 +793,46 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 **Helper server:**
 - [auth-guard.ts](src/lib/auth-guard.ts) `requireUser()`: memanggil `auth.getUser()` lewat `@supabase/ssr` (cookie) dan mengembalikan 401 bila tidak ada user. Status approval **tidak dicek**.
 - [rate-limit.ts](src/lib/rate-limit.ts) `applyRateLimit(req, id?)`: IP diambil dari `x-forwarded-for` (fallback `127.0.0.1`).
-- [validators.ts](src/lib/validators.ts) `validateTickerSymbol`: uppercase lalu dicocokkan dengan `^[A-Z]{1,5}(\.JK)?$`. Validator ini tidak menghapus `.JK`.
+- [validators.ts](src/lib/validators.ts) `validateTickerSymbol`: uppercase lalu dicocokkan dengan `^[A-Z]{1,5}(\.JK)?$`. Validator ini tidak menghapus `.JK`; route `ticker` dan `quotes` membuangnya sendiri.
 
 **Timeout & durasi:**
-- Hanya fetch di `news/summary` yang memakai timeout (6–8 detik).
-- `maxDuration` di [vercel.json](vercel.json): AI 30 detik, analisis 20 detik, dividen/news/market-summary 15 detik, ticker 10 detik.
+- Fetch di `news/summary` (6–8 detik) dan semua fetch lewat [lib/yahoo.ts](src/lib/yahoo.ts) (8 detik) memakai timeout. Route analisis dan dividen belum.
+- `maxDuration` di [vercel.json](vercel.json): AI 30 detik, analisis 20 detik, dividen/news/market-summary 15 detik, ticker/quotes/global-markets 10 detik.
+
+### 7.1 Lapisan data pasar
+
+Semua harga saham BEI dibaca lewat [lib/market-data](src/lib/market-data/index.ts), bukan langsung dari Yahoo.
+
+**Provider.** Antarmuka `MarketDataProvider` ([types.ts](src/lib/market-data/types.ts)): `getStockQuotes(tickers, { intraday })` dan `getCompositeIndex()`. Implementasi saat ini: [yahoo-provider.ts](src/lib/market-data/yahoo-provider.ts). Untuk memakai vendor berlisensi BEI:
+1. buat `src/lib/market-data/<vendor>-provider.ts`;
+2. daftarkan di `PROVIDERS` ([index.ts:14](src/lib/market-data/index.ts#L14));
+3. set `MARKET_DATA_PROVIDER=<id>` (plus API key vendor) di Vercel.
+
+Route dan UI tidak perlu diubah. Data global (USD/IDR, komoditas, indeks luar negeri) tetap dari Yahoo.
+
+**Harga acuan (penutupan sesi sebelumnya).** Field `chartPreviousClose`/`previousClose` dari Yahoo terbukti basi atau salah (7 Okt 2026: IHSG memakai penutupan 2 hari lalu sehingga tampil +0,46% padahal −0,75%; VKTR memakai Rp835 sehingga tampil −19,76% padahal −0,74%). Karena itu:
+- acuan diambil dari **bar harian terakhir sebelum tanggal sesi terakhir** (`splitSessions`, [yahoo.ts:67](src/lib/yahoo.ts#L67));
+- grafik intraday memakai bar 5 menit sesi terakhir saja; bar intraday hari sebelumnya tidak dipakai sebagai acuan karena bisa berisi harga basi ([fetchQuotesWithIntraday](src/lib/yahoo.ts#L162));
+- acuan saham BEI dibulatkan ke fraksi terdekat (`roundToNearestIdxTick`, [calculator.ts:82](src/lib/calculator.ts#L82)), karena Yahoo kadang menskalakan histori (VKTR 675 → 672,87).
+
+Hasil verifikasi 7 Okt 2026: 17/17 angka (IHSG + 16 saham) identik dengan Stockbit.
+
+**Pengecekan kewajaran** (`validateIdxQuote`, [validate.ts:22](src/lib/market-data/validate.ts#L22)):
+
+| Aturan | Kode issue |
+|---|---|
+| Harga atau acuan ≤ 0 | `invalid-price` |
+| Harga bukan kelipatan fraksi BEI | `off-tick` |
+| Perubahan melewati batas auto rejection (mustahil) | `exceeds-limit` |
+| Harga berubah padahal volume 0 (data basi) | `no-volume` |
+
+Data bermasalah dikeluarkan dari breadth dan movers (jumlahnya dikirim di `dataQuality`), ditandai `suspect: true` di `/api/quotes`, dan dicatat lewat `console.warn`. Aturan ini menangkap data yang **mustahil**, tidak semua data yang **salah**: acuan basi yang perubahannya masih di dalam batas (seperti kasus VKTR) hanya dicegah oleh metode acuan harian di atas.
+
+**Batas ARA/ARB** (`getAutoRejectionBounds`, [calculator.ts:102](src/lib/calculator.ts#L102)): ±35% untuk acuan ≤ Rp200, ±25% untuk ≤ Rp5.000, ±20% di atasnya, dibulatkan ke fraksi, dengan minimal satu fraksi. Diasumsikan simetris; sesuaikan bila BEI mengubah aturan ARB.
+
+**Sesi bursa** ([market-hours.ts:27](src/lib/market-hours.ts#L27), WIB): Senin–Kamis pra-pembukaan 08:45, sesi 1 09:00–12:00, sesi 2 13:30–15:50, pra-penutupan 15:50–16:00; Jumat sesi 1 09:00–11:30, sesi 2 14:00–15:50. Hari libur tidak dijadwalkan; bila sampai 09:30 IHSG belum bertransaksi hari itu, status menjadi "Libur Bursa" (`getEffectiveIdxSession`).
+
+**Cache server** (`createTtlCache`, [yahoo.ts:206](src/lib/yahoo.ts#L206)): in-memory per instance, dengan deduplikasi request yang sedang berjalan, dan menyajikan data lama bila pengambilan baru gagal.
 
 ---
 
@@ -787,6 +850,7 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (rencana trading memakai ulang kolom-kolom ini, lihat di bawah) |
 | `ipo_plans` | price, total_lots, oversubscription ≥ 1, total_subscribers, retail_ratio 0–100, personal_order_lots | ipo-tab |
 | `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel |
+| `user_watchlists` | user_id (PK), items jsonb (array, maks 20), updated_at ([migrasi 000007](supabase/migrations/20261007000007_create_user_watchlists.sql)) | watchlist-store. **Migrasi ini perlu dijalankan di Supabase** agar watchlist tersinkron ke akun |
 
 **Pemetaan kolom untuk rencana trading di `compounding_plans`** ([compounding-tab.tsx:475](src/components/compounding-tab.tsx#L475)). Tidak butuh migrasi karena kolomnya `varchar(20)`/`numeric` tanpa batasan nilai:
 
@@ -818,7 +882,7 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `nunnn_stock_compounding_plans` | localStorage | Rencana Compounding |
 | `nunnn_stock_ipo_plans` | localStorage | Rencana E-IPO |
 | `nunnn_stock_percentage_history` | localStorage | 5 riwayat persentase |
-| `nunnn_stock_watchlist` | localStorage | Maks 5 ticker |
+| `nunnn_stock_watchlist` | localStorage | Watchlist (maks 20, `{symbol, name}`); cadangan lokal dari `user_watchlists` |
 | `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}` | localStorage | Portofolio lokal |
 | `nunnn_stock_mock_user` | localStorage | Sesi user demo |
 | `nunnn_stock_simulated_users` | localStorage | User demo (hash SHA-256 + salt) |
@@ -845,6 +909,7 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `NEXT_PUBLIC_ADMIN_EMAIL` | Publik | page.tsx:189/251, auth-modal:30, admin-panel:98, sidebar:44 | Default `admin@nunnnstock.com` |
 | `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENAI_API_KEY` | Server | analysis/news, news/summary | Tidak (tanpa ini dipakai fallback heuristik) |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Server | rate-limit.ts | Tidak (tanpa ini rate limit **mati**) |
+| `MARKET_DATA_PROVIDER` | Server | lib/market-data/index.ts | Tidak (default `yahoo`; ID yang tidak dikenal kembali ke Yahoo dengan peringatan) |
 | `GOOGLE_CLIENT_ID` / `_SECRET` | — | **Tidak dipakai kode**, hanya ada di `.env.local` | — |
 | `NODE_ENV` | Build | next.config.ts, client-bootstrap, page.tsx | Otomatis |
 
@@ -886,7 +951,7 @@ Belum ada `.env.example`.
 - **Kamus:** [translations.ts](src/lib/translations.ts), dengan blok `id` (baris 4-426) dan `en` (427+). Section: common, sidebar, cover, news, calculator, results, percentage, compounding, portfolio, ipo, analysis, admin.
 - **Inkonsistensi:**
   - Banyak komponen memakai `language === 'id' ? … : …` langsung di JSX, bukan `t()`.
-  - Teks yang masih *hardcoded* ID: `auth-modal.tsx` dan subjudul quick-nav Beranda. (`history-table.tsx` dan halaman Compounding sudah dwibahasa sejak `b9db7a6` / `f2c68f1`.)
+  - Teks yang masih *hardcoded* ID: `auth-modal.tsx`. (`history-table.tsx`, halaman Compounding, dan Beranda sudah dwibahasa sejak `b9db7a6` / `f2c68f1` / `db0cca3`.)
   - Kunci terjemahan `exportExcel` dan `saveSim` sudah ada tetapi fitur yang memakainya tidak ada. `printPdf` kini dipakai tombol Cetak di Compounding.
 
 ### 10.2 Styling
@@ -1061,7 +1126,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 | ID | Kategori | Lokasi | Masalah | Rekomendasi |
 |---|---|---|---|---|
 | <a id="m-01"></a>M-01 | Kalkulasi | [format.ts:40-44](src/lib/format.ts#L40-L44) | Input dengan tepat 3 desimal dibaca sebagai ribuan: "0.125" → 125, "1.125" → 1125, termasuk di mode EN | Tentukan pemisah desimal dari bahasa aktif (ID = koma, EN = titik), jangan ditebak dari pola |
-| M-02 | Data | [ticker/route.ts:130-142](src/app/api/ticker/route.ts#L130-L142) | `symbol=BBCA.JK` lolos validator, lalu dibentuk jadi `BBCA.JK.JK`; lookup ke `IDX_TICKERS` juga meleset | Hapus `.JK` di `validateTickerSymbol` |
+| M-02 ✅ | Data | ticker/route.ts | ~~`symbol=BBCA.JK` dibentuk jadi `BBCA.JK.JK`~~ | Diperbaiki di `db0cca3` (`.JK` dibuang sebelum dipakai) |
 | <a id="m-03"></a>M-03 | Indikator | [technical/route.ts:48](src/app/api/analysis/technical/route.ts#L48) | RSI = 100 untuk seri datar (avgGain = avgLoss = 0) | Kembalikan 50 bila keduanya 0 |
 | M-04 | Indikator | technical/route.ts:277-279 | Tren OBV memakai pengali `×1,02`, sehingga salah arah bila OBV ≤ 0 | Bandingkan selisih terhadap \|first\| |
 | M-05 | Indikator | technical/route.ts:76-91, 336-344, 103 | Smoothing MFI/ADX non-standar; seed EMA memakai nilai pertama, bukan SMA | Ikuti definisi standar (Wilder/rolling sum) |
@@ -1074,7 +1139,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 | M-12 | Data | dividend/route.ts:306-313 | Tanggal ex-date diberi label `cumDate`; `paymentDate` hanya salinan tanggal yang sama; tahun diambil dari waktu lokal, tanggal dari UTC | Beri label "Ex-Date", pakai UTC secara konsisten |
 | M-13 | Sentimen | analysis/news/route.ts:84-98, 180-184 | Kata kunci dicocokkan sebagai substring ("up" ikut cocok di "Rupiah", "jatuh" di "jatuh tempo"); parsing jawaban LLM cenderung menghasilkan Bullish | Cocokkan per kata utuh; minta output JSON terstruktur |
 | <a id="m-14"></a>M-14 | Data | [page.tsx:382-406](src/app/page.tsx#L382-L406) | Rincian tahap pembelian digabung saat disimpan; `avgPriceAwalIncludesFee` tidak tersimpan di Supabase | Tambah kolom `tranches jsonb` dan `avg_includes_fee` |
-| M-15 | Performa | market-summary/route.ts:89-170 | Scan sekitar 940 ticker (47 batch, 5 paralel, sekitar 10 putaran) dibandingkan `maxDuration` 15 detik; cek IHSG baru dilakukan setelah semua batch | Cache 30–60 detik, kurangi jumlah ticker, cek IHSG lebih dulu |
+| M-15 ✅ | Performa | market-summary/route.ts | ~~Scan sekitar 940 ticker tiap request, tiap pengunjung, tiap 30 detik~~ | Diperbaiki di `db0cca3`: cache bersama 45 dtk, IHSG & scan paralel, polling hanya saat jam bursa dan tab aktif |
 | <a id="m-16"></a>M-16 | DB | migrasi 000005/000006 | Trigger `force_pending` bisa menimpa `is_admin` pada jalur insert `claim_first_admin`; saat ini hanya aman karena klien sudah insert baris lebih dulu | Kecualikan fungsi SECURITY DEFINER dari trigger |
 | <a id="m-17"></a>M-17 | Security | [keepalive/route.ts](src/app/api/keepalive/route.ts) | Tanpa `CRON_SECRET`, siapa pun bisa memicu query; komentar masih menulis "6 jam" padahal cron berjalan harian | Cek `Authorization: Bearer ${CRON_SECRET}` |
 | M-18 | Config | supabase.ts:10 vs proxy.ts:22 | Deteksi "Supabase terkonfigurasi" berbeda (`your-supabase-project` vs `placeholder.supabase.co`) | Satukan dalam satu helper |
@@ -1095,7 +1160,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | <a id="l-04"></a>L-04 ✅ | history-table.tsx | ~~Selector `[title="Masuk ke Akun"]` gagal di mode EN~~. Diganti prop `onSignInClick` di `b9db7a6` |
 | L-05 | layout.tsx:13-18 | `userScalable:false` memblok zoom (aksesibilitas, WCAG 1.4.4) |
 | L-06 | next.config.ts:8-13 | CSP masih `'unsafe-inline'` di script-src; host AI di `connect-src` tidak dibutuhkan karena AI dipanggil dari server |
-| L-07 (sebagian ✅) | Berbagai file | Teks *hardcoded* ID masih ada di auth-modal dan quick-nav. History-table dan Compounding sudah dwibahasa |
+| L-07 (sebagian ✅) | Berbagai file | Teks *hardcoded* ID masih ada di auth-modal. History-table, Compounding, dan Beranda (akses cepat) sudah dwibahasa |
 | L-08 | README.md | Usang: versi Next, xlsx, confetti, link LICENSE yang tidak ada, tree salah, env var kurang, endpoint kurang |
 | L-09 | dividend-tab.tsx:112 | Props tidak dipakai; state toast tidak pernah di-set |
 | L-10 | portfolio-tab.tsx | Error ditampilkan dengan `alert()` padahal sudah ada sistem toast |
@@ -1106,9 +1171,11 @@ Temuan Medium lain yang terkait performa dan robustness:
 |---|---|---|---|
 | `b9db7a6` | 2026-10-07 | M-09, L-04, sebagian L-07 (history-table) | Avg Down: baris tahap terpotong di HP dan kolom sempit; tampilan "--x%" saat average up atau loss membesar; estimasi riwayat yang mengabaikan fee; teks riwayat yang hanya berbahasa Indonesia |
 | `64d6a96` | 2026-10-07 | — | Ikon sidebar Dividen dan E-IPO sama (`Coins`); ikon `Percent` dipakai Compounding, bukan Persentase |
+| `6360bca` | 2026-10-07 | — | Admin Panel memanggil Supabase di setiap pembukaan halaman oleh siapa pun dan mencetak error `{}` |
+| `db0cca3` | 2026-10-07 | M-02, M-15 | Beranda: badge "LIVE" selalu menyala walau bursa tutup; **acuan harga dari Yahoo basi** (IHSG +0,46% padahal −0,75%, VKTR −19,76% padahal −0,74%), juga memengaruhi `/api/ticker`; volume IHSG selalu 0; tombol hapus watchlist tak terlihat di HP; satuan "M" untuk juta; kas RDN fiktif Rp100 juta; isi Tips (salah ketik, kutipan Einstein, angka break-even) |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
-**Masih terbuka:** semua temuan Critical dan High, M-01–M-08, M-10–M-18, L-01 (E-IPO), L-02, L-03, L-05, L-06, L-07 (auth-modal, quick-nav), L-08–L-10.
+**Masih terbuka:** semua temuan Critical dan High, M-01, M-03–M-08, M-10–M-14, M-16–M-18, L-01 (E-IPO), L-02, L-03, L-05, L-06, L-07 (auth-modal), L-08–L-10.
 
 ---
 
@@ -1129,7 +1196,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down & Compounding | Pakai juga di Dividen, E-IPO, Persentase, Portofolio |
 | Rantai fallback Gemini → Groq → OpenAI | 2× | `lib/llm.ts` |
 | Parser RSS | 2× | `lib/rss.ts` |
-| String User-Agent Mozilla | 15× di 8 file | `lib/yahoo.ts` |
+| String User-Agent Mozilla | 12× di 7 file (analysis, dividend, news, ticker search); route data pasar sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
 | `NEXT_PUBLIC_ADMIN_EMAIL \|\| 'admin@…'` | 5× | `lib/config.ts` |
 | Literal kunci `nunnn_stock_*` | Puluhan | `lib/storage-keys.ts` |
 | Tipe `StockFundamentals` (server vs klien berbeda bentuk) | 2× | `lib/types.ts` |
@@ -1170,7 +1237,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 2. **H-03:** perkuat SSRF guard dan batasi panjang body.
 3. **H-05:** pasang Upstash; **M-17:** `CRON_SECRET`.
 4. **H-06:** ganti `deploy.js` dengan manajemen env yang selektif.
-5. Tambahkan timeout ke semua fetch eksternal, `Promise.all` di Analisis, dan cache market-summary (M-15).
+5. Tambahkan timeout ke fetch eksternal yang tersisa (analisis, dividen, berita) dan `Promise.all` di Analisis. (Cache market-summary M-15 ✅ `db0cca3`.)
 6. **M-14:** simpan rincian tahap Avg Down.
 
 ### P2: kualitas jangka panjang
@@ -1188,7 +1255,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (104 commit)
+### 15.1 Riwayat pengembangan (108 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1200,7 +1267,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | 2026-09-02/03 | Sprint keamanan: authz, SSRF, RLS, rate limit, upgrade Next `f24e8ce`; headers, validator, hapus xlsx, CSRF `56beb3d`; pin SHA `01950d7`; laporan final `a7f4dfa` |
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
 | 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
-| 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1` |
+| 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3` |
 
 ### 15.2 Glosarium
 
