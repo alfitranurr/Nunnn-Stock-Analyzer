@@ -57,7 +57,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
     { id: 'portfolio', label: t('sidebar.portfolio'), icon: Briefcase, active: true, isLocked: !user },
     ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true }] : []),
     { id: 'history', label: t('sidebar.history'), icon: History, active: false, labelBadge: t('common.soon') },
-    { id: 'watchlist', label: t('sidebar.watchlist'), icon: Star, active: false, labelBadge: t('common.soon') },
+    { id: 'watchlist', label: t('sidebar.watchlist'), icon: Star, active: true },
   ];
 
   const sidebarVariants = {

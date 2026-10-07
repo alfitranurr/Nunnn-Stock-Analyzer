@@ -5,12 +5,9 @@ import { getErrorMessage } from '@/lib/utils';
 import { Sidebar } from '@/components/sidebar';
 import { CalculatorForm } from '@/components/calculator-form';
 import { ResultsDisplay } from '@/components/results-display';
-import { MarketSummary } from '@/components/market-summary';
-import { QuickSearchTicker } from '@/components/quick-search-ticker';
-import { TrendingNewsStrip } from '@/components/trending-news-strip';
-import { PortfolioSnapshot } from '@/components/portfolio-snapshot';
-import { EducationalTipCard } from '@/components/educational-tip-card';
-import { WatchlistMini } from '@/components/watchlist-mini';
+import { HomeDashboard, useIdxSessionState } from '@/components/home/home-dashboard';
+import { WatchlistPanel } from '@/components/watchlist-panel';
+import { connectWatchlistToUser } from '@/lib/watchlist-store';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
@@ -26,27 +23,9 @@ import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
-import { Sparkles, AlertCircle, Info, ChevronUp, ArrowRight, Calculator, ShieldCheck } from 'lucide-react';
+import { Sparkles, AlertCircle, Info, ChevronUp, Calculator, ShieldCheck, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
 import { useLanguage } from '@/lib/language-context';
-
-const MARQUEE_TICKERS = ['BBRI', 'BBCA', 'GOTO', 'TLKM', 'ASII', 'ANTM', 'BMRI', 'BBNI', 'BREN', 'BRPT', 'TPIA', 'CUAN', 'ADRO', 'PTBA', 'ITMG', 'UNVR'];
-
-function MarqueeLogo({ symbol }: { symbol: string }) {
-  const [hasError, setHasError] = React.useState(false);
-  if (hasError) return null;
-  return (
-    <Image
-      src={`https://assets.stockbit.com/logos/companies/${symbol}.png`}
-      alt={symbol}
-      width={16}
-      height={16}
-      className="w-4 h-4 object-contain opacity-60"
-      onError={() => setHasError(true)}
-    />
-  );
-}
 
 export default function Dashboard() {
   const [currentTab, setCurrentTabRaw] = React.useState('home');
@@ -528,6 +507,18 @@ export default function Dashboard() {
     );
   };
 
+  const handleSelectTicker = React.useCallback((symbol: string) => {
+    setSelectedAnalysisTicker(symbol);
+    setCurrentTab('analysis');
+  }, [setCurrentTab]);
+
+  const { trading: watchlistTrading } = useIdxSessionState(currentTab === 'watchlist');
+
+  // Sinkronkan watchlist dengan akun Supabase (fallback ke browser).
+  React.useEffect(() => {
+    void connectWatchlistToUser(user && !user.isMock ? user.id : null);
+  }, [user]);
+
   const handleAnalyzeFromPortfolio = (ticker: string) => {
     setSelectedAnalysisTicker(ticker);
     setCurrentTab('analysis');
@@ -617,220 +608,44 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
               animate={currentTab === 'home' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-8"
             >
-              {/* Premium Hero Banner Card */}
-              <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-card-bg via-[#161a1d] to-[#121517] p-6 md:p-10 shadow-2xl">
-                {/* Glow effects */}
-                <div className="absolute top-0 right-0 w-[200px] md:w-[320px] h-[200px] md:h-[320px] rounded-full bg-emerald-500/10 blur-[80px] md:blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-[180px] md:w-[250px] h-[180px] md:h-[250px] rounded-full bg-emerald-500/5 blur-[80px] md:blur-[100px] pointer-events-none" />
-                
-                <div className="relative z-10 w-full space-y-4">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-extrabold uppercase tracking-widest text-emerald-400">
-                    <Sparkles className="h-3 w-3 text-emerald-400 animate-pulse" />
-                    <span>{t('cover.sparkles')}</span>
-                  </div>
-                  
-                  <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white">
-                    {t('cover.title1')} <span className="text-profit-glow">{t('cover.title2')}</span>
-                  </h1>
-                  
-                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
-                    {t('cover.desc')}
-                  </p>
-                  
-                  {/* Status: Login CTA for non-logged-in users */}
-                  <div className="pt-2">
-                    {!user && (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-                        <span className="text-[10px] md:text-xs text-slate-500">
-                          {language === 'id'
-                            ? 'Masuk ke akun Anda untuk menyimpan rencana & memantau portofolio riil.'
-                            : 'Sign in to your account to save plans & monitor real portfolio.'}
-                        </span>
-                        <button
-                          onClick={() => setIsAuthModalOpen(true)}
-                          className="self-start px-4.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] md:text-xs transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          {t('sidebar.login')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+              <HomeDashboard
+                user={user}
+                isActive={currentTab === 'home'}
+                portfolioRefreshKey={portfolioRefreshKey}
+                onNavigate={setCurrentTab}
+                onSelectTicker={handleSelectTicker}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+              />
+            </motion.div>
+          </div>
 
-                  {/* Feature Quick Navigation Grid (Horizontal Cards) */}
-                  <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3">
-                    <button
-                      onClick={() => setCurrentTab('avg-down')}
-                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
-                    >
-                      <div>
-                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">Average Down</span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">Floating Loss & Fee</span>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                    </button>
-                    <button
-                      onClick={() => setCurrentTab('dividend')}
-                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
-                    >
-                      <div>
-                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">
-                          Kalkulator Dividen
-                        </span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">Passive Income & Pajak</span>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                    </button>
-                    <button
-                      onClick={() => setCurrentTab('compounding')}
-                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
-                    >
-                      <div>
-                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">Compounding</span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">Pertumbuhan Investasi</span>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                    </button>
-                    <button
-                      onClick={() => setCurrentTab('percentage')}
-                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
-                    >
-                      <div>
-                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">
-                          {language === 'id' ? 'Persentase' : 'Percentage'}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">{language === 'id' ? 'Naik/Turun Berapa %' : 'Increase/Decrease %'}</span>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                    </button>
-                    <button
-                      onClick={() => setCurrentTab('ipo')}
-                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 flex items-center justify-between gap-3 text-left transition-all cursor-pointer group"
-                    >
-                      <div>
-                        <span className="font-bold text-xs text-white block group-hover:text-emerald-400 transition-colors">Jatah E-IPO</span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">Pooling Jatah Saham</span>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quick Ticker Search + Connection Status */}
-                <div className="pt-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <QuickSearchTicker
-                      language={language}
-                      onSelectTicker={(symbol) => {
-                        setSelectedAnalysisTicker(symbol);
-                        setCurrentTab('analysis');
-                      }}
-                    />
-                  </div>
-                  {user && (
-                    <div className="shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 sm:self-stretch">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                      <span className="text-[11px] font-semibold whitespace-nowrap">
-                        {language === 'id' ? 'Terhubung' : 'Connected'}
-                      </span>
-                      <span className="text-[10px] text-emerald-300/80 font-medium whitespace-nowrap max-w-[140px] truncate">
-                        {user.email}
-                      </span>
-                      <span className="text-[9px] text-emerald-400/50 font-bold uppercase tracking-wider whitespace-nowrap">
-                        · {isSupabaseConfigured && !user.isMock ? 'Cloud' : 'Local'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Market Summary (IHSG + Top Movers) */}
-                <div className="pt-4">
-                  <MarketSummary language={language} />
-                </div>
-
-                {/* Portfolio Snapshot (only for logged-in users) */}
-                {user && (
-                  <div className="pt-4">
-                    <PortfolioSnapshot
-                      user={user}
-                      language={language}
-                      onOpenPortfolio={() => setCurrentTab('portfolio')}
-                      refreshKey={portfolioRefreshKey}
-                    />
-                  </div>
-                )}
-
-                {/* Trending News Strip */}
-                <div className="pt-4">
-                  <TrendingNewsStrip language={language} />
-                </div>
-
-                {/* Watchlist + Educational Tip (side by side on lg) */}
-                <div className="pt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <WatchlistMini
-                    language={language}
-                    onSelectTicker={(symbol) => {
-                      setSelectedAnalysisTicker(symbol);
-                      setCurrentTab('analysis');
-                    }}
-                  />
-                  <EducationalTipCard language={language} />
-                </div>
-
-                {/* Horizontal Ticker Marquee */}
-                <div className="relative w-full overflow-hidden border-t border-white/5 pt-4 mt-4 select-none">
-                  <style>{`
-                    @keyframes marqueeLtr {
-                      0% { transform: translate3d(-50%, 0, 0); }
-                      100% { transform: translate3d(0%, 0, 0); }
-                    }
-                    .animate-marquee-ltr {
-                      display: flex;
-                      width: max-content;
-                      animation: marqueeLtr 30s linear infinite;
-                    }
-                    .marquee-fade-left {
-                      background: linear-gradient(to right, var(--card-bg) 0%, transparent 100%);
-                    }
-                    .marquee-fade-right {
-                      background: linear-gradient(to left, var(--card-bg) 0%, transparent 100%);
-                    }
-                  `}</style>
-                  
-                  {/* Gradient Fade Overlays */}
-                  <div className="absolute inset-y-0 left-0 w-8.5 marquee-fade-left z-10 pointer-events-none" />
-                  <div className="absolute inset-y-0 right-0 w-8.5 marquee-fade-right z-10 pointer-events-none" />
-                  
-                  <div className="animate-marquee-ltr flex whitespace-nowrap">
-                    <div className="flex items-center gap-6 pr-6 shrink-0">
-                      {MARQUEE_TICKERS.map((symbol) => (
-                        <div key={`marquee-1-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
-                          <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                            <MarqueeLogo symbol={symbol} />
-                          </div>
-                          <span className="text-[10px] font-black text-white/30 tracking-wider uppercase">{symbol}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-6 pr-6 shrink-0" aria-hidden="true">
-                      {MARQUEE_TICKERS.map((symbol) => (
-                        <div key={`marquee-2-${symbol}`} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-white/5 bg-white/[0.02] shadow-sm shrink-0">
-                          <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
-                            <MarqueeLogo symbol={symbol} />
-                          </div>
-                          <span className="text-[10px] font-black text-white/30 tracking-wider uppercase">{symbol}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+          {/* Watchlist Tab */}
+          <div className={currentTab === 'watchlist' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'watchlist' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-5 max-w-3xl"
+            >
+              <div>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+                  <Star className="h-6 w-6 text-amber-400" />
+                  Watchlist
+                </h1>
+                <p className="text-xs md:text-sm text-slate-400 mt-1">
+                  {language === 'id'
+                    ? 'Pantau hingga 20 saham. Harga diperbarui tiap menit selama jam bursa. Klik kode saham untuk analisis lengkap.'
+                    : 'Track up to 20 stocks. Prices refresh every minute during market hours. Click a ticker for full analysis.'}
+                </p>
               </div>
-
-              {/* Disclaimer */}
-              <div className="max-w-2xl mx-auto w-full p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-[9px] md:text-[10px] text-slate-500 leading-relaxed text-center">
-                {t('common.disclaimer')}
-              </div>
+              <WatchlistPanel
+                language={language}
+                isActive={currentTab === 'watchlist'}
+                trading={watchlistTrading}
+                onSelectTicker={handleSelectTicker}
+                variant="full"
+              />
             </motion.div>
           </div>
 

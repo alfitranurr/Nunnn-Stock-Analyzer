@@ -78,6 +78,46 @@ export function roundDownToIdxTick(price: number): number {
   return Math.floor(price / tick) * tick;
 }
 
+/** Bulatkan ke fraksi harga BEI terdekat (mis. 672,87 → 675). */
+export function roundToNearestIdxTick(price: number): number {
+  if (price <= 0) return 0;
+  const tick = getIdxTickSize(price);
+  return Math.max(tick, Math.round(price / tick) * tick);
+}
+
+/**
+ * Batas auto rejection BEI (%) berdasarkan harga acuan (penutupan sebelumnya):
+ * ≤ Rp200 → 35%, ≤ Rp5.000 → 25%, di atasnya → 20%. Diasumsikan simetris untuk ARA dan ARB.
+ */
+export function getAutoRejectionPct(referencePrice: number): number {
+  if (referencePrice <= 200) return 35;
+  if (referencePrice <= 5000) return 25;
+  return 20;
+}
+
+/**
+ * Harga tertinggi (ARA) & terendah (ARB) yang dimungkinkan dari harga acuan.
+ * Perubahan minimal satu fraksi selalu diizinkan (penting untuk saham berharga sangat rendah).
+ */
+export function getAutoRejectionBounds(referencePrice: number): { upper: number; lower: number; pct: number } {
+  const pct = getAutoRejectionPct(referencePrice);
+  const tick = getIdxTickSize(referencePrice);
+  const upper = Math.max(roundDownToIdxTick(referencePrice * (1 + pct / 100)), referencePrice + tick);
+  const lowerRaw = referencePrice * (1 - pct / 100);
+  const lowerTick = getIdxTickSize(lowerRaw);
+  const lower = Math.max(1, Math.min(Math.ceil(lowerRaw / lowerTick) * lowerTick, referencePrice - tick));
+  return { upper, lower, pct };
+}
+
+/** 'ARA' / 'ARB' bila harga sudah menyentuh batas auto rejection, selain itu null. */
+export function getAutoRejectionStatus(referencePrice: number, price: number): 'ARA' | 'ARB' | null {
+  if (referencePrice <= 0 || price <= 0) return null;
+  const { upper, lower } = getAutoRejectionBounds(referencePrice);
+  if (price > referencePrice && price >= upper) return 'ARA';
+  if (price < referencePrice && price <= lower) return 'ARB';
+  return null;
+}
+
 /**
  * Naikkan/turunkan harga satu fraksi BEI. Harga yang belum sesuai fraksi
  * di-snap ke harga valid terdekat ke arah yang dituju (mis. 2.755 → 2.760 / 2.750).

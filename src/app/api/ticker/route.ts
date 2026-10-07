@@ -3,6 +3,7 @@ import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
 import { applyRateLimit } from '@/lib/rate-limit';
 import { validateTickerSymbol } from '@/lib/validators';
+import { getMarketDataProvider, getValidatedStockQuotes, logSuspectQuotes } from '@/lib/market-data';
 
 // Always run dynamically — this route proxies Yahoo Finance real-time data.
 export const dynamic = 'force-dynamic';
@@ -19,22 +20,6 @@ interface YahooQuote {
 interface YahooSearchResponse {
   quotes?: YahooQuote[];
 }
-
-interface YahooChartMeta {
-  longName?: string;
-  shortName?: string;
-  regularMarketPrice?: number | null;
-  chartPreviousClose?: number | null;
-  previousClose?: number | null;
-  regularMarketChangePercent?: number | null;
-}
-
-interface YahooChartResponse {
-  chart?: {
-    result?: Array<{ meta?: YahooChartMeta }>;
-  };
-}
-
 
 export async function GET(request: NextRequest) {
   const limited = await applyRateLimit(request);
@@ -96,22 +81,9 @@ export async function GET(request: NextRequest) {
       // 3. Jika q berukuran 3-6 karakter dan belum ditemukan di hasil, tes langsung ke Yahoo Chart API (${cleanQ}.JK)
       if (cleanQ.length >= 3 && cleanQ.length <= 6 && !resultsMap.has(cleanQ)) {
         try {
-          const chartRes = await fetch(
-            `https://query1.finance.yahoo.com/v8/finance/chart/${cleanQ}.JK`,
-            {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-              },
-              cache: 'no-store'
-            }
-          );
-          if (chartRes.ok) {
-            const chartData: YahooChartResponse = await chartRes.json();
-            const meta = chartData.chart?.result?.[0]?.meta;
-            if (meta) {
-              const name = cleanCompanyName(meta.longName || meta.shortName || cleanQ);
-              resultsMap.set(cleanQ, { symbol: cleanQ, name });
-            }
+          const quote = (await getMarketDataProvider().getStockQuotes([cleanQ])).get(cleanQ);
+          if (quote) {
+            resultsMap.set(cleanQ, { symbol: cleanQ, name: quote.name || IDX_TICKERS[cleanQ] || cleanQ });
           }
         } catch {
           // Abaikan
@@ -127,7 +99,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const symbol = validateTickerSymbol(searchParams.get('symbol'));
+  const symbol = validateTickerSymbol(searchParams.get('symbol'))?.replace(/\.JK$/i, '') ?? null;
 
   if (!symbol) {
     return NextResponse.json({ error: 'Symbol or q parameter is required' }, { status: 400 });
@@ -137,36 +109,23 @@ export async function GET(request: NextRequest) {
     // Check local dictionary first for instant name fallback
     const localName = IDX_TICKERS[symbol] || '';
 
-    // Mengambil data chart (termasuk harga real-time dan nama) dari Yahoo Finance
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.JK`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        },
-        cache: 'no-store' // Jangan di-cache agar harga selalu real-time
-      }
-    );
-
-    if (!response.ok) {
+    // Harga terkini + acuan sesi sebelumnya dari provider aktif, lalu dicek kewajarannya.
+    const { quotes, suspect } = await getValidatedStockQuotes([symbol]);
+    const checked = quotes.get(symbol);
+    if (!checked) {
       return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
     }
+    logSuspectQuotes(`ticker ${symbol}`, suspect);
 
-    const data: YahooChartResponse = await response.json();
-    const meta = data.chart?.result?.[0]?.meta;
-
-    if (meta) {
-      const name = cleanCompanyName(meta.longName || meta.shortName || localName || symbol);
-      const price = meta.regularMarketPrice || null;
-      const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? null;
-      const changePercent = meta.regularMarketChangePercent
-        ? meta.regularMarketChangePercent
-        : (prevClose && price ? ((price - prevClose) / prevClose) * 100 : null);
-
-      return NextResponse.json({ symbol, name, price, previousClose: prevClose, changePercent });
-    }
-
-    return NextResponse.json({ symbol, name: cleanCompanyName(localName || symbol), price: null });
+    const { quote, issue } = checked;
+    return NextResponse.json({
+      symbol,
+      name: cleanCompanyName(quote.name || localName || symbol),
+      price: quote.price,
+      previousClose: issue ? null : quote.previousClose,
+      // Perubahan yang tidak lolos pengecekan tidak dikirim agar tidak menyesatkan.
+      changePercent: issue ? null : quote.changePercent,
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Error fetching ticker data from internet:', message);

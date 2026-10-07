@@ -1,7 +1,9 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { getAutoRejectionStatus } from '@/lib/calculator';
+import { createTtlCache } from '@/lib/yahoo';
+import { getMarketDataProvider, getValidatedStockQuotes, logSuspectQuotes } from '@/lib/market-data';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -12,173 +14,124 @@ interface StockMover {
   price: number;
   change: number;
   changePercent: number;
-  volume: number;
+  volume: number; // lembar
+  value: number; // nilai transaksi (Rp) ≈ harga × volume
+  limit: 'ARA' | 'ARB' | null;
 }
 
-const UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-async function fetchIndexQuote(symbol: string): Promise<{
-  price: number;
-  previousClose: number;
-  change: number;
-  changePercent: number;
-  volume: number;
-  dayHigh: number;
-  dayLow: number;
-  yearHigh: number;
-  yearLow: number;
-  name: string;
-} | null> {
-  try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1d&interval=1d`,
-      { headers: { 'User-Agent': UA }, cache: 'no-store' }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const meta = data.chart?.result?.[0]?.meta;
-    if (!meta || meta.regularMarketPrice == null) return null;
-
-    const price = meta.regularMarketPrice;
-    const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price;
-    const change = price - prevClose;
-    const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-    const name = cleanCompanyName(meta.longName || meta.shortName || symbol);
-
-    return {
-      price,
-      previousClose: prevClose,
-      change,
-      changePercent,
-      volume: meta.regularMarketVolume ?? 0,
-      dayHigh: meta.regularMarketDayHigh ?? price,
-      dayLow: meta.regularMarketDayLow ?? price,
-      yearHigh: meta.fiftyTwoWeekHigh ?? price,
-      yearLow: meta.fiftyTwoWeekLow ?? price,
-      name,
-    };
-  } catch {
-    return null;
-  }
-}
-
-interface SparkMeta {
-  regularMarketPrice?: number;
-  chartPreviousClose?: number;
-  previousClose?: number;
-  regularMarketVolume?: number;
-  longName?: string;
-  shortName?: string;
-}
-
-interface SparkResponse {
-  spark?: {
-    result?: Array<{
-      symbol: string;
-      response: Array<{ meta?: SparkMeta }>;
-    }>;
-    error?: unknown;
+interface MarketScan {
+  ihsg: {
+    price: number;
+    previousClose: number;
+    change: number;
+    changePercent: number;
+    dayHigh: number;
+    dayLow: number;
+    yearHigh: number;
+    yearLow: number;
+    marketTime: number | null;
+    intraday: number[];
   };
+  movers: StockMover[];
+  /** Saham yang datanya dilewati karena tidak lolos pengecekan kewajaran. */
+  excluded: Array<{ symbol: string; issue: string }>;
+  scannedAt: string;
 }
 
-/**
- * Batch-fetch up to 20 tickers per request using Yahoo Spark API.
- * Runs multiple batches in parallel waves to speed up fetching 900+ tickers.
- */
-async function fetchBatchMovers(
-  entries: Array<[string, string]>,
-  batchSize = 20,
-  parallelWaves = 5
-): Promise<StockMover[]> {
+const TOP_N = 6;
+const MAX_MIN_VALUE = 1e13;
+
+// Satu scan dipakai bersama oleh semua pengunjung selama 45 detik.
+const scanCache = createTtlCache<MarketScan>(45_000, 1);
+
+async function scanMarket(): Promise<MarketScan> {
+  const provider = getMarketDataProvider();
+  const tickers = Object.keys(IDX_TICKERS);
+  const [ihsg, { quotes, suspect }] = await Promise.all([
+    provider.getCompositeIndex(),
+    getValidatedStockQuotes(tickers),
+  ]);
+
+  if (!ihsg) throw new Error('IHSG quote unavailable');
+  logSuspectQuotes('scan pasar', suspect);
+
   const movers: StockMover[] = [];
-  const batches: Array<[string, string][]> = [];
-
-  for (let i = 0; i < entries.length; i += batchSize) {
-    batches.push(entries.slice(i, i + batchSize));
+  for (const { quote, issue } of quotes.values()) {
+    if (issue) continue;
+    movers.push({
+      symbol: quote.ticker,
+      name: quote.name || IDX_TICKERS[quote.ticker] || quote.ticker,
+      price: quote.price,
+      change: quote.change,
+      changePercent: quote.changePercent,
+      volume: quote.volume,
+      value: quote.price * quote.volume,
+      limit: getAutoRejectionStatus(quote.previousClose, quote.price),
+    });
   }
 
-  // Process batches in parallel waves to avoid overwhelming Yahoo.
-  for (let w = 0; w < batches.length; w += parallelWaves) {
-    const wave = batches.slice(w, w + parallelWaves);
-    const waveResults = await Promise.all(
-      wave.map(async (batch) => {
-        const fallbackNames = new Map(batch);
-        const symbolsParam = batch.map(([sym]) => `${sym}.JK`).join(',');
-        try {
-          const res = await fetch(
-            `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbolsParam}&range=1d&interval=1d`,
-            { headers: { 'User-Agent': UA }, cache: 'no-store' }
-          );
-          if (!res.ok) return [];
-          const data: SparkResponse = await res.json();
-          const results = data.spark?.result || [];
-          const batchMovers: StockMover[] = [];
-
-          for (const result of results) {
-            const meta = result.response[0]?.meta;
-            if (!meta || meta.regularMarketPrice == null) continue;
-
-            const symbol = result.symbol.replace(/\.JK$/i, '');
-            const price = meta.regularMarketPrice;
-            const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price;
-            const change = price - prevClose;
-            const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
-            batchMovers.push({
-              symbol,
-              name: cleanCompanyName(meta.longName || meta.shortName || fallbackNames.get(symbol) || symbol),
-              price,
-              change,
-              changePercent,
-              volume: meta.regularMarketVolume ?? 0,
-            });
-          }
-          return batchMovers;
-        } catch {
-          return [];
-        }
-      })
-    );
-    for (const result of waveResults) {
-      movers.push(...result);
-    }
-  }
-
-  return movers;
+  return {
+    ihsg: {
+      price: ihsg.price,
+      previousClose: ihsg.previousClose,
+      change: ihsg.change,
+      changePercent: ihsg.changePercent,
+      dayHigh: ihsg.dayHigh,
+      dayLow: ihsg.dayLow,
+      yearHigh: ihsg.yearHigh,
+      yearLow: ihsg.yearLow,
+      marketTime: ihsg.marketTime,
+      intraday: ihsg.intraday,
+    },
+    movers,
+    excluded: suspect.map((s) => ({ symbol: s.quote.ticker, issue: s.issue ?? 'unknown' })),
+    scannedAt: new Date().toISOString(),
+  };
 }
 
 export async function GET(request: NextRequest) {
   const limited = await applyRateLimit(request);
   if (limited) return limited;
 
-  // Fetch IHSG composite index
-  const ihsg = await fetchIndexQuote('^JKSE');
+  const minValueParam = Number(request.nextUrl.searchParams.get('minValue') ?? 0);
+  const minValue = Number.isFinite(minValueParam) ? Math.min(Math.max(0, minValueParam), MAX_MIN_VALUE) : 0;
 
-  // Fetch ALL tickers from the dictionary using batch Spark API.
-  // Spark API accepts max 20 symbols per request, so we batch ~105 tickers
-  // into ~6 requests (much faster than 105 individual requests).
-  const allEntries = Object.entries(IDX_TICKERS);
-  const movers = await fetchBatchMovers(allEntries, 20);
-
-  // Sort by absolute change% to find the biggest movers
-  movers.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
-
-  const topGainers = movers.filter((m) => m.change > 0).slice(0, 5);
-  const topLosers = movers.filter((m) => m.change < 0).slice(0, 5);
-
-  if (!ihsg) {
-    return NextResponse.json(
-      { error: 'Failed to fetch market data' },
-      { status: 502 }
-    );
+  let scan: MarketScan;
+  try {
+    ({ value: scan } = await scanCache('scan', scanMarket));
+  } catch {
+    return NextResponse.json({ error: 'Failed to fetch market data' }, { status: 502 });
   }
 
+  const { movers } = scan;
+  const liquid = movers.filter((m) => m.value >= minValue);
+  const provider = getMarketDataProvider();
+
+  const breadth = {
+    advancers: movers.filter((m) => m.change > 0).length,
+    decliners: movers.filter((m) => m.change < 0).length,
+    unchanged: movers.filter((m) => m.change === 0).length,
+    ara: movers.filter((m) => m.limit === 'ARA').length,
+    arb: movers.filter((m) => m.limit === 'ARB').length,
+    totalValue: movers.reduce((sum, m) => sum + m.value, 0),
+  };
+
   return NextResponse.json({
-    ihsg,
-    topGainers,
-    topLosers,
+    ihsg: scan.ihsg,
+    breadth,
+    movers: {
+      gainers: liquid.filter((m) => m.change > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, TOP_N),
+      losers: liquid.filter((m) => m.change < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, TOP_N),
+      value: [...movers].sort((a, b) => b.value - a.value).slice(0, TOP_N),
+      volume: [...movers].sort((a, b) => b.volume - a.volume).slice(0, TOP_N),
+    },
+    minValue,
     totalScanned: movers.length,
-    timestamp: new Date().toISOString(),
+    dataQuality: {
+      excludedCount: scan.excluded.length,
+      excluded: scan.excluded.slice(0, 20),
+    },
+    source: { id: provider.id, label: provider.label, delayed: provider.delayed },
+    scannedAt: scan.scannedAt,
   });
 }

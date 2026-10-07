@@ -50,7 +50,7 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="rounded-2xl bg-white/[0.02] border border-white/5 p-4 animate-pulse h-[100px]" />
         ))}
@@ -61,7 +61,9 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
   if (error || news.length === 0) {
     return (
       <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-center text-xs text-slate-500">
-        {isId ? 'Gagal memuat berita terkini.' : 'Failed to load latest news.'}
+        {error
+          ? (isId ? 'Gagal memuat berita terkini.' : 'Failed to load latest news.')
+          : (isId ? 'Belum ada berita terbaru.' : 'No recent news yet.')}
       </div>
     );
   }
@@ -74,7 +76,7 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
           {isId ? 'Berita Pasar Terkini' : 'Latest Market News'}
         </span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {news.map((item, i) => (
           <motion.a
             key={i}

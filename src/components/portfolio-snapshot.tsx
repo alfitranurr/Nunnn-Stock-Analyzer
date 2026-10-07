@@ -5,6 +5,8 @@ import { TrendingUp, TrendingDown, Wallet, Briefcase, ArrowRight } from 'lucide-
 import { motion } from 'framer-motion';
 import type { AppUser } from '@/lib/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
+import { formatIDRCompact, formatNumberLocale } from '@/lib/format';
 
 interface Holding {
   id: string;
@@ -24,30 +26,21 @@ interface PortfolioSnapshotProps {
 
 export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey = 0 }: PortfolioSnapshotProps) {
   const [holdings, setHoldings] = React.useState<Holding[]>([]);
-  const [cashBalance, setCashBalance] = React.useState(0);
-  const [currentPrices, setCurrentPrices] = React.useState<Record<string, number>>({});
+  // null = kas RDN belum pernah diatur (jangan tampilkan angka fiktif)
+  const [cashBalance, setCashBalance] = React.useState<number | null>(null);
+  const [quotes, setQuotes] = React.useState<Record<string, QuoteItem>>({});
   const [loading, setLoading] = React.useState(true);
 
   const isId = language === 'id';
-
-  const formatShortIDR = (value: number) => {
-    if (Math.abs(value) >= 1e12) return `Rp ${(value / 1e12).toFixed(1)}T`;
-    if (Math.abs(value) >= 1e9) return `Rp ${(value / 1e9).toFixed(1)}B`;
-    if (Math.abs(value) >= 1e6) return `Rp ${(value / 1e6).toFixed(1)}M`;
-    if (Math.abs(value) >= 1e3) return `Rp ${(value / 1e3).toFixed(0)}K`;
-    return `Rp ${value.toFixed(0)}`;
-  };
+  const money = (v: number) => formatIDRCompact(v, language);
 
   const loadFromLocalStorage = React.useCallback(() => {
     if (!user) return;
     try {
       const storedHoldings = localStorage.getItem(`nunnn_stock_portfolio_holdings_${user.id}`);
       const storedCash = localStorage.getItem(`nunnn_stock_portfolio_cash_${user.id}`);
-
-      if (storedHoldings) {
-        setHoldings(JSON.parse(storedHoldings));
-      }
-      setCashBalance(storedCash ? parseFloat(storedCash) : 100000000);
+      setHoldings(storedHoldings ? JSON.parse(storedHoldings) : []);
+      setCashBalance(storedCash !== null && !Number.isNaN(parseFloat(storedCash)) ? parseFloat(storedCash) : null);
     } catch {
       // ignore
     }
@@ -60,23 +53,18 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
 
     if (isSupabaseConfigured && !user.isMock) {
       try {
-        // Fetch cash
-        const { data: cashDataArray } = await supabase
+        const { data: cashDataArray, error: cashError } = await supabase
           .from('portfolio_cash')
           .select('cash_balance')
           .eq('user_id', user.id);
+        if (cashError) throw cashError;
+        setCashBalance(cashDataArray && cashDataArray.length > 0 ? Number(cashDataArray[0].cash_balance) : null);
 
-        if (cashDataArray && cashDataArray.length > 0) {
-          setCashBalance(Number(cashDataArray[0].cash_balance));
-        } else {
-          setCashBalance(100000000); // Default Rp 100M
-        }
-
-        // Fetch holdings
-        const { data: holdingsData } = await supabase
+        const { data: holdingsData, error: holdingsError } = await supabase
           .from('portfolio_holdings')
           .select('*')
           .order('ticker');
+        if (holdingsError) throw holdingsError;
 
         setHoldings(
           (holdingsData || []).map((h: Record<string, unknown>) => ({
@@ -105,45 +93,18 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
     return () => clearTimeout(timer);
   }, [loadData, refreshKey]);
 
-  // Fetch current prices for holdings (batched, same pattern as portfolio-tab).
+  // Harga terkini semua saham dalam satu request.
+  const tickersKey = holdings.map((h) => h.ticker.toUpperCase()).sort().join(',');
   React.useEffect(() => {
-    if (holdings.length === 0) return;
-
+    if (!tickersKey) return;
     let cancelled = false;
-    const missing = holdings
-      .map((h) => h.ticker.toUpperCase())
-      .filter((sym) => currentPrices[sym] === undefined);
-
-    if (missing.length === 0) return;
-
-    (async () => {
-      const CONCURRENCY = 4;
-      for (let i = 0; i < missing.length; i += CONCURRENCY) {
-        if (cancelled) break;
-        const batch = missing.slice(i, i + CONCURRENCY);
-        await Promise.all(
-          batch.map(async (symbol) => {
-            try {
-              const res = await fetch(`/api/ticker?symbol=${symbol}`);
-              if (res.ok) {
-                const data = await res.json();
-                if (!cancelled && data.price) {
-                  setCurrentPrices((prev) => ({ ...prev, [symbol]: data.price }));
-                }
-              }
-            } catch {
-              // ignore
-            }
-          })
-        );
-      }
-    })();
-
+    fetchQuotes(tickersKey.split(','))
+      .then((data) => { if (!cancelled) setQuotes(data); })
+      .catch(() => { /* tetap pakai avg price */ });
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [holdings]);
+  }, [tickersKey]);
 
   if (!user) return null;
 
@@ -156,18 +117,27 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
   // Calculate totals
   let totalInvested = 0;
   let totalMarketValue = 0;
+  let todayPL = 0;
+  let pricedCount = 0;
 
   holdings.forEach((h) => {
     const shares = h.lot * 100;
-    const price = currentPrices[h.ticker.toUpperCase()] ?? h.avg_price;
+    const quote = quotes[h.ticker.toUpperCase()];
+    const price = quote?.price ?? h.avg_price;
     totalInvested += shares * h.avg_price;
     totalMarketValue += shares * price;
+    // Perubahan harga yang meragukan tidak dihitung ke P&L hari ini.
+    if (quote && !quote.suspect) {
+      todayPL += shares * quote.change;
+      pricedCount += 1;
+    }
   });
 
   const totalPL = totalMarketValue - totalInvested;
   const totalPLPct = totalInvested > 0 ? (totalPL / totalInvested) * 100 : 0;
-  const totalEquity = totalMarketValue + cashBalance;
-  const isProfit = totalPL >= 0;
+  const prevMarketValue = totalMarketValue - todayPL;
+  const todayPLPct = prevMarketValue > 0 ? (todayPL / prevMarketValue) * 100 : 0;
+  const totalEquity = totalMarketValue + (cashBalance ?? 0);
 
   if (holdings.length === 0) {
     return (
@@ -201,12 +171,23 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
     );
   }
 
+  const renderPL = (value: number, pct: number) => {
+    const up = value >= 0;
+    return (
+      <span className={`text-base font-black tracking-tight flex items-center gap-1 flex-wrap tabular-nums ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+        {up ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+        {up ? '+' : ''}{money(value)}
+        <span className="text-[10px] font-semibold">({up ? '+' : ''}{formatNumberLocale(pct, language, 2)}%)</span>
+      </span>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="rounded-2xl bg-white/[0.02] border border-white/5 p-5"
+      className="rounded-2xl bg-white/[0.02] border border-white/5 p-4 md:p-5"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -214,6 +195,7 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
             {isId ? 'Ringkasan Portofolio' : 'Portfolio Snapshot'}
           </span>
+          <span className="text-[10px] text-slate-600">{holdings.length} {isId ? 'saham' : holdings.length === 1 ? 'stock' : 'stocks'}</span>
         </div>
         <button
           onClick={onOpenPortfolio}
@@ -225,53 +207,42 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Total Equity */}
         <div>
-          <span className="text-[10px] text-slate-500 block">
-            {isId ? 'Total Ekuitas' : 'Total Equity'}
-          </span>
-          <span className="text-base font-black text-white tracking-tight">
-            {formatShortIDR(totalEquity)}
-          </span>
+          <span className="text-[10px] text-slate-500 block">{isId ? 'Total Ekuitas' : 'Total Equity'}</span>
+          <span className="text-base font-black text-white tracking-tight tabular-nums">{money(totalEquity)}</span>
+          <span className="text-[10px] text-slate-500 block">{isId ? 'Nilai pasar' : 'Market value'} {money(totalMarketValue)}</span>
         </div>
 
-        {/* Market Value */}
         <div>
-          <span className="text-[10px] text-slate-500 block">
-            {isId ? 'Nilai Pasar' : 'Market Value'}
-          </span>
-          <span className="text-base font-black text-white tracking-tight">
-            {formatShortIDR(totalMarketValue)}
-          </span>
+          <span className="text-[10px] text-slate-500 block">{isId ? 'P&L Hari Ini' : "Today's P&L"}</span>
+          {pricedCount > 0 ? (
+            renderPL(todayPL, todayPLPct)
+          ) : (
+            <span className="text-base font-black text-slate-500">—</span>
+          )}
         </div>
 
-        {/* Unrealized P&L */}
         <div>
-          <span className="text-[10px] text-slate-500 block">
-            {isId ? 'Profit/Loss' : 'Unrealized P&L'}
-          </span>
-          <span
-            className={`text-base font-black tracking-tight flex items-center gap-1 ${
-              isProfit ? 'text-emerald-400' : 'text-rose-400'
-            }`}
-          >
-            {isProfit ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-            {formatShortIDR(totalPL)}
-            <span className="text-[10px] font-semibold">
-              ({isProfit ? '+' : ''}{totalPLPct.toFixed(2)}%)
-            </span>
-          </span>
+          <span className="text-[10px] text-slate-500 block">{isId ? 'P&L Total (Floating)' : 'Total P&L (Unrealized)'}</span>
+          {renderPL(totalPL, totalPLPct)}
         </div>
 
-        {/* Buying Power */}
         <div>
-          <span className="text-[10px] text-slate-500 block flex items-center gap-0.5">
+          <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
             <Wallet className="h-2.5 w-2.5" />
-            {isId ? 'Kekuatan Beli (RDN)' : 'Buying Power'}
+            {isId ? 'Kas RDN' : 'Cash (RDN)'}
           </span>
-          <span className="text-base font-black text-white tracking-tight">
-            {formatShortIDR(cashBalance)}
-          </span>
+          {cashBalance !== null ? (
+            <span className="text-base font-black text-white tracking-tight tabular-nums">{money(cashBalance)}</span>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenPortfolio}
+              className="text-[11px] font-bold text-slate-400 hover:text-emerald-400 cursor-pointer"
+            >
+              {isId ? 'Belum diatur →' : 'Not set →'}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

@@ -52,22 +52,22 @@ const TIPS: Tip[] = [
     id: 'compounding',
     title_id: 'Kekuatan Bunga Majemuk',
     title_en: 'The Power of Compounding',
-    body_id: 'Bunga majemuk adalah "keajaiban dunia ke-8" menurut Einstein. Rp 10 juta dengan return 12% per tahun menjadi Rp 31 juta dalam 10 tahun tanpa tambahan modal. Mulai sedini mungkin untuk efek maksimal.',
-    body_en: 'Compound interest is the "8th wonder of the world" per Einstein. Rp 10M with 12% annual return becomes Rp 31M in 10 years without additional capital. Start early for maximum effect.',
+    body_id: 'Bunga majemuk membuat keuntungan ikut menghasilkan keuntungan. Rp 10 juta dengan return 12% per tahun menjadi sekitar Rp 31 juta dalam 10 tahun tanpa tambahan modal. Semakin awal mulai, semakin besar efeknya.',
+    body_en: 'Compounding means your returns start earning returns too. Rp 10M at 12% a year grows to about Rp 31M in 10 years without adding capital. The earlier you start, the bigger the effect.',
   },
   {
     id: 'bear-bull',
     title_id: 'Pasar Bear vs Bull',
     title_en: 'Bear vs Bull Market',
-    body_id: 'Bull market adalah kondisi pasar yang naik (optimisme), bear market adalah penurunan pasifik (pesimisme). Investor pemodal sering takut bear market, padahal itu adalah kesempatan membeli saham bagus dengan diskon.',
+    body_id: 'Bull market adalah kondisi pasar yang naik (optimisme), bear market adalah penurunan berkepanjangan (pesimisme). Banyak investor takut saat bear market, padahal itu bisa menjadi kesempatan membeli saham bagus dengan harga diskon.',
     body_en: 'Bull market is rising (optimism), bear market is declining (pessimism). Long-term investors often fear bear markets, but they are actually opportunities to buy quality stocks at a discount.',
   },
   {
     id: 'broker-fee',
     title_id: 'Biaya Broker & Break-Even',
     title_en: 'Broker Fees & Break-Even',
-    body_id: 'Setiap transaksi saham dikenakan fee beli (~0.15-0.19%) dan fee jual (~0.25-0.29%). Hitung break-even point sebelum entry: saham harus naik minimal 0.44% (buy+sell fee) baru Anda profit.',
-    body_en: 'Each stock trade incurs buy fee (~0.15-0.19%) and sell fee (~0.25-0.29%). Calculate break-even before entry: stock must rise at least 0.44% (buy+sell fee) to profit.',
+    body_id: 'Setiap transaksi saham dikenakan fee beli (~0,15–0,19%) dan fee jual (~0,25–0,29%). Hitung break-even sebelum entry: harga harus naik sekitar 0,40–0,48% (fee beli + jual) sebelum Anda benar-benar profit.',
+    body_en: 'Each stock trade incurs a buy fee (~0.15–0.19%) and a sell fee (~0.25–0.29%). Calculate break-even before entry: the price must rise about 0.40–0.48% (buy + sell fee) before you actually profit.',
   },
 ];
 

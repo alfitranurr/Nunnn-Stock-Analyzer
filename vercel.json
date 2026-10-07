@@ -13,7 +13,9 @@
     "src/app/api/dividend/route.ts": { "maxDuration": 15 },
     "src/app/api/ticker/route.ts": { "maxDuration": 10 },
     "src/app/api/news/route.ts": { "maxDuration": 15 },
-    "src/app/api/market-summary/route.ts": { "maxDuration": 15 }
+    "src/app/api/market-summary/route.ts": { "maxDuration": 15 },
+    "src/app/api/quotes/route.ts": { "maxDuration": 10 },
+    "src/app/api/global-markets/route.ts": { "maxDuration": 10 }
   },
   "regions": ["sin1"],
   "headers": [

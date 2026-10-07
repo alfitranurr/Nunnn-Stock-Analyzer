@@ -91,6 +91,32 @@ export function formatIDR(value: number, language: Language = 'en'): string {
   return value < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
 }
 
+/** Format angka sesuai bahasa, mis. 6146.72 → "6.146,72" (id) / "6,146.72" (en). */
+export function formatNumberLocale(value: number, language: Language = 'en', fractionDigits = 0): string {
+  return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
+}
+
+/**
+ * Rupiah ringkas dengan satuan yang lazim per bahasa:
+ * id → "Rp 1,5 jt" / "Rp 2,3 M" (miliar) / "Rp 1,1 T"; en → "Rp 1.5M" / "Rp 2.3B" / "Rp 1.1T".
+ */
+export function formatIDRCompact(value: number, language: Language = 'id', fractionDigits = 1): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  const units: Array<[number, string]> = language === 'id'
+    ? [[1e12, ' T'], [1e9, ' M'], [1e6, ' jt'], [1e3, ' rb']]
+    : [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+  for (const [threshold, unit] of units) {
+    if (abs >= threshold) {
+      return `${sign}Rp ${formatNumberLocale(abs / threshold, language, fractionDigits).replace(/[.,]0+$/, '')}${unit}`;
+    }
+  }
+  return `${sign}Rp ${formatNumberLocale(abs, language, 0)}`;
+}
+
 export interface FormatPercentOptions {
   /** Locale used for separators. 'id' -> "48,89%", 'en' -> "48.89%". Default: 'en'. */
   language?: Language;
