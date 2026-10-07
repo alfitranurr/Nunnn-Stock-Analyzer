@@ -1,602 +1,763 @@
 'use client';
 
 import * as React from 'react';
-import { getErrorMessage } from '@/lib/utils';
-import { 
-  Search, 
-  BookOpen,
+import {
+  Search,
   Newspaper,
-  Clock, 
-  Sparkles, 
-  Lock, 
-  ChevronUp, 
-  ChevronDown, 
-  AlertTriangle, 
-  RefreshCw, 
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight
+  Clock,
+  Sparkles,
+  Lock,
+  ChevronUp,
+  ChevronDown,
+  AlertTriangle,
+  RefreshCw,
+  ExternalLink,
+  Star,
+  X,
+  FileText,
+  Eye,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 import type { AppUser } from '@/lib/types';
+import type { NewsCategory, NewsItem } from '@/lib/news';
+import { useWatchlist } from '@/lib/watchlist-store';
+import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
+import { formatNumberLocale } from '@/lib/format';
+import { authFetch, classifyApiError, type ApiErrorKind } from '@/lib/auth-fetch';
+import { IDX_TICKERS } from '@/lib/tickers';
 
 interface NewsTabProps {
   user: AppUser | null;
   onSignInClick: () => void;
+  onSelectTicker: (symbol: string) => void;
+  onOpenWatchlist: () => void;
+  /** Tab Berita sedang dibuka (semua tab selalu ter-mount; data hanya diambil saat aktif). */
+  isActive: boolean;
 }
 
-interface NewsItem {
-  title: string;
-  link: string;
-  pubDate: string;
-  source: string;
+type Tab = 'foryou' | NewsCategory;
+
+type Sentiment = 'positive' | 'negative' | 'neutral';
+
+interface NewsAnalysis {
+  mode: 'ai' | 'extract' | 'unavailable';
+  basis: 'full-article' | 'headline-only';
+  articleUrl: string | null;
+  aiError?: boolean;
+  headline?: string;
+  summary?: string;
+  keyPoints?: string[];
+  sentiment?: Sentiment;
+  confidence?: 'high' | 'medium' | 'low';
+  impact?: 'corporate' | 'macro' | 'regulation' | 'sector' | 'market' | 'other';
+  horizon?: 'short' | 'long' | 'unclear';
+  affectedTickers?: string[];
+  relatedThemes?: Array<{
+    theme: string;
+    label_id: string;
+    label_en: string;
+    effect: 'positive' | 'negative' | 'mixed';
+    reason: string;
+    tickers: string[];
+  }>;
+  watchPoints?: string[];
+  provider?: string;
+  model?: string;
+  excerpt?: string[];
 }
 
-interface AISummary {
-  highlight: string;
-  context: string;
-  keyFindings: string[];
-  takeaway: string;
-  isAI?: boolean;
-  isMock?: boolean;
-  modelUsed?: string;
+type AnalysisState =
+  | { status: 'loading' }
+  | { status: 'ready'; data: NewsAnalysis }
+  | { status: 'error'; kind: ApiErrorKind; retryAfterSec: number | null };
+
+interface FeedResponse {
+  news: NewsItem[];
+  filteredUntrusted?: number;
 }
 
-export function NewsTab({ user, onSignInClick }: NewsTabProps) {
+const PAGE_SIZE = 12;
+const CLIENT_CACHE_MS = 5 * 60_000;
+const TABS: Tab[] = ['foryou', 'saham', 'global', 'makro', 'komoditas'];
+const TAB_KEY: Record<Tab, string> = {
+  foryou: 'news.tabForYou',
+  saham: 'news.tabSaham',
+  global: 'news.tabGlobal',
+  makro: 'news.tabMakro',
+  komoditas: 'news.tabKomoditas',
+};
+
+const SENTIMENT_STYLE: Record<Sentiment, { cls: string; id: string; en: string }> = {
+  positive: { cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25', id: 'Positif', en: 'Positive' },
+  negative: { cls: 'bg-rose-500/10 text-rose-400 border-rose-500/25', id: 'Negatif', en: 'Negative' },
+  neutral: { cls: 'bg-slate-500/10 text-slate-300 border-slate-500/25', id: 'Netral', en: 'Neutral' },
+};
+const CONFIDENCE_LABEL = { high: { id: 'keyakinan tinggi', en: 'high confidence' }, medium: { id: 'keyakinan sedang', en: 'medium confidence' }, low: { id: 'keyakinan rendah', en: 'low confidence' } };
+const IMPACT_LABEL = {
+  corporate: { id: 'Korporasi', en: 'Corporate' },
+  macro: { id: 'Makro', en: 'Macro' },
+  regulation: { id: 'Regulasi', en: 'Regulation' },
+  sector: { id: 'Sektor', en: 'Sector' },
+  market: { id: 'Pasar', en: 'Market' },
+  other: { id: 'Lainnya', en: 'Other' },
+};
+const EFFECT_STYLE = {
+  positive: { cls: 'text-emerald-400 border-emerald-500/25 bg-emerald-500/10', id: '▲ Positif', en: '▲ Positive' },
+  negative: { cls: 'text-rose-400 border-rose-500/25 bg-rose-500/10', id: '▼ Negatif', en: '▼ Negative' },
+  mixed: { cls: 'text-amber-400 border-amber-500/25 bg-amber-500/10', id: '◆ Campuran', en: '◆ Mixed' },
+};
+const HORIZON_LABEL = { short: { id: 'Jangka pendek', en: 'Short term' }, long: { id: 'Jangka panjang', en: 'Long term' }, unclear: { id: 'Horizon belum jelas', en: 'Unclear horizon' } };
+
+const WIB_OFFSET_MS = 7 * 3600_000;
+const wibDateKey = (ms: number) => new Date(ms + WIB_OFFSET_MS).toISOString().slice(0, 10);
+
+/** Chip kode saham: harga & perubahan live, klik → Analisis, ☆ → watchlist. */
+function TickerChip({
+  ticker,
+  quote,
+  language,
+  onSelect,
+}: {
+  ticker: string;
+  quote?: QuoteItem;
+  language: 'id' | 'en';
+  onSelect: (symbol: string) => void;
+}) {
+  const watchlist = useWatchlist();
+  const watched = watchlist.has(ticker);
+  const isId = language === 'id';
+  const up = (quote?.change ?? 0) >= 0;
+  return (
+    <span className="inline-flex items-stretch rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden text-[10px] font-bold">
+      <button
+        type="button"
+        onClick={() => onSelect(ticker)}
+        className="flex items-center gap-1.5 px-2 py-1 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+        title={`${IDX_TICKERS[ticker] ?? ticker} · ${isId ? 'buka analisis' : 'open analysis'}`}
+      >
+        <span className="text-white">{ticker}</span>
+        {quote && !quote.suspect && (
+          <span className={`tabular-nums ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {up ? '+' : ''}{formatNumberLocale(quote.changePercent, language, 2)}%
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => watchlist.toggle({ symbol: ticker, name: IDX_TICKERS[ticker] ?? ticker })}
+        disabled={!watched && watchlist.isFull}
+        aria-pressed={watched}
+        aria-label={watched ? (isId ? `Hapus ${ticker} dari watchlist` : `Remove ${ticker} from watchlist`) : (isId ? `Tambah ${ticker} ke watchlist` : `Add ${ticker} to watchlist`)}
+        className="px-1.5 border-l border-white/10 hover:bg-white/5 disabled:opacity-30 cursor-pointer"
+      >
+        <Star className={`h-3 w-3 ${watched ? 'fill-amber-400 text-amber-400' : 'text-slate-500'}`} />
+      </button>
+    </span>
+  );
+}
+
+export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, isActive }: NewsTabProps) {
   const { language, t } = useLanguage();
-  const [category, setCategory] = React.useState<'saham' | 'foreign' | 'domestik' | 'global' | 'politik'>('saham');
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [news, setNews] = React.useState<NewsItem[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const isId = language === 'id';
+  const L = (id: string, en: string) => (isId ? id : en);
+  const watchlist = useWatchlist();
 
-  // Track expanded state and summaries by news title or URL
-  const [expandedArticles, setExpandedArticles] = React.useState<{ [key: string]: boolean }>({});
-  const [summaries, setSummaries] = React.useState<{ [key: string]: AISummary }>({});
-  const [summaryLoading, setSummaryLoading] = React.useState<{ [key: string]: boolean }>({});
-  const [summaryError, setSummaryError] = React.useState<{ [key: string]: string | null }>({});
+  const [tab, setTab] = React.useState<Tab>('saham');
+  const [searchInput, setSearchInput] = React.useState('');
+  const [activeQuery, setActiveQuery] = React.useState('');
+  const [items, setItems] = React.useState<NewsItem[]>([]);
+  const [filteredUntrusted, setFilteredUntrusted] = React.useState(0);
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
+  const [now, setNow] = React.useState<number | null>(null);
 
-  const tabsRef = React.useRef<HTMLDivElement>(null);
-  const [showLeftArrow, setShowLeftArrow] = React.useState(false);
-  const [showRightArrow, setShowRightArrow] = React.useState(true);
+  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
+  const [analyses, setAnalyses] = React.useState<Record<string, AnalysisState>>({});
+  const [quotes, setQuotes] = React.useState<Record<string, QuoteItem>>({});
 
-  const checkScroll = React.useCallback(() => {
-    if (tabsRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
-      setShowLeftArrow(scrollLeft > 2);
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 2);
+  const cacheRef = React.useRef(new Map<string, { at: number; data: FeedResponse }>());
+
+  const watchSymbols = watchlist.entries.map((e) => e.symbol).sort().join(',');
+  const feedKey = activeQuery
+    ? `q:${activeQuery.toLowerCase()}`
+    : tab === 'foryou'
+      ? `t:${watchSymbols}`
+      : `c:${tab}`;
+  const needsWatchlist = !activeQuery && tab === 'foryou' && watchSymbols === '';
+
+  const loadFeed = React.useCallback(async (force = false) => {
+    setVisibleCount(PAGE_SIZE);
+    if (needsWatchlist) {
+      setItems([]);
+      setFilteredUntrusted(0);
+      setStatus('ready');
+      return;
     }
-  }, []);
-
-  const handleScroll = (direction: 'left' | 'right') => {
-    if (tabsRef.current) {
-      const scrollAmount = 150;
-      tabsRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
+    const cached = cacheRef.current.get(feedKey);
+    if (!force && cached && Date.now() - cached.at < CLIENT_CACHE_MS) {
+      setItems(cached.data.news);
+      setFilteredUntrusted(cached.data.filteredUntrusted ?? 0);
+      setStatus('ready');
+      return;
     }
-  };
-
-  React.useEffect(() => {
-    const tabs = tabsRef.current;
-    if (tabs) {
-      tabs.addEventListener('scroll', checkScroll);
-      window.addEventListener('resize', checkScroll);
-      // Run initial check
-      checkScroll();
-    }
-    return () => {
-      if (tabs) {
-        tabs.removeEventListener('scroll', checkScroll);
-      }
-      window.removeEventListener('resize', checkScroll);
-    };
-  }, [checkScroll]);
-
-  React.useEffect(() => {
-    setTimeout(checkScroll, 100);
-  }, [category, news, checkScroll]);
-
-  const fetchNews = React.useCallback(async (cat: 'saham' | 'foreign' | 'domestik' | 'global' | 'politik', queryStr: string = '') => {
-    setLoading(true);
-    setError(null);
+    setStatus('loading');
     try {
-      const url = queryStr.trim()
-        ? `/api/news?q=${encodeURIComponent(queryStr)}`
-        : `/api/news?category=${cat}`;
-        
+      const url = activeQuery
+        ? `/api/news?q=${encodeURIComponent(activeQuery)}`
+        : tab === 'foryou'
+          ? `/api/news?tickers=${encodeURIComponent(watchSymbols)}`
+          : `/api/news?category=${tab}`;
       const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch news (Status ${res.status})`);
-      }
-      const data = await res.json();
-      setNews(data.news || []);
-    } catch (err: unknown) {
-      console.error(err);
-      const msg = err instanceof Error ? getErrorMessage(err) : (language === 'id' ? 'Gagal memuat berita finansial.' : 'Failed to load financial news.');
-      setError(msg);
-    } finally {
-      setLoading(false);
+      if (!res.ok) throw new Error(String(res.status));
+      const data: FeedResponse = await res.json();
+      cacheRef.current.set(feedKey, { at: Date.now(), data });
+      setItems(data.news ?? []);
+      setFilteredUntrusted(data.filteredUntrusted ?? 0);
+      setStatus('ready');
+    } catch {
+      setStatus('error');
     }
-  }, [language]);
+    setNow(Date.now());
+  }, [feedKey, activeQuery, tab, watchSymbols, needsWatchlist]);
 
-  // Fetch news on category change (skip when user has an active search query).
   React.useEffect(() => {
-    if (!searchQuery) {
-      fetchNews(category);
-    }
-  }, [category, searchQuery, fetchNews]);
+    if (!isActive) return;
+    const timer = setTimeout(() => {
+      setNow(Date.now());
+      loadFeed();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isActive, loadFeed]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchNews(category, searchQuery);
-  };
+  // Waktu relatif diperbarui tiap menit selama tab terbuka.
+  React.useEffect(() => {
+    if (!isActive) return;
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, [isActive]);
 
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    fetchNews(category, '');
-  };
+  const visible = items.slice(0, visibleCount);
 
-  const handleToggleSummary = async (article: NewsItem) => {
-    const articleKey = article.title;
-    
-    // Check expanded status
-    const isExpanded = !!expandedArticles[articleKey];
-    
-    // Toggle
-    setExpandedArticles(prev => ({
-      ...prev,
-      [articleKey]: !isExpanded
-    }));
-
-    // If it's expanding and we don't have the summary yet, fetch it
-    if (!isExpanded && !summaries[articleKey]) {
-      setSummaryLoading(prev => ({ ...prev, [articleKey]: true }));
-      setSummaryError(prev => ({ ...prev, [articleKey]: null }));
-
-      try {
-        const res = await fetch('/api/news/summary', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            title: article.title,
-            source: article.source,
-            link: article.link
-          })
-        });
-
-        if (!res.ok) {
-          throw new Error(language === 'id' ? 'Gagal menghasilkan rangkuman AI.' : 'Failed to generate AI summary.');
-        }
-
-        const data = await res.json();
-        setSummaries(prev => ({
-          ...prev,
-          [articleKey]: data
-        }));
-      } catch (err: unknown) {
-        console.error(err);
-        setSummaryError(prev => ({
-          ...prev,
-          [articleKey]: getErrorMessage(err) || (language === 'id' ? 'Terjadi kesalahan jaringan.' : 'Network error occurred.')
-        }));
-      } finally {
-        setSummaryLoading(prev => ({ ...prev, [articleKey]: false }));
+  // Harga saham yang disebut di berita yang tampil + saham terdampak hasil analisis AI.
+  const quoteSymbols = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const item of visible) item.tickers.forEach((tk) => set.add(tk));
+    for (const id of Object.keys(expanded)) {
+      const a = analyses[id];
+      if (expanded[id] && a?.status === 'ready') {
+        a.data.affectedTickers?.forEach((tk) => set.add(tk));
+        a.data.relatedThemes?.forEach((theme) => theme.tickers.forEach((tk) => set.add(tk)));
       }
     }
+    return Array.from(set).sort().slice(0, 30).join(',');
+  }, [visible, expanded, analyses]);
+
+  React.useEffect(() => {
+    if (!isActive || !quoteSymbols) return;
+    let cancelled = false;
+    fetchQuotes(quoteSymbols.split(','))
+      .then((data) => { if (!cancelled) setQuotes((prev) => ({ ...prev, ...data })); })
+      .catch(() => { /* chip tetap tampil tanpa harga */ });
+    return () => {
+      cancelled = true;
+    };
+  }, [isActive, quoteSymbols]);
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveQuery(searchInput.replace(/\s+/g, ' ').trim().slice(0, 100));
   };
 
-  const categories = [
-    { id: 'saham' },
-    { id: 'foreign' },
-    { id: 'domestik' },
-    { id: 'global' },
-    { id: 'politik' }
-  ] as const;
+  const clearSearch = () => {
+    setSearchInput('');
+    setActiveQuery('');
+  };
+
+  const requestAnalysis = async (item: NewsItem) => {
+    setAnalyses((prev) => ({ ...prev, [item.id]: { status: 'loading' } }));
+    try {
+      const res = await authFetch('/api/news/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: item.title, source: item.source, link: item.link }),
+      });
+      if (!res.ok) {
+        const { kind, retryAfterSec } = await classifyApiError(res);
+        setAnalyses((prev) => ({ ...prev, [item.id]: { status: 'error', kind, retryAfterSec } }));
+        return;
+      }
+      const data: NewsAnalysis = await res.json();
+      setAnalyses((prev) => ({ ...prev, [item.id]: { status: 'ready', data } }));
+    } catch {
+      setAnalyses((prev) => ({ ...prev, [item.id]: { status: 'error', kind: 'failed', retryAfterSec: null } }));
+    }
+  };
+
+  const toggleAnalysis = (item: NewsItem) => {
+    if (!user) {
+      onSignInClick();
+      return;
+    }
+    const open = !expanded[item.id];
+    setExpanded((prev) => ({ ...prev, [item.id]: open }));
+    const current = analyses[item.id];
+    if (open && (!current || current.status === 'error')) requestAnalysis(item);
+  };
+
+  const relativeTime = (iso: string) => {
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms) || now === null) return '';
+    const diffMin = Math.max(0, Math.floor((now - ms) / 60_000));
+    if (diffMin < 1) return L('Baru saja', 'Just now');
+    if (diffMin < 60) return L(`${diffMin} mnt lalu`, `${diffMin}m ago`);
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return L(`${diffH} jam lalu`, `${diffH}h ago`);
+    return new Date(ms).toLocaleString(isId ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+  };
+
+  const dayLabel = (iso: string) => {
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms) || now === null) return L('Lainnya', 'Other');
+    const key = wibDateKey(ms);
+    if (key === wibDateKey(now)) return L('Hari ini', 'Today');
+    if (key === wibDateKey(now - 86_400_000)) return L('Kemarin', 'Yesterday');
+    return new Date(ms).toLocaleDateString(isId ? 'id-ID' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Jakarta' });
+  };
+
+  const errorMessage = (state: Extract<AnalysisState, { status: 'error' }>) => {
+    switch (state.kind) {
+      case 'unauthenticated':
+        return L('Sesi login tidak valid atau sudah berakhir. Silakan masuk ulang.', 'Your session is invalid or has expired. Please sign in again.');
+      case 'not_approved':
+        return L('Akun Anda masih menunggu persetujuan admin.', 'Your account is still waiting for administrator approval.');
+      case 'rate_limited': {
+        const minutes = state.retryAfterSec ? Math.ceil(state.retryAfterSec / 60) : null;
+        return L(
+          `Batas 10 analisis AI per jam tercapai.${minutes ? ` Coba lagi dalam ±${minutes} menit.` : ''}`,
+          `You reached the limit of 10 AI analyses per hour.${minutes ? ` Try again in ~${minutes} min.` : ''}`
+        );
+      }
+      case 'auth_unavailable':
+        return L('Layanan login sedang tidak dapat dihubungi. Coba lagi nanti.', 'The sign-in service is unreachable. Please try again later.');
+      case 'auth_check_failed':
+        return L('Pemeriksaan akun di server gagal (kemungkinan skema database belum lengkap). Hubungi admin.', 'The account check failed on the server (the database schema may be incomplete). Please contact the admin.');
+      default:
+        return L('Analisis AI gagal dibuat. Silakan coba lagi.', 'The AI analysis could not be generated. Please try again.');
+    }
+  };
+
+  // Kelompokkan berita yang tampil per hari (WIB).
+  const groups: Array<{ label: string; items: NewsItem[] }> = [];
+  for (const item of visible) {
+    const label = dayLabel(item.pubDate);
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else groups.push({ label, items: [item] });
+  }
+
+  const renderAnalysis = (item: NewsItem, state: AnalysisState | undefined) => {
+    if (!state || state.status === 'loading') {
+      return (
+        <div className="space-y-3 py-1" aria-live="polite">
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+            <Sparkles className="w-3.5 h-3.5 animate-spin" />
+            {t('news.aiGenerating')}
+          </div>
+          <div className="h-5 bg-white/5 rounded w-2/3 animate-pulse" />
+          <div className="h-4 bg-white/5 rounded w-full animate-pulse" />
+          <div className="h-4 bg-white/5 rounded w-5/6 animate-pulse" />
+        </div>
+      );
+    }
+
+    if (state.status === 'error') {
+      return (
+        <div className="p-3.5 bg-rose-500/5 border border-rose-500/15 rounded-xl text-xs flex gap-2.5">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+          <div className="space-y-2">
+            <p className="font-bold text-rose-300">{t('news.aiFailed')}</p>
+            <p className="text-slate-400">{errorMessage(state)}</p>
+            {state.kind === 'unauthenticated' ? (
+              <button type="button" onClick={onSignInClick} className="text-emerald-400 font-bold hover:underline cursor-pointer">
+                {L('Masuk', 'Sign in')}
+              </button>
+            ) : state.kind !== 'not_approved' && (
+              <button type="button" onClick={() => requestAnalysis(item)} className="text-emerald-400 font-bold hover:underline cursor-pointer">
+                {t('news.aiRetry')}
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const a = state.data;
+    const sourceLink = a.articleUrl ?? item.link;
+
+    if (a.mode !== 'ai') {
+      return (
+        <div className="space-y-3">
+          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-300/90 flex gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>
+              {a.aiError
+                ? L('Layanan AI sedang gagal merespons, jadi analisis belum tersedia.', 'The AI service failed to respond, so no analysis is available yet.')
+                : L('Analisis AI belum diaktifkan di server ini.', 'AI analysis is not enabled on this server.')}
+              {' '}
+              {a.mode === 'extract'
+                ? L('Berikut cuplikan dari artikel aslinya, tanpa interpretasi:', 'Here is an excerpt from the original article, without interpretation:')
+                : L('Isi artikel juga tidak dapat dibaca; silakan buka sumbernya.', 'The article text could not be read either; please open the source.')}
+            </span>
+          </div>
+          {a.excerpt?.map((p, i) => (
+            <p key={i} className="text-xs text-slate-300 leading-relaxed pl-3 border-l-2 border-white/10">{p}</p>
+          ))}
+          <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 hover:underline">
+            {t('news.readSource')} <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      );
+    }
+
+    const sentiment = SENTIMENT_STYLE[a.sentiment ?? 'neutral'];
+    return (
+      <div className="space-y-4">
+        {/* Label analisis */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+          <span className={`px-2 py-0.5 rounded-md border ${sentiment.cls}`}>
+            {sentiment[language]}
+            {a.confidence && <span className="font-medium opacity-80"> · {CONFIDENCE_LABEL[a.confidence][language]}</span>}
+          </span>
+          {a.impact && <span className="px-2 py-0.5 rounded-md border border-white/10 text-slate-300">{IMPACT_LABEL[a.impact][language]}</span>}
+          {a.horizon && <span className="px-2 py-0.5 rounded-md border border-white/10 text-slate-300">{HORIZON_LABEL[a.horizon][language]}</span>}
+          <span
+            className={`px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+              a.basis === 'full-article' ? 'border-white/10 text-slate-400' : 'border-amber-500/30 text-amber-400 bg-amber-500/5'
+            }`}
+            title={a.basis === 'full-article'
+              ? L('AI membaca isi artikel lengkap', 'AI read the full article')
+              : L('Isi artikel tidak dapat dibaca (mis. diproteksi situsnya); analisis hanya dari judul', 'The article text could not be read (e.g. protected by the site); analysis is based on the headline only')}
+          >
+            <FileText className="h-3 w-3" />
+            {a.basis === 'full-article' ? L('Dari artikel lengkap', 'From full article') : L('Hanya dari judul', 'Headline only')}
+          </span>
+          {a.provider && <span className="ml-auto text-slate-500 font-mono font-medium">{a.provider}</span>}
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-sm font-bold text-white leading-snug">{a.headline}</p>
+          <p className="text-xs text-slate-300 leading-relaxed">{a.summary}</p>
+        </div>
+
+        {a.keyPoints && a.keyPoints.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{L('Poin Penting', 'Key Points')}</span>
+            <ul className="space-y-1.5">
+              {a.keyPoints.map((point, i) => (
+                <li key={i} className="flex gap-2 text-xs text-slate-300 leading-relaxed">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {((a.affectedTickers?.length ?? 0) > 0 || (a.relatedThemes?.length ?? 0) > 0) && (
+          <div className="space-y-2.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{L('Saham Terdampak', 'Affected Stocks')}</span>
+
+            {a.affectedTickers && a.affectedTickers.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-semibold text-slate-400">{L('Disebut di berita', 'Mentioned in the article')}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {a.affectedTickers.map((tk) => (
+                    <TickerChip key={tk} ticker={tk} quote={quotes[tk]} language={language} onSelect={onSelectTicker} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {a.relatedThemes && a.relatedThemes.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-semibold text-slate-400">{L('Berpotensi terdampak (per sektor)', 'Potentially affected (by sector)')}</span>
+                {a.relatedThemes.map((theme) => {
+                  const effect = EFFECT_STYLE[theme.effect];
+                  return (
+                    <div key={theme.theme} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-slate-200">{isId ? theme.label_id : theme.label_en}</span>
+                        <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${effect.cls}`}>{effect[language]}</span>
+                      </div>
+                      {theme.reason && <p className="text-[11px] text-slate-400 leading-relaxed">{theme.reason}</p>}
+                      <div className="flex flex-wrap gap-1.5">
+                        {theme.tickers.map((tk) => (
+                          <TickerChip key={tk} ticker={tk} quote={quotes[tk]} language={language} onSelect={onSelectTicker} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[10px] text-slate-500">
+                  {L(
+                    'Emiten per sektor diambil dari peta tema terkurasi (urut dari yang terbesar), bukan rekomendasi.',
+                    'Stocks per sector come from a curated theme map (largest first), not recommendations.'
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {a.watchPoints && a.watchPoints.length > 0 && (
+          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+              <Eye className="h-3 w-3 text-emerald-400" />
+              {L('Yang Perlu Dipantau', 'What to Watch')}
+            </span>
+            <ul className="space-y-1">
+              {a.watchPoints.map((point, i) => (
+                <li key={i} className="text-xs text-slate-300 leading-relaxed">• {point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5">
+          <p className="text-[10px] text-slate-500 leading-relaxed">{t('news.aiDisclaimer')}</p>
+          <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:underline shrink-0">
+            {t('news.readSource')} <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header Panel */}
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
-        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 w-full">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-              <Newspaper className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-              <span>{language === 'id' ? 'Berita & Sentimen AI Pasar Bursa' : 'AI Market News & Sentiment Analysis'}</span>
-            </div>
-            
-            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
-              {t('news.title')}
-              <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
-            </h1>
-            
-            <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
-              {t('news.desc')}
-            </p>
-          </div>
+    <div className="space-y-5">
+      {/* Header ringkas */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-5 md:p-6">
+        <div className="absolute -top-10 -right-10 w-60 h-60 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
+        <div className="relative z-10 space-y-1.5">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+            <Newspaper className="h-6 w-6 text-emerald-400 shrink-0" />
+            {t('news.title')}
+          </h1>
+          <p className="text-xs md:text-sm text-slate-400 leading-relaxed">{t('news.desc')}</p>
         </div>
       </div>
 
-      {/* Search & Category Controls Card */}
-      <div className="p-4 sm:p-6 rounded-3xl border border-white/10 bg-card-bg shadow-xl space-y-4">
-        {/* Search Bar & Refresh Row (Placed directly above category tabs) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-          <div className="text-xs font-bold text-slate-300">
-            {language === 'id' ? 'Cari Berita & Topik Bursa' : 'Search News & Topics'}
-          </div>
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-80">
-              <input
-                type="text"
-                placeholder={t('news.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2.5 bg-input-bg border border-border-color rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
-              />
-              <Search className="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400" />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={handleClearSearch}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-white text-xs cursor-pointer"
-                >
-                  ✕
-                </button>
-              )}
-            </form>
-
-            <button
-              onClick={() => fetchNews(category, searchQuery)}
-              disabled={loading}
-              className="p-2.5 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition-all flex items-center justify-center shrink-0 cursor-pointer"
-              title={t('news.refresh')}
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
-            </button>
-          </div>
+      {/* Pencarian & kategori */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <form onSubmit={submitSearch} className="relative flex-1" role="search">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t('news.searchPlaceholder')}
+              maxLength={100}
+              aria-label={t('news.searchPlaceholder')}
+              className="w-full pl-9 pr-9 py-2.5 bg-input-bg border border-border-color rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all [&::-webkit-search-cancel-button]:hidden"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                aria-label={L('Hapus pencarian', 'Clear search')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </form>
+          <button
+            type="button"
+            onClick={() => loadFeed(true)}
+            disabled={status === 'loading'}
+            className="p-2.5 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition-all shrink-0 cursor-pointer disabled:opacity-50"
+            title={t('news.refresh')}
+            aria-label={t('news.refresh')}
+          >
+            <RefreshCw className={`w-4 h-4 ${status === 'loading' ? 'animate-spin text-emerald-400' : ''}`} />
+          </button>
         </div>
 
-        {/* Category Tabs Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-1.5 w-full sm:w-auto">
-            <button 
-              type="button"
-              onClick={() => handleScroll('left')}
-              disabled={!showLeftArrow}
-              className={`p-2 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                showLeftArrow 
-                  ? 'text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer' 
-                  : 'text-slate-600 opacity-40 cursor-not-allowed'
-              }`}
-              title={language === 'id' ? 'Scroll Kiri' : 'Scroll Left'}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" role="tablist">
+          {TABS.map((id) => {
+            const active = !activeQuery && tab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  setTab(id);
+                  clearSearch();
+                }}
+                className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                  active
+                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
+                    : 'border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {id === 'foryou' && <Star className={`h-3.5 w-3.5 ${active ? 'fill-white' : 'text-amber-400'}`} />}
+                {t(TAB_KEY[id])}
+                {id === 'foryou' && watchlist.entries.length > 0 && (
+                  <span className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-500'}`}>{watchlist.entries.length}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-            <div 
-              ref={tabsRef}
-              className="flex-1 flex bg-slate-900/60 p-1 border border-slate-800/80 rounded-xl text-xs overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden"
-            >
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setCategory(cat.id);
-                    setSearchQuery(''); 
-                  }}
-                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer text-center select-none whitespace-nowrap ${
-                    category === cat.id && !searchQuery
-                      ? 'bg-emerald-500 text-white shadow-md font-bold'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {cat.id === 'saham' ? t('news.tabSaham') :
-                   cat.id === 'foreign' ? t('news.tabForeign') :
-                   cat.id === 'domestik' ? t('news.tabDomestik') :
-                   cat.id === 'global' ? t('news.tabGlobal') :
-                   t('news.tabPolitik')}
-                </button>
-              ))}
-            </div>
-
-            <button 
-              type="button"
-              onClick={() => handleScroll('right')}
-              disabled={!showRightArrow}
-              className={`p-2 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
-                showRightArrow 
-                  ? 'text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer' 
-                  : 'text-slate-600 opacity-40 cursor-not-allowed'
-              }`}
-              title={language === 'id' ? 'Scroll Kanan' : 'Scroll Right'}
-            >
-              <ChevronRight className="w-4 h-4" />
+        {activeQuery && (
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            {L('Hasil pencarian untuk', 'Search results for')} <span className="text-emerald-400 font-semibold">&quot;{activeQuery}&quot;</span>
+            <button type="button" onClick={clearSearch} className="text-slate-400 hover:text-white underline cursor-pointer">
+              {t('news.clearSearch')}
             </button>
           </div>
-
-          {searchQuery && (
-            <div className="text-xs text-slate-400">
-              {language === 'id' ? 'Hasil pencarian untuk:' : 'Search results for:'} <span className="text-emerald-400 font-semibold">&quot;{searchQuery}&quot;</span>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {error && (
-        <div className="border border-red-500/20 bg-red-500/10 p-4 rounded-xl flex items-start gap-3 animate-fadeIn">
+      {/* Feed */}
+      {status === 'error' ? (
+        <div className="border border-red-500/20 bg-red-500/10 p-4 rounded-xl flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-red-200">{error}</div>
+          <div className="text-xs text-red-200 space-y-2">
+            <p>{L('Gagal memuat berita. Periksa koneksi lalu coba lagi.', 'Failed to load the news. Check your connection and try again.')}</p>
+            <button type="button" onClick={() => loadFeed(true)} className="font-bold text-emerald-400 hover:underline cursor-pointer">
+              {L('Coba lagi', 'Try again')}
+            </button>
+          </div>
         </div>
-      )}
-
-      {/* News Feed Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 gap-4">
-          {Array(4).fill(0).map((_, i) => (
-            <div 
-              key={i} 
-              className="border border-slate-900/60 bg-slate-950/20 rounded-2xl p-5 space-y-3 animate-pulse"
-            >
-              <div className="h-4 bg-slate-800 rounded w-3/4"></div>
-              <div className="h-3 bg-slate-800 rounded w-1/4"></div>
-              <div className="h-8 bg-slate-800 rounded w-32 mt-3"></div>
+      ) : status === 'loading' || status === 'idle' ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="border border-white/5 bg-white/[0.02] rounded-2xl p-5 space-y-3 animate-pulse">
+              <div className="h-4 bg-white/5 rounded w-3/4" />
+              <div className="h-3 bg-white/5 rounded w-1/3" />
             </div>
           ))}
         </div>
-      ) : news.length === 0 ? (
-        <div className="border border-border-color bg-card-bg rounded-2xl p-12 text-center max-w-2xl mx-auto my-6 flex flex-col items-center justify-center space-y-4">
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400">
-            <BookOpen className="w-8 h-8 animate-pulse" />
-          </div>
-          <h3 className="text-base font-bold text-white">{t('news.noNews')}</h3>
-          <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-            {t('news.noNewsDesc')}
+      ) : needsWatchlist ? (
+        <div className="border border-border-color bg-card-bg rounded-2xl p-10 text-center flex flex-col items-center gap-3">
+          <Star className="w-8 h-8 text-amber-400" />
+          <h3 className="text-base font-bold text-white">{L('Belum ada saham yang dipantau', 'No watched stocks yet')}</h3>
+          <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+            {L('Tambahkan saham ke watchlist, dan tab ini akan menampilkan berita khusus saham-saham tersebut.', 'Add stocks to your watchlist and this tab will show news about those stocks.')}
           </p>
-          {searchQuery && (
-            <button
-              onClick={handleClearSearch}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold rounded-xl cursor-pointer transition-all duration-200"
-            >
+          <button type="button" onClick={onOpenWatchlist} className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold cursor-pointer">
+            {L('Buka Watchlist', 'Open Watchlist')}
+          </button>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="border border-border-color bg-card-bg rounded-2xl p-10 text-center flex flex-col items-center gap-3">
+          <Newspaper className="w-8 h-8 text-emerald-400" />
+          <h3 className="text-base font-bold text-white">{t('news.noNews')}</h3>
+          <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+            {tab === 'foryou' && !activeQuery
+              ? L('Belum ada berita 7 hari terakhir untuk saham di watchlist Anda.', 'No news in the last 7 days for the stocks in your watchlist.')
+              : t('news.noNewsDesc')}
+          </p>
+          {activeQuery && (
+            <button type="button" onClick={clearSearch} className="px-4 py-2 rounded-xl border border-white/10 text-slate-200 text-xs font-semibold cursor-pointer hover:bg-white/5">
               {t('news.clearSearch')}
             </button>
           )}
         </div>
       ) : (
-        <div className="space-y-4">
-          {news.map((item, idx) => {
-            const articleKey = item.title;
-            const isExpanded = !!expandedArticles[articleKey];
-            const summary = summaries[articleKey];
-            const isSumLoading = !!summaryLoading[articleKey];
-            const sumError = summaryError[articleKey];
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <section key={group.label} className="space-y-2.5">
+              <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{group.label}</h2>
+              {group.items.map((item) => {
+                const state = analyses[item.id];
+                const isOpen = !!expanded[item.id];
+                const sentiment = state?.status === 'ready' && state.data.mode === 'ai' ? SENTIMENT_STYLE[state.data.sentiment ?? 'neutral'] : null;
+                return (
+                  <article key={item.id} className="border border-border-color bg-card-bg rounded-2xl hover:border-emerald-500/30 transition-colors overflow-hidden">
+                    <div className="p-4 md:p-5 space-y-3">
+                      <a href={item.link} target="_blank" rel="noopener noreferrer" className="group block">
+                        <h3 className="font-bold text-slate-100 text-sm md:text-[15px] leading-snug group-hover:text-emerald-400 transition-colors">
+                          {item.title}
+                          <ExternalLink className="inline h-3 w-3 ml-1.5 text-slate-600 group-hover:text-emerald-400" />
+                        </h3>
+                      </a>
 
-            return (
-              <div
-                key={idx}
-                className="border border-border-color bg-card-bg rounded-2xl hover:border-emerald-500/30 transition-all duration-300 overflow-hidden flex flex-col animate-fadeIn"
-              >
-                {/* Main Card Body */}
-                <div className="p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="space-y-2.5 flex-1">
-                    <h3 className="font-bold text-slate-100 text-sm md:text-base leading-snug hover:text-emerald-400 transition-colors">
-                      {item.title}
-                    </h3>
-                    
-                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 font-medium">
-                      <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
-                        {item.source}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-3 h-3 text-slate-500" />
-                        {item.pubDate ? new Date(item.pubDate).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Actions Column */}
-                  <div className="flex items-center gap-3 shrink-0 md:self-center">
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
-                    >
-                      {t('news.readSource')} <ArrowRight className="w-3 h-3" />
-                    </a>
-
-                    {/* AI Summary Button */}
-                    <button
-                      onClick={() => {
-                        if (!user) {
-                          onSignInClick();
-                        } else {
-                          handleToggleSummary(item);
-                        }
-                      }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border transition-all duration-300 select-none ${
-                        isExpanded
-                          ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-400'
-                          : 'bg-input-bg border-border-color hover:border-emerald-500/25 text-slate-300 hover:text-white'
-                      }`}
-                      title={!user ? (language === 'id' ? 'Masuk untuk membuka Rangkuman AI' : 'Sign in to unlock AI Summary') : undefined}
-                    >
-                      <Sparkles className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-                      <span>{t('news.aiSummary')}</span>
-                      {user ? (
-                        isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />
-                      ) : (
-                        <Lock className="w-3 h-3 text-slate-400 shrink-0" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* AI Summary Expandable Area */}
-                <AnimatePresence>
-                  {isExpanded && user && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="border-t border-slate-900/60 bg-slate-950/80 overflow-hidden"
-                    >
-                      <div className="p-5 border-l-4 border-emerald-500/80 space-y-5">
-                        
-                        {/* Loading State */}
-                        {isSumLoading && (
-                           <div className="space-y-4 py-2">
-                            <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-400 animate-pulse">
-                              <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                              <span>{t('news.aiGenerating')}</span>
-                            </div>
-                            
-                            <div className="space-y-3">
-                              <div className="h-6 bg-slate-900 rounded w-2/3 animate-pulse border border-slate-800"></div>
-                              <div className="h-4 bg-slate-900 rounded w-full animate-pulse"></div>
-                              <div className="h-4 bg-slate-900 rounded w-5/6 animate-pulse"></div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                                <div className="h-10 bg-slate-900 rounded w-full animate-pulse border border-slate-800"></div>
-                                <div className="h-10 bg-slate-900 rounded w-full animate-pulse border border-slate-800"></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Error State */}
-                        {sumError && (
-                          <div className="p-3.5 bg-rose-500/5 border border-rose-500/15 rounded-xl text-rose-400 text-xs flex gap-2.5">
-                            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
-                            <div>
-                              <p className="font-bold">{t('news.aiFailed')}</p>
-                              <p className="mt-0.5 text-slate-400">{sumError}</p>
-                              <button
-                                onClick={() => {
-                                  setSummaries(prev => {
-                                    const next = { ...prev };
-                                    delete next[articleKey];
-                                    return next;
-                                  });
-                                  setExpandedArticles(prev => ({ ...prev, [articleKey]: false }));
-                                  setTimeout(() => handleToggleSummary(item), 100);
-                                }}
-                                className="mt-2 text-emerald-400 font-bold hover:underline cursor-pointer"
-                              >
-                                {t('news.aiRetry')}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* AI Summary Content (Styled like Stockbit Reports) */}
-                        {summary && !isSumLoading && !sumError && (
-                          <div className="space-y-4.5 animate-fadeIn">
-                            
-                            {/* Beta / AI Badge */}
-                            <div className="flex items-center justify-between border-b border-slate-900 pb-2.5">
-                              <div className="flex items-center gap-2">
-                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-extrabold px-2.5 py-0.5 rounded tracking-wider uppercase">
-                                  {t('news.aiSummary')}
-                                </span>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                  Beta
-                                </span>
-                              </div>
-                              <span className="text-[9px] text-slate-500 font-semibold font-mono">
-                                {summary.isMock 
-                                  ? '★ Heuristic Engine' 
-                                  : summary.modelUsed 
-                                    ? `⚡ ${summary.modelUsed.includes('gemini') ? 'Gemini' : summary.modelUsed.includes('llama') ? 'Groq' : 'OpenAI'}-Powered`
-                                    : '⚡ AI-Powered'}
-                              </span>
-                            </div>
-
-                            {/* 1. Highlight Utama */}
-                            <div className="space-y-1.5">
-                              <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest pl-0.5">
-                                {t('news.aiHighlight')}
-                              </div>
-                              <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/15 rounded-xl shadow-sm">
-                                <p className="text-xs md:text-sm font-bold text-emerald-300">
-                                  {summary.highlight}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* 2. Konteks Singkat */}
-                            <div className="space-y-1.5">
-                              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">
-                                {t('news.aiContext')}
-                              </div>
-                              <p className="text-xs text-slate-300 leading-relaxed pl-1.5 border-l-2 border-slate-800">
-                                {summary.context}
-                              </p>
-                            </div>
-
-                            {/* 3. Key Findings dalam poin bernomor */}
-                            <div className="space-y-2">
-                              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">
-                                {t('news.aiFindings')}
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-0.5">
-                                {summary.keyFindings.map((finding, fidx) => (
-                                  <div 
-                                    key={fidx} 
-                                    className="flex items-start gap-3.5 p-3.5 bg-slate-900/30 border border-slate-900 hover:border-slate-800 rounded-xl hover:bg-slate-900/60 transition-all duration-200"
-                                  >
-                                    <div className="w-5.5 h-5.5 rounded bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center shrink-0 font-mono text-[10px] font-extrabold text-emerald-400 select-none shadow-sm">
-                                      {String(fidx + 1).padStart(2, '0')}
-                                    </div>
-                                    <p className="text-xs text-slate-300 leading-relaxed pt-0.5">
-                                      {finding}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* 4. Kesimpulan Inti (KEY TAKEAWAY) */}
-                            <div className="space-y-1.5 pt-1.5">
-                              <div className="p-4 bg-emerald-500/[0.02] border border-emerald-500/20 rounded-xl relative overflow-hidden shadow-inner">
-                                <div className="absolute top-0 bottom-0 left-0 w-1 bg-emerald-500" />
-                                <div className="text-[9px] font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                  <span>{t('news.aiTakeaway')}</span>
-                                </div>
-                                <p className="text-xs text-slate-200 text-center leading-relaxed font-semibold italic">
-                                  &quot;{summary.takeaway}&quot;
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* AI Disclaimer */}
-                            <div className="text-[8px] text-slate-500 italic text-center pt-2.5 border-t border-slate-900/40">
-                              {t('news.aiDisclaimer')}
-                            </div>
-
-                          </div>
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                        <span className="font-semibold text-slate-300">{item.source}</span>
+                        <span className="flex items-center gap-1 text-slate-500">
+                          <Clock className="w-3 h-3" />
+                          <time dateTime={item.pubDate}>{relativeTime(item.pubDate)}</time>
+                        </span>
+                        {sentiment && (
+                          <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${sentiment.cls}`}>{sentiment[language]}</span>
                         )}
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {item.tickers.map((tk) => (
+                          <TickerChip key={tk} ticker={tk} quote={quotes[tk]} language={language} onSelect={onSelectTicker} />
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => toggleAnalysis(item)}
+                          aria-expanded={isOpen}
+                          className={`ml-auto px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 cursor-pointer border transition-colors ${
+                            isOpen
+                              ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-400'
+                              : 'bg-input-bg border-border-color hover:border-emerald-500/30 text-slate-300 hover:text-white'
+                          }`}
+                          title={!user ? L('Masuk untuk membuka Analisis AI', 'Sign in to unlock AI Analysis') : undefined}
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                          {t('news.aiSummary')}
+                          {user ? (isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />) : <Lock className="w-3 h-3 text-slate-400" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <AnimatePresence initial={false}>
+                      {isOpen && user && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: 'easeInOut' }}
+                          className="border-t border-white/5 bg-black/20 overflow-hidden"
+                        >
+                          <div className="p-4 md:p-5 border-l-2 border-emerald-500/70">{renderAnalysis(item, state)}</div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </article>
+                );
+              })}
+            </section>
+          ))}
+
+          {visibleCount < items.length && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+              className="w-full py-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 cursor-pointer"
+            >
+              {L(`Muat lebih banyak (${items.length - visibleCount} lagi)`, `Load more (${items.length - visibleCount} more)`)}
+            </button>
+          )}
+
+          <p className="text-[10px] text-slate-500 text-center">
+            {L('Sumber: Google News · berita 7 hari terakhir', 'Source: Google News · last 7 days')}
+            {filteredUntrusted > 0 && L(
+              ` · ${filteredUntrusted} berita dari media di luar daftar kurasi disembunyikan`,
+              ` · ${filteredUntrusted} articles from outlets outside the curated list are hidden`
+            )}
+          </p>
         </div>
       )}
     </div>

@@ -1,13 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SUPABASE_URL as supabaseUrl, SUPABASE_ANON_KEY as supabaseAnonKey, isSupabaseConfigured } from '@/lib/supabase-config';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-// Periksa apakah Supabase URL/Key masih default placeholder
-export const isSupabaseConfigured =
-  supabaseUrl !== '' &&
-  supabaseAnonKey !== '' &&
-  !supabaseUrl.includes('your-supabase-project');
+export { isSupabaseConfigured };
 
 // In-memory storage that never reads from / writes to real localStorage.
 // Used by the unconfigured client so Supabase's auth initializer cannot pick

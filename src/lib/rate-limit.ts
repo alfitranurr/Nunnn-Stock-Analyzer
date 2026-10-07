@@ -35,6 +35,20 @@ function getClientIp(request: NextRequest): string {
 }
 
 /**
+ * Kuota AI saja (10/jam per identitas), tanpa limit IP. Dipakai setelah cek cache,
+ * agar hasil yang sudah tersimpan tidak memakan kuota pengguna.
+ */
+export async function applyAiRateLimit(identifier: string): Promise<NextResponse | null> {
+  if (!aiLimiter) return null;
+  const { success, reset } = await aiLimiter.limit(identifier);
+  if (success) return null;
+  return NextResponse.json(
+    { error: 'AI request limit reached. Try again later.', code: 'rate_limited' },
+    { status: 429, headers: { 'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)) } }
+  );
+}
+
+/**
  * Apply rate limiting to an API route handler.
  *
  * - Always enforces a global per-IP limit (100/min) when Upstash is configured.

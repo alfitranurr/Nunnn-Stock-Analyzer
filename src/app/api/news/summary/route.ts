@@ -1,7 +1,10 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/utils';
 import { requireUser } from '@/lib/auth-guard';
-import { applyRateLimit } from '@/lib/rate-limit';
+import { applyAiRateLimit, applyRateLimit } from '@/lib/rate-limit';
+import { IDX_TICKERS } from '@/lib/tickers';
+import { extractTickers } from '@/lib/news';
+import { THEME_BY_ID, THEME_IDS, themesForPrompt } from '@/lib/idx-themes';
 
 // Always run dynamically — this route fetches live news and calls AI providers.
 export const dynamic = 'force-dynamic';
@@ -34,75 +37,6 @@ function cleanJsonString(str: string) {
     clean = clean.substring(0, clean.length - 3);
   }
   return clean.trim();
-}
-
-function generateMockSummary(title: string, source: string) {
-  const titleLower = title.toLowerCase();
-  
-  const isPositive = [
-    'untung', 'naik', 'tumbuh', 'cuan', 'rekor', 'ekspansi', 'akuisisi', 'dividen',
-    'positif', 'laba', 'growth', 'gain', 'meningkat', 'melonjak', 'optimis', 'terdongkrak', 
-    'moncer', 'melejit', 'meroket', 'melesat'
-  ].some(w => titleLower.includes(w));
-
-  const isNegative = [
-    'rugi', 'turun', 'anjlok', 'lemah', 'beban', 'utang', 'negatif', 'sengketa',
-    'bearish', 'drop', 'fall', 'loss', 'decline', 'menurun', 'merosot', 'tertekan', 
-    'lesu', 'gugatan', 'krisis', 'pangkas', 'ambruk', 'jatuh', 'koreksi', 'memerah'
-  ].some(w => titleLower.includes(w));
-
-  // Tentukan subjek berita secara cerdas agar tidak menyematkan nama publisher/sumber berita
-  let subject = 'Emiten terkait';
-  if (titleLower.includes('ihsg')) {
-    subject = 'IHSG';
-  } else if (titleLower.includes('rupiah')) {
-    subject = 'Nilai Tukar Rupiah';
-  } else {
-    // Ambil kata pertama atau cari potongan judul sebelum pemisah
-    const cleanTitle = title.replace(/persero/gi, '').trim();
-    const parts = cleanTitle.split(/[-:|]/);
-    if (parts[0] && parts[0].trim().length > 3) {
-      subject = parts[0].trim();
-    }
-  }
-
-  if (isPositive) {
-    return {
-      highlight: `Katalis Positif Berpotensi Mendorong Penguatan ${subject}`,
-      context: `Berita utama bertajuk "${title}" dari ${source || 'sumber informasi'} mencerminkan perkembangan bisnis positif yang berpotensi memberikan dorongan bagi ${subject}.`,
-      keyFindings: [
-        "Aktivitas bisnis berjalan ekspansif dengan indikasi pertumbuhan volume penjualan atau peningkatan layanan.",
-        "Efisiensi biaya operasional diproyeksikan mampu meningkatkan marjin keuntungan bersih (Net Profit Margin).",
-        "Respon pelaku pasar di bursa cenderung menyambut baik sentimen ini, terlihat dari stabilitas volume transaksi.",
-        "Peluang dividen atau aksi korporasi strategis lainnya dinilai tetap menarik bagi pemegang saham jangka panjang."
-      ],
-      takeaway: "Sentimen positif ini memperkuat basis fundamental. Investor dapat memanfaatkan momentum koreksi sehat untuk melakukan akumulasi bertahap."
-    };
-  } else if (isNegative) {
-    return {
-      highlight: `Waspada Tekanan Sentimen Negatif Terhadap ${subject}`,
-      context: `Kabar terkini bertajuk "${title}" menyoroti tantangan atau sentimen negatif yang sedang memengaruhi ${subject}, memicu kehati-hatian pelaku pasar.`,
-      keyFindings: [
-        "Adanya tekanan pada margin laba yang disebabkan oleh kenaikan beban input atau biaya logistik.",
-        "Struktur permodalan atau rasio liabilitas (utang) memerlukan pengawasan lebih lanjut guna mengukur solvabilitas.",
-        "Pelaku pasar merespons dengan kecenderungan wait-and-see, membatasi aliran dana masuk jangka pendek.",
-        "Manajemen diharapkan segera merilis rencana mitigasi risiko atau langkah restrukturisasi untuk menjaga kinerja bisnis."
-      ],
-      takeaway: "Tantangan operasional ini meningkatkan profil risiko jangka pendek. Disarankan untuk wait-and-see dan menunda pembelian agresif hingga ada kejelasan pemulihan fundamental."
-    };
-  } else {
-    return {
-      highlight: `Konsolidasi Sentimen & Prospek Netral Pada ${subject}`,
-      context: `Informasi "${title}" yang dilansir oleh ${source || 'media'} menunjukkan kondisi ${subject} cenderung stabil tanpa katalis penggerak harga ekstrem untuk saat ini.`,
-      keyFindings: [
-        "Emiten berada dalam fase konsolidasi bisnis sehat, menyeimbangkan ekspansi dengan pengelolaan risiko internal.",
-        "Rasio valuasi harga saham (P/E dan PBV) saat ini diperdagangkan dalam area rata-rata historisnya.",
-        "Aliran dana transaksi bandar maupun pelaku pasar asing terpantau seimbang tanpa akumulasi dominan.",
-        "Pasar sedang menanti rilis data laporan keuangan kuartalan berikutnya sebagai penentu arah tren baru."
-      ],
-      takeaway: "Ketiadaan katalis utama mengindikasikan harga akan bergerak menyamping (sideways). Strategi swing trading jangka pendek pada area support-resistance dapat dipertimbangkan."
-    };
-  }
 }
 
 async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | null> {
@@ -202,10 +136,18 @@ async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | nul
 }
 
 function isPrivateOrReservedHost(host: string): boolean {
-  const h = host.toLowerCase();
+  // URL.hostname untuk IPv6 berbentuk "[::1]"; buang kurung siku sebelum dicek.
+  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
   if (h === 'localhost' || h.endsWith('.localhost')) return true;
-  if (h === '::1' || h === '::' || h === '0:0:0:0:0:0:0:1') return true;
-  if (h.endsWith('.ipv6-localnet')) return true;
+
+  if (h.includes(':')) {
+    // Literal IPv6: loopback, unspecified, unique-local (fc00::/7), link-local (fe80::/10), IPv4-mapped.
+    if (h === '::1' || h === '::' || h === '0:0:0:0:0:0:0:1') return true;
+    if (/^f[cd][0-9a-f]{0,2}:/.test(h) || /^fe[89ab][0-9a-f]?:/.test(h)) return true;
+    const mapped = h.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+    return mapped ? isPrivateOrReservedHost(mapped[1]) : false;
+  }
+
   const parts = h.split('.').map((p) => Number(p));
   if (parts.length === 4 && parts.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)) {
     if (parts[0] === 10) return true;
@@ -216,8 +158,6 @@ function isPrivateOrReservedHost(host: string): boolean {
     if (parts[0] === 0) return true;
     if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
   }
-  // IPv6 unique-local / link-local
-  if (h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80')) return true;
   return false;
 }
 
@@ -240,265 +180,448 @@ async function fetchArticleText(url: string): Promise<string | null> {
     return null;
   }
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      signal: AbortSignal.timeout(6000), // 6 seconds timeout
-      redirect: 'manual', // do not follow cross-host redirects blindly
-    });
-    if (!res.ok) return null;
+    // Ikuti redirect secara manual (maks 3 lompatan) dan cek ulang setiap tujuan terhadap SSRF.
+    let current = url;
+    let res: Response | null = null;
+    for (let hop = 0; hop <= 3; hop++) {
+      res = await fetch(current, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        signal: AbortSignal.timeout(6000),
+        redirect: 'manual',
+      });
+      const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+      if (!location) break;
+      const next = new URL(location, current).toString();
+      if (!isSafeArticleUrl(next)) return null;
+      current = next;
+      res = null;
+    }
+    if (!res || !res.ok) return null;
     const html = await res.text();
-    
-    // Clean HTML to text
-    let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-    text = text.replace(/<\/p>|<br\s*\/?>/gi, '\n');
-    text = text.replace(/<[^>]+>/g, ' ');
-    text = text.replace(/  +/g, ' ');
-    text = text.replace(/\n\s*\n+/g, '\n\n');
-    
-    return text.substring(0, 6000).trim();
+
+    // Ambil teks paragraf <p> saja agar menu, iklan, dan footer tidak ikut terbaca.
+    const decode = (s: string) => s
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+    const cleaned = html
+      .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+      .replace(/<style\b[\s\S]*?<\/style>/gi, '');
+    const paragraphs = Array.from(cleaned.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
+      .map((m) => decode(m[1].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim())
+      .filter((p) => p.length >= 40);
+
+    return paragraphs.join('\n\n').substring(0, 6000).trim();
   } catch (err) {
     console.error('Error fetching article text:', err);
     return null;
   }
 }
 
+// ─── Analisis berita versi trader ───
+
+type Sentiment = 'positive' | 'negative' | 'neutral';
+type Confidence = 'high' | 'medium' | 'low';
+type Impact = 'corporate' | 'macro' | 'regulation' | 'sector' | 'market' | 'other';
+type Horizon = 'short' | 'long' | 'unclear';
+type Basis = 'full-article' | 'headline-only';
+type ThemeEffect = 'positive' | 'negative' | 'mixed';
+
+interface RelatedTheme {
+  theme: string;
+  label_id: string;
+  label_en: string;
+  effect: ThemeEffect;
+  reason: string;
+  /** Emiten tema ini (dari peta tema terkurasi), tanpa saham yang sudah disebut langsung. */
+  tickers: string[];
+}
+
+interface NewsAnalysisResponse {
+  /** ai = rangkuman AI; extract = cuplikan artikel asli (AI tidak tersedia); unavailable = tidak ada keduanya. */
+  mode: 'ai' | 'extract' | 'unavailable';
+  basis: Basis;
+  articleUrl: string | null;
+  generatedAt: string;
+  cached?: boolean;
+  aiError?: boolean;
+  // mode = ai
+  headline?: string;
+  summary?: string;
+  keyPoints?: string[];
+  sentiment?: Sentiment;
+  confidence?: Confidence;
+  impact?: Impact;
+  horizon?: Horizon;
+  /** Saham yang disebut langsung (judul + AI). */
+  affectedTickers?: string[];
+  /** Tema/sektor yang berpotensi terdampak beserta emitennya. */
+  relatedThemes?: RelatedTheme[];
+  watchPoints?: string[];
+  provider?: 'Gemini' | 'Groq' | 'OpenAI';
+  model?: string;
+  // mode = extract
+  excerpt?: string[];
+}
+
+const SENTIMENTS: Sentiment[] = ['positive', 'negative', 'neutral'];
+const CONFIDENCES: Confidence[] = ['high', 'medium', 'low'];
+const IMPACTS: Impact[] = ['corporate', 'macro', 'regulation', 'sector', 'market', 'other'];
+const HORIZONS: Horizon[] = ['short', 'long', 'unclear'];
+const THEME_EFFECTS: ThemeEffect[] = ['positive', 'negative', 'mixed'];
+const MAX_THEMES = 3;
+const MAX_THEME_TICKERS = 6;
+
+const MAX_TITLE = 300;
+const MAX_SOURCE = 120;
+const MAX_LINK = 2000;
+const AI_CACHE_TTL_MS = 24 * 60 * 60_000;
+const FALLBACK_CACHE_TTL_MS = 10 * 60_000;
+const CACHE_MAX_ENTRIES = 500;
+const TIME_BUDGET_MS = 26_000; // maxDuration route = 30 detik
+
+// Cache in-memory per instance: artikel yang sama tidak dirangkum ulang dan tidak memakan kuota AI.
+const analysisCache = new Map<string, { expires: number; value: NewsAnalysisResponse }>();
+
+function cacheGet(key: string): NewsAnalysisResponse | null {
+  const hit = analysisCache.get(key);
+  if (!hit) return null;
+  if (hit.expires < Date.now()) {
+    analysisCache.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
+function cacheSet(key: string, value: NewsAnalysisResponse, ttlMs: number) {
+  if (analysisCache.size >= CACHE_MAX_ENTRIES) {
+    const oldest = analysisCache.keys().next().value;
+    if (oldest !== undefined) analysisCache.delete(oldest);
+  }
+  analysisCache.set(key, { expires: Date.now() + ttlMs, value });
+}
+
+const oneOf = <T extends string>(value: unknown, allowed: T[], fallback: T): T =>
+  typeof value === 'string' && (allowed as string[]).includes(value.toLowerCase()) ? (value.toLowerCase() as T) : fallback;
+
+const cleanText = (value: unknown, max: number): string =>
+  typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
+
+const cleanList = (value: unknown, maxItems: number, maxLen: number): string[] =>
+  Array.isArray(value) ? value.map((v) => cleanText(v, maxLen)).filter(Boolean).slice(0, maxItems) : [];
+
+/** Validasi & normalisasi keluaran AI; lempar error bila tidak layak tampil (provider berikutnya dicoba). */
+function normalizeAnalysis(raw: unknown, basis: Basis, title: string): Omit<NewsAnalysisResponse, 'mode' | 'articleUrl' | 'generatedAt' | 'basis'> {
+  if (!raw || typeof raw !== 'object') throw new Error('AI output is not an object');
+  const r = raw as Record<string, unknown>;
+  const headline = cleanText(r.headline, 200);
+  const summary = cleanText(r.summary, 900);
+  if (!headline || !summary) throw new Error('AI output is missing headline/summary');
+
+  let confidence = oneOf(r.confidence, CONFIDENCES, 'low');
+  // Analisis dari judul saja tidak boleh mengklaim keyakinan tinggi.
+  if (basis === 'headline-only' && confidence !== 'low') confidence = 'low';
+
+  // Saham yang disebut langsung: dari judul (kode & nama) ditambah yang disebut AI dari isi artikel.
+  const aiTickers = cleanList(r.affectedTickers, 8, 10).map((t) => t.toUpperCase().replace(/\.JK$/, ''));
+  const affectedTickers = Array.from(new Set([...extractTickers(title), ...aiTickers]))
+    .filter((t) => Boolean(IDX_TICKERS[t]))
+    .slice(0, 8);
+
+  // Tema terdampak → emiten dari peta tema terkurasi (selalu kode yang valid).
+  const seenThemes = new Set<string>();
+  const relatedThemes: RelatedTheme[] = [];
+  for (const item of Array.isArray(r.relatedThemes) ? r.relatedThemes : []) {
+    if (!item || typeof item !== 'object') continue;
+    const t = item as Record<string, unknown>;
+    const theme = THEME_BY_ID.get(cleanText(t.theme, 40));
+    if (!theme || seenThemes.has(theme.id)) continue;
+    seenThemes.add(theme.id);
+    const tickers = theme.tickers.filter((tk) => !affectedTickers.includes(tk)).slice(0, MAX_THEME_TICKERS);
+    if (tickers.length === 0) continue;
+    relatedThemes.push({
+      theme: theme.id,
+      label_id: theme.id_label,
+      label_en: theme.en_label,
+      effect: oneOf(t.effect, THEME_EFFECTS, 'mixed'),
+      reason: cleanText(t.reason, 220),
+      tickers,
+    });
+    // Analisis dari judul saja: cukup 1 tema agar tidak berspekulasi.
+    if (relatedThemes.length >= (basis === 'headline-only' ? 1 : MAX_THEMES)) break;
+  }
+
+  return {
+    headline,
+    summary,
+    keyPoints: cleanList(r.keyPoints, 4, 300),
+    sentiment: oneOf(r.sentiment, SENTIMENTS, 'neutral'),
+    confidence,
+    impact: oneOf(r.impact, IMPACTS, 'other'),
+    horizon: oneOf(r.horizon, HORIZONS, 'unclear'),
+    affectedTickers,
+    relatedThemes,
+    watchPoints: cleanList(r.watchPoints, 3, 240),
+  };
+}
+
+function buildPrompt(title: string, source: string, articleContent: string): string {
+  const basisRule = articleContent
+    ? '- Isi artikel tersedia. Gunakan isi artikel sebagai sumber utama.'
+    : '- HANYA judul yang tersedia (isi artikel tidak bisa diambil). Ringkasan cukup 1–2 kalimat, keyPoints hanya berisi hal yang tersurat di judul, dan confidence harus "low".';
+
+  return `Anda adalah analis pasar modal Indonesia. Analisis berita berikut untuk investor saham Bursa Efek Indonesia.
+
+ATURAN:
+- Gunakan HANYA fakta yang tertulis di judul/isi di bawah. Jangan menambahkan angka, nama, rasio, atau klaim yang tidak ada.
+- Jangan memberi rekomendasi beli/jual/tahan, target harga, atau saran trading.
+${basisRule}
+- sentiment = arah dampak berita terhadap harga saham/pasar yang terdampak (positive, negative, neutral).
+- affectedTickers = kode saham BEI 4 huruf yang disebut atau jelas dimaksud di berita; kosongkan bila tidak ada.
+- relatedThemes = tema/sektor dari DAFTAR TEMA yang terdampak LANGSUNG dan JELAS oleh berita ini
+  (mis. harga batu bara naik → coal positive; BI Rate naik → bank_big mixed, property negative;
+  aliran dana asing keluar dari bursa Indonesia → bluechips negative).
+  Jangan memilih tema hanya karena saham sejenis di luar negeri bergerak, dan jangan menebak dampak yang tidak
+  dijelaskan berita. Lebih baik kosong daripada keliru. ${articleContent ? 'Maksimal 3 tema.' : 'Karena hanya ada judul, maksimal 1 tema.'}
+  effect = positive, negative, atau mixed. reason = 1 kalimat sebab-akibat yang tersurat di berita.
+- Tulis dalam Bahasa Indonesia yang ringkas.
+
+DAFTAR TEMA (gunakan hanya id berikut):
+${themesForPrompt()}
+
+Judul: "${title}"
+Sumber: "${source || '-'}"
+${articleContent ? `\nIsi artikel:\n"""\n${articleContent}\n"""\n` : ''}
+Balas HANYA dengan objek JSON:
+{
+  "headline": "inti berita dalam 1 kalimat",
+  "summary": "2–3 kalimat konteks berita",
+  "keyPoints": ["2–4 poin fakta penting dari berita"],
+  "sentiment": "positive | negative | neutral",
+  "confidence": "high | medium | low",
+  "impact": "corporate | macro | regulation | sector | market | other",
+  "horizon": "short | long | unclear",
+  "affectedTickers": ["KODE"],
+  "relatedThemes": [{ "theme": "id tema", "effect": "positive | negative | mixed", "reason": "1 kalimat" }],
+  "watchPoints": ["1–3 hal yang perlu dipantau investor ke depan"]
+}`;
+}
+
+const GEMINI_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    headline: { type: 'STRING' },
+    summary: { type: 'STRING' },
+    keyPoints: { type: 'ARRAY', items: { type: 'STRING' } },
+    sentiment: { type: 'STRING', enum: SENTIMENTS },
+    confidence: { type: 'STRING', enum: CONFIDENCES },
+    impact: { type: 'STRING', enum: IMPACTS },
+    horizon: { type: 'STRING', enum: HORIZONS },
+    affectedTickers: { type: 'ARRAY', items: { type: 'STRING' } },
+    relatedThemes: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          theme: { type: 'STRING', enum: THEME_IDS },
+          effect: { type: 'STRING', enum: THEME_EFFECTS },
+          reason: { type: 'STRING' },
+        },
+        required: ['theme', 'effect', 'reason'],
+      },
+    },
+    watchPoints: { type: 'ARRAY', items: { type: 'STRING' } },
+  },
+  required: ['headline', 'summary', 'keyPoints', 'sentiment', 'confidence', 'impact', 'horizon', 'affectedTickers', 'relatedThemes', 'watchPoints'],
+};
+
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'];
+
+interface ProviderResult {
+  provider: 'Gemini' | 'Groq' | 'OpenAI';
+  model: string;
+  raw: unknown;
+}
+
+async function callGemini(key: string, model: string, prompt: string, timeoutMs: number): Promise<unknown> {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: GEMINI_SCHEMA },
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) throw new Error(`Gemini ${model} responded ${res.status}`);
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error(`Gemini ${model} returned no text`);
+  return JSON.parse(cleanJsonString(text));
+}
+
+async function callOpenAICompatible(url: string, key: string, model: string, prompt: string, timeoutMs: number): Promise<unknown> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) throw new Error(`${model} responded ${res.status}`);
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error(`${model} returned no text`);
+  return JSON.parse(cleanJsonString(text));
+}
+
+/** Coba Gemini → Groq → OpenAI dalam batas waktu; kembalikan hasil pertama yang lolos validasi. */
+async function generateAnalysis(prompt: string, basis: Basis, title: string, deadline: number) {
+  const attempts: Array<{ provider: ProviderResult['provider']; model: string; run: (timeout: number) => Promise<unknown> }> = [];
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
+  const openAIKey = process.env.OPENAI_API_KEY;
+
+  if (geminiKey) {
+    for (const model of GEMINI_MODELS) {
+      attempts.push({ provider: 'Gemini', model, run: (t) => callGemini(geminiKey, model, prompt, t) });
+    }
+  }
+  if (groqKey) {
+    const model = 'llama-3.3-70b-versatile';
+    attempts.push({ provider: 'Groq', model, run: (t) => callOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', groqKey, model, prompt, t) });
+  }
+  if (openAIKey) {
+    const model = 'gpt-3.5-turbo';
+    attempts.push({ provider: 'OpenAI', model, run: (t) => callOpenAICompatible('https://api.openai.com/v1/chat/completions', openAIKey, model, prompt, t) });
+  }
+
+  for (const attempt of attempts) {
+    const remaining = deadline - Date.now();
+    if (remaining < 3000) break;
+    try {
+      const raw = await attempt.run(Math.min(12_000, remaining - 1000));
+      return { ...normalizeAnalysis(raw, basis, title), provider: attempt.provider, model: attempt.model };
+    } catch (err) {
+      console.warn(`[news-summary] ${attempt.provider} ${attempt.model} gagal:`, getErrorMessage(err));
+    }
+  }
+  return null;
+}
+
+/** Cuplikan paragraf pertama artikel asli (tanpa interpretasi) untuk mode tanpa AI. */
+function buildExcerpt(articleContent: string): string[] {
+  return articleContent
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => p.length >= 80)
+    .slice(0, 3)
+    .map((p) => (p.length > 420 ? `${p.slice(0, 417)}…` : p));
+}
+
+function isGoogleNewsUrl(raw: string): boolean {
+  try {
+    return new URL(raw).hostname === 'news.google.com';
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now();
   try {
     if (!isSameOrigin(request)) {
-      return NextResponse.json(
-        { error: 'Forbidden: cross-origin requests are not allowed.' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Forbidden: cross-origin requests are not allowed.' }, { status: 403 });
     }
 
-    const { user, error: authError } = await requireUser();
+    const { user, error: authError } = await requireUser(request);
     if (authError) return authError;
 
-    const limited = await applyRateLimit(request, user?.id);
+    const limited = await applyRateLimit(request);
     if (limited) return limited;
 
-    const body = await request.json();
-    const { title, source, link } = body;
-
-    if (!title) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const title = cleanText(body.title, MAX_TITLE + 1);
+    const source = cleanText(body.source, MAX_SOURCE);
+    const link = typeof body.link === 'string' ? body.link.trim() : '';
+    if (!title || title.length > MAX_TITLE) {
+      return NextResponse.json({ error: `Title is required (max ${MAX_TITLE} characters)` }, { status: 400 });
+    }
+    if (link.length > MAX_LINK) {
+      return NextResponse.json({ error: 'Link is too long' }, { status: 400 });
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const groqKey = process.env.GROQ_API_KEY;
-    const openAIKey = process.env.OPENAI_API_KEY;
+    const cacheKey = `${link || title}`.slice(0, 600);
+    const cached = cacheGet(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, cached: true });
 
-    // Resolve original URL and fetch article text if link is provided.
-    // isSafeArticleUrl validates scheme + blocks private/reserved IPs (SSRF guard).
+    const hasAiProvider = Boolean(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY);
+    if (hasAiProvider) {
+      // Kuota AI hanya dipotong saat benar-benar memanggil AI (bukan saat hasil diambil dari cache).
+      const aiLimited = await applyAiRateLimit(user.id);
+      if (aiLimited) return aiLimited;
+    }
+
+    // Ambil isi artikel asli (link Google News di-resolve ke URL media; dijaga dari SSRF).
     let articleContent = '';
-    let resolvedUrl = link || '';
+    let articleUrl: string | null = null;
     if (link && isSafeArticleUrl(link)) {
       try {
-        if (link.includes('news.google.com')) {
-          const decoded = await getOriginalArticleUrl(link);
-          if (decoded && isSafeArticleUrl(decoded)) {
-            resolvedUrl = decoded;
-          } else {
-            resolvedUrl = '';
-          }
+        const resolved = isGoogleNewsUrl(link) ? await getOriginalArticleUrl(link) : link;
+        if (resolved && isSafeArticleUrl(resolved)) {
+          articleUrl = resolved;
+          articleContent = (await fetchArticleText(resolved)) ?? '';
         }
-        if (resolvedUrl && isSafeArticleUrl(resolvedUrl)) {
-          const content = await fetchArticleText(resolvedUrl);
-          if (content) {
-            articleContent = content;
-          }
-        }
-      } catch (fetchErr) {
-        console.error('Failed to retrieve full article content:', fetchErr);
+      } catch (err) {
+        console.warn('[news-summary] Gagal mengambil isi artikel:', getErrorMessage(err));
+      }
+    }
+    const basis: Basis = articleContent.length >= 300 ? 'full-article' : 'headline-only';
+    const generatedAt = new Date().toISOString();
+
+    if (hasAiProvider) {
+      const analysis = await generateAnalysis(
+        buildPrompt(title, source, basis === 'full-article' ? articleContent : ''),
+        basis,
+        title,
+        startedAt + TIME_BUDGET_MS
+      );
+      if (analysis) {
+        const response: NewsAnalysisResponse = { mode: 'ai', basis, articleUrl, generatedAt, ...analysis };
+        cacheSet(cacheKey, response, AI_CACHE_TTL_MS);
+        return NextResponse.json(response);
       }
     }
 
-    if (!geminiKey && !groqKey && !openAIKey) {
-      const mockData = generateMockSummary(title, source);
-      return NextResponse.json({ ...mockData, isMock: true });
-    }
-
-    let prompt = `Anda adalah analis finansial profesional. Analisislah berita/artikel berikut ini:
-Judul: "${title}"
-Sumber: "${source}"\n`;
-
-    if (articleContent) {
-      prompt += `\nKonten Lengkap Artikel:\n"""\n${articleContent}\n"""\n`;
-    }
-
-    const promptGemini = prompt + `\nBerikan analisis mendalam dan ringkasan berita tersebut dalam Bahasa Indonesia.`;
-
-    const promptOpenAI = prompt + `\nBerikan ringkasan analisis mendalam dalam Bahasa Indonesia berdasarkan data yang tersedia di atas. Output Anda HARUS berupa objek JSON dengan format persis seperti di bawah ini dan tidak ada penjelasan/teks lain di luar JSON tersebut:
-{
-  "highlight": "Highlight Utama (1 kalimat ringkas, padat, dan tebal, e.g., 'Kinerja Keuangan Kuartalan Meningkat')",
-  "context": "Konteks Singkat (2-3 kalimat menjelaskan detail berita tersebut secara kronologis/kontekstual)",
-  "keyFindings": [
-    "Poin temuan kunci 1 (singkat, berupa kalimat data bernomor)",
-    "Poin temuan kunci 2 (singkat, berupa kalimat data bernomor)",
-    "Poin temuan kunci 3 (singkat, berupa kalimat data bernomor)",
-    "Poin temuan kunci 4 (opsional, jika ada temuan kunci tambahan)"
-  ],
-  "takeaway": "Kesimpulan Inti / Key Takeaway (1-2 kalimat kesimpulan mendalam bagi investor)"
-}
-Pastikan data dan format JSON valid.`;
-
-    if (geminiKey) {
-      const models = [
-        'gemini-2.5-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-3.1-flash-lite',
-        'gemini-flash-lite-latest',
-        'gemini-3-flash-preview'
-      ];
-      
-      let lastError: unknown = null;
-      for (const model of models) {
-        try {
-          console.log(`Attempting Gemini summary using model: ${model}`);
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': geminiKey
-              },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [{ text: promptGemini }]
-                }],
-                generationConfig: {
-                  responseMimeType: "application/json",
-                  responseSchema: {
-                    type: "OBJECT",
-                    properties: {
-                      highlight: {
-                        type: "STRING",
-                        description: "Highlight Utama (1 kalimat ringkas, padat, dan tebal tentang inti berita)."
-                      },
-                      context: {
-                        type: "STRING",
-                        description: "Konteks Singkat (2-3 kalimat menjelaskan detail berita tersebut secara kronologis/kontekstual)."
-                      },
-                      keyFindings: {
-                        type: "ARRAY",
-                        items: {
-                          type: "STRING"
-                        },
-                        description: "Temuan kunci berupa poin-poin penting (3-4 poin)."
-                      },
-                      takeaway: {
-                        type: "STRING",
-                        description: "Kesimpulan Inti / Key Takeaway (1-2 kalimat kesimpulan mendalam bagi investor)."
-                      }
-                    },
-                    required: ["highlight", "context", "keyFindings", "takeaway"]
-                  }
-                }
-              })
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (textResult) {
-              const cleanText = cleanJsonString(textResult);
-              const parsed = JSON.parse(cleanText);
-              console.log(`Successfully generated summary using model: ${model}`);
-              return NextResponse.json({ ...parsed, isAI: true, modelUsed: model });
-            }
-          }
-          throw new Error(`Response status ${response.status}`);
-        } catch (geminiErr: unknown) {
-          console.warn(`Gemini summary failed for model ${model}:`, getErrorMessage(geminiErr));
-          lastError = geminiErr;
-        }
-      }
-      console.error('All Gemini models failed, checking Groq. Last error:', lastError ? getErrorMessage(lastError) : 'none');
-    }
-
-    if (groqKey) {
-      try {
-        console.log('Attempting Groq summary using model: llama-3.3-70b-versatile');
-        const response = await fetch(
-          'https://api.groq.com/openai/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${groqKey}`
-            },
-            body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
-              messages: [{ role: 'user', content: promptOpenAI }],
-              temperature: 0.5,
-              response_format: { type: "json_object" }
-            })
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const textResult = data.choices?.[0]?.message?.content;
-          if (textResult) {
-            const cleanText = cleanJsonString(textResult);
-            const parsed = JSON.parse(cleanText);
-            console.log('Successfully generated summary using Groq model: llama-3.3-70b-versatile');
-            return NextResponse.json({ ...parsed, isAI: true, modelUsed: 'llama-3.3-70b-versatile' });
-          }
-        }
-        throw new Error(`Groq API responded with status ${response.status}`);
-      } catch (groqErr: unknown) {
-        console.error('Groq summary failed, checking OpenAI. Error:', getErrorMessage(groqErr));
-      }
-    }
-
-    if (openAIKey) {
-      try {
-        const response = await fetch(
-          'https://api.openai.com/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openAIKey}`
-            },
-            body: JSON.stringify({
-              model: 'gpt-3.5-turbo',
-              messages: [{ role: 'user', content: promptOpenAI }],
-              temperature: 0.5,
-              response_format: { type: "json_object" }
-            })
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const textResult = data.choices?.[0]?.message?.content;
-          if (textResult) {
-            const cleanText = cleanJsonString(textResult);
-            const parsed = JSON.parse(cleanText);
-            return NextResponse.json({ ...parsed, isAI: true });
-          }
-        }
-        throw new Error(`OpenAI response not ok: ${response.status}`);
-      } catch (openaiErr: unknown) {
-        console.error('OpenAI summary failed:', getErrorMessage(openaiErr));
-      }
-    }
-
-    const mockData = generateMockSummary(title, source);
-    return NextResponse.json({ ...mockData, isMock: true });
-
+    // Tanpa AI (tidak dikonfigurasi atau semua provider gagal): tampilkan cuplikan artikel asli apa adanya.
+    const excerpt = basis === 'full-article' ? buildExcerpt(articleContent) : [];
+    const fallback: NewsAnalysisResponse = {
+      mode: excerpt.length > 0 ? 'extract' : 'unavailable',
+      basis,
+      articleUrl,
+      generatedAt,
+      excerpt,
+      aiError: hasAiProvider,
+    };
+    cacheSet(cacheKey, fallback, FALLBACK_CACHE_TTL_MS);
+    return NextResponse.json(fallback);
   } catch (error: unknown) {
-    console.error('Error generating AI news summary:', getErrorMessage(error));
-    return NextResponse.json({
-      error: 'Failed to generate summary',
-      details: getErrorMessage(error)
-    }, { status: 500 });
+    console.error('Error generating news analysis:', getErrorMessage(error));
+    return NextResponse.json({ error: 'Failed to generate summary' }, { status: 500 });
   }
 }

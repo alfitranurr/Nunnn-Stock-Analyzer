@@ -340,7 +340,7 @@ function generateFallbackNews(symbol: string): NewsItem[] {
 }
 
 export async function GET(request: NextRequest) {
-  const { user, error: authError } = await requireUser();
+  const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
   const limited = await applyRateLimit(request, user?.id);

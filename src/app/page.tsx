@@ -660,6 +660,9 @@ export default function Dashboard() {
               <NewsTab
                 user={user}
                 onSignInClick={() => setIsAuthModalOpen(true)}
+                onSelectTicker={handleSelectTicker}
+                onOpenWatchlist={() => setCurrentTab('watchlist')}
+                isActive={currentTab === 'news'}
               />
             </motion.div>
           </div>

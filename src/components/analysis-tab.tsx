@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
+import { authFetch } from '@/lib/auth-fetch';
 import type { AppUser } from '@/lib/types';
 import { cleanCompanyName } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/utils';
@@ -367,7 +368,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
 
     try {
       // 1. Fetch Fundamentals
-      const fundRes = await fetch(`/api/analysis/fundamentals?symbol=${symbol}`);
+      const fundRes = await authFetch(`/api/analysis/fundamentals?symbol=${encodeURIComponent(symbol)}`);
       if (!fundRes.ok) {
         const err = await fundRes.json();
         throw new Error(err.error || (language === 'id' ? 'Gagal memuat data fundamental.' : 'Failed to load fundamental data.'));
@@ -377,7 +378,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       // 2. Fetch Technical Indicators
       let techData = null;
       try {
-        const techRes = await fetch(`/api/analysis/technical?symbol=${symbol}`);
+        const techRes = await authFetch(`/api/analysis/technical?symbol=${encodeURIComponent(symbol)}`);
         if (techRes.ok) {
           techData = await techRes.json();
         }
@@ -386,7 +387,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
       }
 
       // 3. Fetch News and Sentiment
-      const newsRes = await fetch(`/api/analysis/news?symbol=${symbol}`);
+      const newsRes = await authFetch(`/api/analysis/news?symbol=${encodeURIComponent(symbol)}`);
       if (!newsRes.ok) {
         const err = await newsRes.json();
         throw new Error(err.error || (language === 'id' ? 'Gagal memuat berita.' : 'Failed to load news.'));

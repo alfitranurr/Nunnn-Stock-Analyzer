@@ -588,10 +588,11 @@ function getDeterministicTechnicalData(symbol: string, currentPrice: number) {
 }
 
 export async function GET(request: NextRequest) {
-  const { user, error: authError } = await requireUser();
+  const { error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const limited = await applyRateLimit(request, user?.id);
+  // Tidak memanggil AI: cukup limit per IP agar refresh LIVE tidak menghabiskan kuota AI (C-02).
+  const limited = await applyRateLimit(request);
   if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
