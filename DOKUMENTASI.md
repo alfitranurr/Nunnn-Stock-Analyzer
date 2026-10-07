@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `db0cca3` (branch `main`, 2026-10-07). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
+> Kondisi kode: commit `abdd7d9` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -39,20 +39,20 @@
 | Framework | Next.js 16.3.4 (App Router, konvensi `proxy.ts`) + React 19.2.4 |
 | Bahasa | TypeScript strict |
 | Styling | Tailwind CSS v4, framer-motion, lucide-react, hanya mode gelap |
-| Backend | Next.js Route Handlers (9 route), tanpa server actions |
+| Backend | Next.js Route Handlers (11 route), tanpa server actions |
 | Data eksternal | Yahoo Finance (endpoint tidak resmi, lewat lapisan provider `lib/market-data` yang bisa diganti vendor berlisensi), Google News RSS, Gemini → Groq → OpenAI |
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 112 file ter-track git, sekitar 22,9k LOC di `src/`, 11 menu, 11 API route, 7 tabel DB |
+| Ukuran | 125 file ter-track git, sekitar 23,6k LOC di `src/`, 11 menu, 11 API route, 7 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
 
-1. **Menu Analisis dan Rangkuman AI kemungkinan selalu 401 di produksi.** Klien Supabase menyimpan sesi di localStorage, sedangkan `proxy.ts` mewajibkan cookie `sb-*-auth-token`. Lihat [C-01](#c-01).
-2. **Rate limit AI (10/jam) ikut membatasi route fundamental dan teknikal.** Ditambah auto-refresh 60 detik, Analisis bisa terkunci 429 dalam beberapa menit. Lihat [C-02](#c-02).
+1. ✅ ~~**Menu Analisis dan Rangkuman AI selalu 401 di produksi.**~~ Diperbaiki di `abdd7d9`: sesi dikirim sebagai header `Authorization: Bearer`. Lihat [C-01](#c-01).
+2. ✅ ~~**Rate limit AI (10/jam) ikut membatasi route fundamental dan teknikal.**~~ Diperbaiki di `abdd7d9`. Lihat [C-02](#c-02).
 3. **Data sintetis ditampilkan seolah data nyata.** Contohnya broker summary, foreign flow, harga fallback 5000, serta fundamental, dividen, dan berita fallback, semuanya tanpa penanda. Ini berisiko untuk keputusan investasi. Lihat [H-01](#h-01).
-4. **Persetujuan admin hanya dicek di browser.** Server (`requireUser`) dan RLS tidak memeriksa `approved`. Lihat [H-02](#h-02).
+4. **Persetujuan admin belum dicek di RLS.** Server (`requireUser`) sudah memeriksanya sejak `abdd7d9`, tetapi CRUD tabel data lewat anon key belum. Lihat [H-02](#h-02).
 5. **Belum ada test maupun CI kualitas** (lint, type-check, build). Workflow SLSA juga tidak valid. Lihat [H-07](#h-07).
 
 ---
@@ -80,8 +80,8 @@
 
 ```mermaid
 flowchart LR
-  B[Browser<br/>page.tsx + tab components] -->|fetch /api/*| P{proxy.ts<br/>cek cookie sb-*}
-  P -->|/api/analysis/*, /api/news/summary| R1[Route terproteksi<br/>requireUser + rate limit]
+  B[Browser<br/>page.tsx + tab components] -->|fetch /api/* + Bearer token| P{proxy.ts<br/>cek token/cookie}
+  P -->|/api/analysis/*, /api/news/summary| R1[Route terproteksi<br/>requireUser: JWT + approval]
   B -->|/api/ticker, /api/quotes, /api/market-summary,<br/>/api/global-markets, /api/news, /api/dividend| R2[Route publik<br/>rate limit IP]
   R2 -->|harga saham BEI| MD[lib/market-data<br/>provider + validasi + cache]
   MD --> Y[(Yahoo Finance<br/>chart/spark/quoteSummary)]
@@ -106,10 +106,10 @@ Poin penting:
 
 | | Mode Demo/Lokal | Mode Supabase |
 |---|---|---|
-| Aktif bila | `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` kosong atau berisi placeholder ([supabase.ts:7-10](src/lib/supabase.ts#L7-L10)) | Env terisi dengan benar |
+| Aktif bila | `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` kosong atau berisi placeholder ([supabase-config.ts](src/lib/supabase-config.ts), dipakai klien, server, dan proxy) | Env terisi dengan benar |
 | Auth | User simulasi di localStorage (`nunnn_stock_simulated_users`, password di-hash SHA-256 + salt, [crypto.ts](src/lib/crypto.ts)) | Supabase Auth (email/password + Google OAuth) dengan gerbang approval admin |
 | Penyimpanan | localStorage | Tabel Supabase (RLS per `user_id`) |
-| Proxy | Dilewati ([proxy.ts:34](src/proxy.ts#L34)) | Wajib cookie `sb-*-auth-token` |
+| Proxy & route terproteksi | Dilewati; `requireUser` memberi identitas `demo:<ip>` (tetap kena rate limit per IP) | Wajib header `Authorization: Bearer <token>` (atau cookie `sb-*-auth-token`); JWT & approval dicek di route |
 
 ### 2.5 Konvensi Next.js 16
 
@@ -164,17 +164,17 @@ Sumber: [package.json](package.json)
 ├── next.config.ts             CSP & security headers, images.remotePatterns
 ├── vercel.json                cron, maxDuration per route, region, headers
 └── src/
-    ├── proxy.ts               (50)   gerbang cookie untuk /api/analysis/* & /api/news/summary
+    ├── proxy.ts               (37)   gerbang token/cookie untuk /api/analysis/* & /api/news/summary
     ├── app/
     │   ├── layout.tsx         (43)   metadata, viewport, providers
-    │   ├── page.tsx           (953)  Dashboard: semua tab + auth + CRUD Avg Down
+    │   ├── page.tsx           (956)  Dashboard: semua tab + auth + CRUD Avg Down
     │   ├── globals.css        (126)  Tailwind v4 @theme tokens, glass-card, dll.
     │   └── api/
     │       ├── analysis/fundamentals/route.ts (425)
     │       ├── analysis/technical/route.ts    (997)  semua indikator teknikal
     │       ├── analysis/news/route.ts         (464)  sentimen per ticker (AI)
-    │       ├── news/route.ts                  (118)  feed berita
-    │       ├── news/summary/route.ts          (504)  rangkuman AI + SSRF guard
+    │       ├── news/route.ts                  (156)  feed berita (kategori, pencarian, watchlist; cache 5 mnt)
+    │       ├── news/summary/route.ts          (627)  analisis AI berita + SSRF guard (cache 24 jam)
     │       ├── ticker/route.ts                (135)  harga & pencarian ticker (via provider)
     │       ├── quotes/route.ts                (56)   harga + intraday banyak saham (watchlist, portofolio)
     │       ├── market-summary/route.ts        (137)  IHSG, breadth, movers (scan 886 saham, cache 45 dtk)
@@ -184,18 +184,18 @@ Sumber: [package.json](package.json)
     ├── components/            22 komponen + folder home/ (lihat §5)
     │   analysis-tab (2374) · compounding-tab (1720) · ipo-tab (1032) · dividend-tab (995)
     │   portfolio-tab (957) · calculator-form (896) · admin-panel-tab (777) · percentage-tab (775)
-    │   news-tab (604) · results-display (423) · sidebar (387) · history-table (352)
+    │   news-tab (765) · results-display (423) · sidebar (387) · history-table (352)
     │   auth-modal (320) · watchlist-panel (296) · client-bootstrap (294) · portfolio-snapshot (250)
     │   quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
     │   educational-tip-card (117) · trending-news-strip (106) · theme-provider (11)
     │   home/  home-dashboard (232) · market-overview (187) · market-movers (161)
     │          global-markets (91) · sparkline (78) · market-status-bar (69) · types (45)
     └── lib/
-        translations.ts (882) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
-        calculator.ts (278) · e-ipo.ts (261) · yahoo.ts (237) · dividend.ts (209) · format.ts (142)
-        watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (86) · market-hours.ts (85)
-        language-context.tsx (70) · use-polling.ts (66) · crypto.ts (48) · supabase.ts (41)
-        utils.ts (35) · supabase-server.ts (34) · auth-guard.ts (32) · quotes.ts (28)
+        translations.ts (874) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
+        calculator.ts (278) · e-ipo.ts (261) · yahoo.ts (244) · news.ts (220) · dividend.ts (209) · format.ts (142)
+        watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (100) · auth-guard.ts (93) · market-hours.ts (85)
+        language-context.tsx (70) · use-polling.ts (66) · idx-themes.ts (54) · crypto.ts (48) · auth-fetch.ts (42)
+        supabase.ts (35) · utils.ts (35) · supabase-server.ts (34) · quotes.ts (28) · supabase-config.ts (14)
         types.ts (26) · global-markets.ts (19) · validators.ts (17)
         market-data/  index (64) · yahoo-provider (57) · validate (54) · types (37)
 ```
@@ -210,7 +210,7 @@ Ringkasan akses tiap menu:
 |---|---|---|---|---|
 | 0 | Beranda | `home/home-dashboard.tsx` + widget | Publik (sapaan & ringkasan portofolio hanya untuk yang login) | — |
 | 0b | Watchlist | `watchlist-panel.tsx` (varian penuh) | Publik | Supabase `user_watchlists` / lokal |
-| 1 | Berita & Sentimen | `news-tab.tsx` | Publik; Rangkuman AI wajib login | — |
+| 1 | Berita & Sentimen | `news-tab.tsx` | Publik; Analisis AI wajib login | — |
 | 2 | Kalkulator Avg Down | `calculator-form`, `results-display`, `history-table` | Publik | Supabase / lokal |
 | 3 | Compounding | `compounding-tab.tsx` | Publik | Supabase / lokal (simpan, muat, hapus) |
 | 4 | Persentase | `percentage-tab.tsx` | Publik | Riwayat lokal (5) |
@@ -265,19 +265,41 @@ Urutan dari atas:
 - Saat kosong, ada saran BBCA/BBRI/BMRI/TLKM/ASII/GTSI.
 - Penyimpanan: selalu localStorage `nunnn_stock_watchlist`; bila login ke Supabase, disinkron ke tabel `user_watchlists` ([connectWatchlistToUser](src/lib/watchlist-store.ts#L79)). Versi cloud menang saat login; bila cloud kosong, daftar lokal diunggah.
 
-### 5.2 Berita & Sentimen ([news-tab.tsx](src/components/news-tab.tsx))
+### 5.2 Berita & Sentimen ([news-tab.tsx](src/components/news-tab.tsx), [lib/news.ts](src/lib/news.ts), [lib/idx-themes.ts](src/lib/idx-themes.ts))
 
-- **Input:**
-  - Kotak pencarian (submit memanggil `/api/news?q=`) dengan tombol hapus, dan tombol refresh.
-  - 5 kategori yang bisa digeser: Saham Indonesia, Saham Foreign, Ekonomi Domestik, Ekonomi Global, Politik Domestik.
-- **Output:** kartu berita berisi judul, badge sumber, tanggal, dan link "Baca Sumber". Sumber data: Google News RSS 7 hari terakhir.
-- **Rangkuman AI:**
-  - Belum login: tombol menampilkan gembok dan membuka modal login ([news-tab.tsx:422-444](src/components/news-tab.tsx#L422-L444)).
-  - Sudah login: panel memanggil `POST /api/news/summary` sekali, lalu hasilnya di-cache di state ([news-tab.tsx:141-190](src/components/news-tab.tsx#L141-L190)).
-  - Isi panel: badge mesin yang dipakai (Gemini/Groq/OpenAI atau "Heuristic Engine"), Highlight Utama, Konteks Singkat, Key Findings bernomor, Key Takeaway, dan disclaimer.
-  - State: skeleton "AI sedang membaca...", serta pesan error dengan tombol "Coba Lagi".
-- **State feed:** 4 kartu skeleton, banner error, dan tampilan kosong dengan tombol "Kembali ke Kategori Utama".
-- ⚠️ Dalam kondisi produksi saat ini, Rangkuman AI kemungkinan selalu 401. Lihat [C-01](#c-01).
+Data hanya diambil saat tab Berita dibuka (`isActive`), dan hasil per kategori di-cache di browser selama 5 menit.
+
+**Navigasi:**
+- Pencarian berita atau kode saham (maks 100 karakter), tombol hapus, dan tombol refresh.
+- Tab **Untuk Anda** (berita saham di watchlist), **Saham Indonesia**, **Pasar Global**, **Makro & Kebijakan**, **Komoditas**. Kategori lama `foreign`/`domestik`/`politik` di API dialihkan ke kategori baru.
+- Tab Untuk Anda tanpa watchlist menampilkan ajakan "Buka Watchlist".
+
+**Feed** (`/api/news`, Google News RSS 7 hari terakhir):
+- Judul dibersihkan dari akhiran " - Nama Media", berita duplikat dan konten video dibuang, nama sumber berupa URL diganti domainnya.
+- **Kurasi sumber:** bila kategori punya ≥ 10 berita dari daftar ±40 media keuangan/berita arus utama (`TRUSTED_DOMAINS`, [news.ts:30](src/lib/news.ts#L30)), media lain disembunyikan; jumlahnya ditampilkan di bawah feed.
+- Berita dikelompokkan per hari (Hari ini / Kemarin / tanggal, WIB) dengan waktu relatif ("3 jam lalu"); tampil 12 berita + "Muat lebih banyak" (maks 40).
+- **Chip saham** di setiap berita: kode yang disebut di judul ([extractTickers](src/lib/news.ts#L168)), dengan % perubahan live dari `/api/quotes`, klik → Analisis, ☆ → watchlist.
+  - Dikenali dari kode 4 huruf dan dari ±55 nama/brand umum (`NAME_ALIASES`, mis. "BCA" → BBCA, "Bank Mandiri" → BMRI, "Antam" → ANTM, "Vale Indonesia" → INCO). Frasa yang lebih panjang menang ("Indofood CBP" → ICBP, bukan INDF).
+  - Kode yang juga kata umum (NATO, NASA, META, BANK, GOLD, ...) hanya dikenali bila didahului "saham"/"emiten" atau ditulis dalam kurung.
+- Tab Untuk Anda memakai kueri kode **atau** nama emiten, lalu disaring ketat: hanya berita yang judulnya benar-benar menyebut saham tersebut.
+
+**Analisis AI** (login wajib; `POST /api/news/summary` lewat `authFetch` dengan token Bearer):
+
+| Bagian | Isi |
+|---|---|
+| Label | Sentimen (Positif/Negatif/Netral) + keyakinan, kategori dampak (Korporasi/Makro/Regulasi/Sektor/Pasar), horizon, **dasar analisis** ("Dari artikel lengkap" atau "Hanya dari judul"), dan provider AI |
+| Ringkasan | 1 kalimat inti + 2–3 kalimat konteks, lalu 2–4 poin penting |
+| Saham terdampak | **Disebut di berita** (judul + AI) dan **Berpotensi terdampak per sektor**: tema dari peta 25 tema BEI terkurasi ([idx-themes.ts](src/lib/idx-themes.ts)) dengan arah ▲/▼/◆ dan alasan, dikembangkan server menjadi emiten valid |
+| Yang perlu dipantau | 1–3 hal ke depan |
+| Penutup | Disclaimer "bukan rekomendasi investasi" + tautan artikel asli |
+
+- Tanpa saran beli/jual atau target harga. Keluaran AI divalidasi (enum, panjang teks, kode saham dicocokkan dengan kamus BEI); bila tidak valid, provider berikutnya dicoba (Gemini → Groq → OpenAI, dalam batas waktu 26 detik).
+- Analisis "hanya dari judul" dibatasi keyakinan rendah dan maksimal 1 tema; artikel lengkap maksimal 3 tema.
+- Tanpa AI (tidak dikonfigurasi/gagal): tampil cuplikan paragraf artikel asli tanpa interpretasi, atau pesan "belum tersedia". Mode "Heuristic Engine" lama yang mengarang temuan sudah dihapus.
+- Pesan error spesifik: sesi tidak valid (dengan tombol Masuk), akun menunggu approval, kuota 10/jam habis (dengan sisa waktu), layanan login mati, pemeriksaan akun gagal di server.
+- Sentimen hasil analisis juga tampil sebagai badge di kartu berita.
+
+> Catatan: beberapa media (mis. IDNFinancials) memasang proteksi bot Cloudflare yang menolak request dari server. Artikel dari media seperti ini dianalisis hanya dari judul dan diberi label demikian; proteksi tersebut sengaja tidak diakali.
 
 ### 5.3 Kalkulator Average Down
 
@@ -778,25 +800,27 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | `/api/market-summary` | GET `?minValue=` (Rp, filter Gainers/Losers) | — | IP | `minValue` 0–10¹³ | Provider: IHSG + scan 886 saham (spark 5d/1d, batch 20, 5 paralel). Cache bersama 45 dtk | **502**; data lama tetap disajikan bila ada |
 | `/api/quotes` | GET `?symbols=A,B` (maks 30) | — | IP | Tiap simbol lewat `validateTickerSymbol` | Provider (harian 5d/1d + intraday 1d/5m). Cache 30 dtk per kombinasi | 400 bila tidak ada simbol valid; 502 |
 | `/api/global-markets` | GET | — | IP | — | Yahoo spark (harian + intraday 15m) untuk 8 instrumen. Cache 60 dtk | 502 |
-| `/api/news` | GET `?category=` / `?q=` | — | IP | **`q` tidak divalidasi** | Google News RSS | 200 `{news:[], error}` |
-| `/api/news/summary` | POST `{title, source, link}` | Cek same-origin + proxy + `requireUser` | IP + AI | Hanya `title` wajib, **tanpa batas panjang** | Google batchexecute, fetch artikel, Gemini (≤5 model) → Groq → OpenAI | Fallback ringkasan heuristik |
-| `/api/analysis/fundamentals` | GET `?symbol=` | proxy + `requireUser` | IP + **AI** | validator | Yahoo v7 quote (revalidate 60), v10 quoteSummary | **Data deterministik palsu** |
-| `/api/analysis/technical` | GET `?symbol=` | proxy + `requireUser` | IP + **AI** | validator | Yahoo chart 1d/6mo + 1wk/1y | **Data deterministik, harga 5000** |
+| `/api/news` | GET `?category=` / `?q=` / `?tickers=A,B` (maks 20) | — | IP | `q` ≤ 100 karakter; ticker lewat validator | Google News RSS (timeout 8 dtk). Cache 5 mnt per kueri | **502** |
+| `/api/news/summary` | POST `{title, source, link}` | Cek same-origin + proxy + `requireUser` (JWT + approval) | IP; kuota AI hanya bila memanggil AI (bukan dari cache) | `title` ≤ 300, `source` ≤ 120, `link` ≤ 2000 | Resolve link Google News, baca paragraf artikel (redirect diikuti maks 3, dicek SSRF tiap lompatan), Gemini (3 model) → Groq → OpenAI. Cache 24 jam per artikel | Cuplikan artikel asli (`mode: extract`) atau `mode: unavailable` |
+| `/api/analysis/fundamentals` | GET `?symbol=` | proxy + `requireUser` | IP (sejak `abdd7d9`) | validator | Yahoo v7 quote (revalidate 60), v10 quoteSummary | **Data deterministik palsu** |
+| `/api/analysis/technical` | GET `?symbol=` | proxy + `requireUser` | IP (sejak `abdd7d9`) | validator | Yahoo chart 1d/6mo + 1wk/1y | **Data deterministik, harga 5000** |
 | `/api/analysis/news` | GET `?symbol=` | proxy + `requireUser` | IP + AI | validator | Google & Yahoo RSS, Gemini/Groq/OpenAI | Berita fallback buatan + sentimen keyword |
 | `/api/dividend` | GET `?symbol=` | — | IP | validator | Yahoo chart + `events=div&range=10y` | Dividen deterministik |
 | `/api/keepalive` | GET | **Tidak ada** (tanpa `CRON_SECRET`) | — | — | Supabase `select id from user_approvals limit 1` | 500 generik |
 
-**Proxy** ([proxy.ts:48-50](src/proxy.ts#L48-L50)):
+**Proxy** ([proxy.ts](src/proxy.ts)):
 - Matcher: `/api/news/summary` dan `/api/analysis/:path*`.
-- Hanya mengecek **keberadaan** cookie `sb-<ref>-auth-token`. JWT tidak divalidasi di proxy; validasinya dilakukan di route lewat `requireUser()`.
+- Hanya mengecek **keberadaan** kredensial: header `Authorization: Bearer <token>` atau cookie `sb-<ref>-auth-token`. JWT divalidasi di route lewat `requireUser()`.
+- Klien memanggil route ini lewat [authFetch](src/lib/auth-fetch.ts), yang menyertakan `access_token` sesi Supabase (sesi disimpan supabase-js di localStorage, bukan cookie).
 
 **Helper server:**
-- [auth-guard.ts](src/lib/auth-guard.ts) `requireUser()`: memanggil `auth.getUser()` lewat `@supabase/ssr` (cookie) dan mengembalikan 401 bila tidak ada user. Status approval **tidak dicek**.
+- [auth-guard.ts](src/lib/auth-guard.ts) `requireUser(request)`: validasi JWT dari header Bearer (fallback cookie) lewat `auth.getUser()`, lalu cek baris `user_approvals` dengan JWT pengguna (`select('*')` agar tahan skema yang tertinggal migrasi). Hasil: 401 sesi tidak valid, 403 `not_approved`, 503 Supabase tidak terjangkau, 500 `auth_check_failed` (mis. error database). Mode Demo memberi identitas `demo:<ip>`.
+- [rate-limit.ts](src/lib/rate-limit.ts) `applyAiRateLimit(id)`: kuota AI saja, dipakai setelah cek cache agar hasil tersimpan tidak memakan kuota.
 - [rate-limit.ts](src/lib/rate-limit.ts) `applyRateLimit(req, id?)`: IP diambil dari `x-forwarded-for` (fallback `127.0.0.1`).
 - [validators.ts](src/lib/validators.ts) `validateTickerSymbol`: uppercase lalu dicocokkan dengan `^[A-Z]{1,5}(\.JK)?$`. Validator ini tidak menghapus `.JK`; route `ticker` dan `quotes` membuangnya sendiri.
 
 **Timeout & durasi:**
-- Fetch di `news/summary` (6–8 detik) dan semua fetch lewat [lib/yahoo.ts](src/lib/yahoo.ts) (8 detik) memakai timeout. Route analisis dan dividen belum.
+- Fetch di `news`, `news/summary` (6–12 detik, dengan batas total 26 detik untuk AI) dan semua fetch lewat [lib/yahoo.ts](src/lib/yahoo.ts) (8 detik) memakai timeout. Route analisis dan dividen belum.
 - `maxDuration` di [vercel.json](vercel.json): AI 30 detik, analisis 20 detik, dividen/news/market-summary 15 detik, ticker/quotes/global-markets 10 detik.
 
 ### 7.1 Lapisan data pasar
@@ -811,11 +835,11 @@ Semua harga saham BEI dibaca lewat [lib/market-data](src/lib/market-data/index.t
 Route dan UI tidak perlu diubah. Data global (USD/IDR, komoditas, indeks luar negeri) tetap dari Yahoo.
 
 **Harga acuan (penutupan sesi sebelumnya).** Field `chartPreviousClose`/`previousClose` dari Yahoo terbukti basi atau salah (7 Okt 2026: IHSG memakai penutupan 2 hari lalu sehingga tampil +0,46% padahal −0,75%; VKTR memakai Rp835 sehingga tampil −19,76% padahal −0,74%). Karena itu:
-- acuan diambil dari **bar harian terakhir sebelum tanggal sesi terakhir** (`splitSessions`, [yahoo.ts:67](src/lib/yahoo.ts#L67));
-- grafik intraday memakai bar 5 menit sesi terakhir saja; bar intraday hari sebelumnya tidak dipakai sebagai acuan karena bisa berisi harga basi ([fetchQuotesWithIntraday](src/lib/yahoo.ts#L162));
+- acuan diambil dari **bar harian terakhir sebelum tanggal sesi terakhir** (`splitSessions`, [yahoo.ts:72](src/lib/yahoo.ts#L72)). Tanggal sesi terakhir ditentukan dari `regularMarketTime` (waktu transaksi terakhir), karena setelah tengah malam Yahoo mengosongkan (`null`) bar sesi yang baru selesai; sebelum perbaikan `84ebbe7` acuan bergeser sehari (8 Okt dini hari: BBCA −2,02% padahal −0,82%, GOTO +3,45% padahal −3,23%, BYAN +2,45% padahal −6,69%);
+- grafik intraday memakai bar 5 menit sesi terakhir saja; bar intraday hari sebelumnya tidak dipakai sebagai acuan karena bisa berisi harga basi ([fetchQuotesWithIntraday](src/lib/yahoo.ts#L169));
 - acuan saham BEI dibulatkan ke fraksi terdekat (`roundToNearestIdxTick`, [calculator.ts:82](src/lib/calculator.ts#L82)), karena Yahoo kadang menskalakan histori (VKTR 675 → 672,87).
 
-Hasil verifikasi 7 Okt 2026: 17/17 angka (IHSG + 16 saham) identik dengan Stockbit.
+Hasil verifikasi: 17/17 angka (IHSG + 16 saham) identik dengan Stockbit pada 7 Okt 2026, dan 19/19 setelah perbaikan `84ebbe7` pada 8 Okt dini hari.
 
 **Pengecekan kewajaran** (`validateIdxQuote`, [validate.ts:22](src/lib/market-data/validate.ts#L22)):
 
@@ -832,7 +856,7 @@ Data bermasalah dikeluarkan dari breadth dan movers (jumlahnya dikirim di `dataQ
 
 **Sesi bursa** ([market-hours.ts:27](src/lib/market-hours.ts#L27), WIB): Senin–Kamis pra-pembukaan 08:45, sesi 1 09:00–12:00, sesi 2 13:30–15:50, pra-penutupan 15:50–16:00; Jumat sesi 1 09:00–11:30, sesi 2 14:00–15:50. Hari libur tidak dijadwalkan; bila sampai 09:30 IHSG belum bertransaksi hari itu, status menjadi "Libur Bursa" (`getEffectiveIdxSession`).
 
-**Cache server** (`createTtlCache`, [yahoo.ts:206](src/lib/yahoo.ts#L206)): in-memory per instance, dengan deduplikasi request yang sedang berjalan, dan menyajikan data lama bila pengambilan baru gagal.
+**Cache server** (`createTtlCache`, [yahoo.ts:213](src/lib/yahoo.ts#L213)): in-memory per instance, dengan deduplikasi request yang sedang berjalan, dan menyajikan data lama bila pengambilan baru gagal.
 
 ---
 
@@ -849,7 +873,7 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | `portfolio_cash` | user_id (PK), cash_balance ≥ 0 | portfolio-tab, portfolio-snapshot |
 | `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (rencana trading memakai ulang kolom-kolom ini, lihat di bawah) |
 | `ipo_plans` | price, total_lots, oversubscription ≥ 1, total_subscribers, retail_ratio 0–100, personal_order_lots | ipo-tab |
-| `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel |
+| `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel, `requireUser` (server). ⚠️ Per 8 Okt 2026 database produksi **belum punya kolom `is_admin`** (migrasi 000004 belum diterapkan penuh); jalankan ulang migrasi 000004–000007 agar Admin Panel dan `claim_first_admin` berfungsi |
 | `user_watchlists` | user_id (PK), items jsonb (array, maks 20), updated_at ([migrasi 000007](supabase/migrations/20261007000007_create_user_watchlists.sql)) | watchlist-store. **Migrasi ini perlu dijalankan di Supabase** agar watchlist tersinkron ke akun |
 
 **Pemetaan kolom untuk rencana trading di `compounding_plans`** ([compounding-tab.tsx:475](src/components/compounding-tab.tsx#L475)). Tidak butuh migrasi karena kolomnya `varchar(20)`/`numeric` tanpa batasan nilai:
@@ -1022,7 +1046,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 ### Critical
 
 <a id="c-01"></a>
-**C-01: Sesi Supabase tidak terkirim sebagai cookie, sehingga route terproteksi selalu 401** · Auth · R
+**C-01 ✅: Sesi Supabase tidak terkirim sebagai cookie, sehingga route terproteksi selalu 401** · Auth · Diperbaiki di `abdd7d9` (token dikirim lewat header `Authorization: Bearer`, divalidasi `requireUser`)
 
 - **Lokasi:** [supabase.ts:26](src/lib/supabase.ts#L26), [proxy.ts:25-43](src/proxy.ts#L25-L43), [auth-guard.ts](src/lib/auth-guard.ts).
 - **Masalah:** klien browser memakai `createClient` dari `supabase-js`, yang menyimpan sesi di **localStorage**. Sementara itu proxy dan `requireUser()` (lewat `@supabase/ssr`) mencari sesi di **cookie**.
@@ -1035,7 +1059,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
   - Tentukan juga perilaku mode demo secara eksplisit di `requireUser`.
 
 <a id="c-02"></a>
-**C-02: Limiter "AI" (10/jam) ikut membatasi fundamental dan teknikal, diperparah auto-refresh 60 detik** · Availability/Cost · T
+**C-02 ✅: Limiter "AI" (10/jam) ikut membatasi fundamental dan teknikal, diperparah auto-refresh 60 detik** · Availability/Cost · Diperbaiki di `abdd7d9` (fundamental & teknikal hanya limit IP). Rekomendasi cache sentimen per ticker di `analysis/news` masih terbuka
 
 - **Lokasi:** [rate-limit.ts:70](src/lib/rate-limit.ts#L70); fundamentals dan technical meneruskan `user.id`; [analysis-tab.tsx:411-417](src/components/analysis-tab.tsx#L411-L417).
 - **Dampak:**
@@ -1063,7 +1087,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
   - Beri label "Estimasi model, bukan data broker" pada bagian Bandarmology.
 
 <a id="h-02"></a>
-**H-02: Approval admin hanya dicek di klien** · Authorization · T
+**H-02 (sebagian ✅): Approval admin hanya dicek di klien** · Authorization · Route AI/analisis sudah mengecek approval di server sejak `abdd7d9`; RLS tabel data belum
 
 - **Lokasi:** [page.tsx:271-290](src/app/page.tsx#L271-L290), [auth-guard.ts](src/lib/auth-guard.ts), dan RLS tabel data.
 - **Dampak:** pengguna yang sudah terdaftar tetapi belum disetujui tetap memegang JWT yang valid. Dengan JWT itu ia bisa memanggil API berbiaya (AI) dan CRUD tabelnya sendiri langsung lewat anon key, karena `signOut()` dilakukan di klien.
@@ -1072,7 +1096,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
   - Tambahkan syarat approval di policy RLS tabel data, misalnya lewat fungsi `is_approved()`.
 
 <a id="h-03"></a>
-**H-03: Celah pada SSRF guard** · SSRF · T
+**H-03 (sebagian ✅): Celah pada SSRF guard** · SSRF · Diperbaiki di `abdd7d9`: IPv6 berkurung siku, IPv4-mapped, `fdic.gov`, host `news.google.com` persis, batas panjang body, redirect dicek tiap lompatan. **Masih terbuka:** DNS tidak di-resolve (DNS rebinding)
 
 - **Lokasi:** [news/summary/route.ts:204-235](src/app/api/news/summary/route.ts#L204-L235), [:300](src/app/api/news/summary/route.ts#L300).
 - **Rincian celah:**
@@ -1142,13 +1166,13 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 | M-15 ✅ | Performa | market-summary/route.ts | ~~Scan sekitar 940 ticker tiap request, tiap pengunjung, tiap 30 detik~~ | Diperbaiki di `db0cca3`: cache bersama 45 dtk, IHSG & scan paralel, polling hanya saat jam bursa dan tab aktif |
 | <a id="m-16"></a>M-16 | DB | migrasi 000005/000006 | Trigger `force_pending` bisa menimpa `is_admin` pada jalur insert `claim_first_admin`; saat ini hanya aman karena klien sudah insert baris lebih dulu | Kecualikan fungsi SECURITY DEFINER dari trigger |
 | <a id="m-17"></a>M-17 | Security | [keepalive/route.ts](src/app/api/keepalive/route.ts) | Tanpa `CRON_SECRET`, siapa pun bisa memicu query; komentar masih menulis "6 jam" padahal cron berjalan harian | Cek `Authorization: Bearer ${CRON_SECRET}` |
-| M-18 | Config | supabase.ts:10 vs proxy.ts:22 | Deteksi "Supabase terkonfigurasi" berbeda (`your-supabase-project` vs `placeholder.supabase.co`) | Satukan dalam satu helper |
+| M-18 ✅ | Config | supabase-config.ts | ~~Deteksi "Supabase terkonfigurasi" berbeda antara klien dan proxy~~ | Diperbaiki di `abdd7d9` (satu helper untuk klien, server, proxy) |
 
 Temuan Medium lain yang terkait performa dan robustness:
-- Loop Gemini sampai 5 model tanpa timeout bisa melewati `maxDuration` 30 detik.
+- Loop Gemini sampai 5 model tanpa timeout bisa melewati `maxDuration` 30 detik. (✅ di `news/summary` sejak `abdd7d9`: 3 model, timeout per panggilan, batas total 26 detik; `analysis/news` belum.)
 - 3 fetch di Analisis dijalankan berurutan, padahal bisa `Promise.all`.
 - `?q=` di [analysis-tab.tsx:457](src/components/analysis-tab.tsx#L457) tidak di-*encode*.
-- Body `news/summary` tanpa batas panjang (risiko prompt injection dan biaya).
+- ✅ ~~Body `news/summary` tanpa batas panjang~~ (dibatasi sejak `abdd7d9`).
 
 ### Low / UX
 
@@ -1173,9 +1197,11 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `64d6a96` | 2026-10-07 | — | Ikon sidebar Dividen dan E-IPO sama (`Coins`); ikon `Percent` dipakai Compounding, bukan Persentase |
 | `6360bca` | 2026-10-07 | — | Admin Panel memanggil Supabase di setiap pembukaan halaman oleh siapa pun dan mencetak error `{}` |
 | `db0cca3` | 2026-10-07 | M-02, M-15 | Beranda: badge "LIVE" selalu menyala walau bursa tutup; **acuan harga dari Yahoo basi** (IHSG +0,46% padahal −0,75%, VKTR −19,76% padahal −0,74%), juga memengaruhi `/api/ticker`; volume IHSG selalu 0; tombol hapus watchlist tak terlihat di HP; satuan "M" untuk juta; kas RDN fiktif Rp100 juta; isi Tips (salah ketik, kutipan Einstein, angka break-even) |
+| `84ebbe7` | 2026-10-08 | — | Setelah tengah malam acuan harga bergeser sehari karena bar sesi terakhir di Yahoo menjadi `null` (BBCA −2,02% padahal −0,82%) |
+| `abdd7d9` | 2026-10-08 | C-01, C-02, M-18, sebagian H-02 & H-03 | Berita: mode "Heuristic Engine" yang mengarang temuan & saran beli/jual; pemeriksaan approval meminta kolom `is_admin` yang tidak ada di database produksi; artikel dibaca dari seluruh HTML (menu/iklan ikut) dan redirect tidak diikuti; feed tanpa cache, duplikat, judul berakhiran nama media, kategori Politik tidak relevan |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
-**Masih terbuka:** semua temuan Critical dan High, M-01, M-03–M-08, M-10–M-14, M-16–M-18, L-01 (E-IPO), L-02, L-03, L-05, L-06, L-07 (auth-modal), L-08–L-10.
+**Masih terbuka:** H-01, H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-10–M-14, M-16, M-17, L-01 (E-IPO), L-02, L-03, L-05, L-06, L-07 (auth-modal), L-08–L-10.
 
 ---
 
@@ -1194,7 +1220,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo, CompanyLogo, IpoEmitenLogo, PortfolioEmitenLogo) | 6× | `components/emiten-logo.tsx` |
 | `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 4× (dividend, ipo, portfolio, compounding versi singkat Juta/Miliar); results-display & history-table sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
 | Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down & Compounding | Pakai juga di Dividen, E-IPO, Persentase, Portofolio |
-| Rantai fallback Gemini → Groq → OpenAI | 2× | `lib/llm.ts` |
+| Rantai fallback Gemini → Groq → OpenAI | 2× (`news/summary` sudah memakai pemanggil generik dengan timeout & validasi; `analysis/news` masih versi lama) | `lib/llm.ts` |
 | Parser RSS | 2× | `lib/rss.ts` |
 | String User-Agent Mozilla | 12× di 7 file (analysis, dividend, news, ticker search); route data pasar sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
 | `NEXT_PUBLIC_ADMIN_EMAIL \|\| 'admin@…'` | 5× | `lib/config.ts` |
@@ -1225,16 +1251,16 @@ Temuan Medium lain yang terkait performa dan robustness:
 ## 14. Roadmap Rekomendasi
 
 ### P0: dampak besar, kerja kecil (1–2 hari)
-1. **C-01:** ganti `lib/supabase.ts` ke `createBrowserClient` (`@supabase/ssr`), lalu uji Analisis dan Rangkuman AI saat sudah login.
-2. **C-02:** limiter AI hanya untuk route LLM, dan auto-refresh LIVE tidak memanggil AI.
+1. ✅ **C-01** (`abdd7d9`): token Bearer + `requireUser(request)`.
+2. ✅ **C-02** (`abdd7d9`): limiter AI hanya untuk route LLM. Sisa: auto-refresh LIVE di Analisis masih memanggil `analysis/news` (AI) tiap menit; cache sentimen per ticker.
 3. **H-04:** pindah ke `next/font/google`.
 4. **H-01:** tambahkan flag `isFallback`/`isSynthetic` dan badge di UI.
 5. **M-01, M-02, M-10, M-03:** perbaikan satu baris di logika kalkulasi. (M-09 ✅ `b9db7a6`.)
 6. **L-01, L-02:** tambahkan tombol simpan E-IPO dan perbaiki mojibake. (Simpan Compounding ✅ `f2c68f1`; selector login L-04 ✅ `b9db7a6`.)
 
 ### P1: keamanan & keandalan (1 minggu)
-1. **H-02:** approval dicek di server dan di RLS.
-2. **H-03:** perkuat SSRF guard dan batasi panjang body.
+1. **H-02:** approval sudah dicek di server (`abdd7d9`); tambahkan juga di RLS tabel data.
+2. **H-03:** sisa DNS rebinding (resolve DNS dan cek alamat hasilnya). Bagian lain ✅ `abdd7d9`.
 3. **H-05:** pasang Upstash; **M-17:** `CRON_SECRET`.
 4. **H-06:** ganti `deploy.js` dengan manajemen env yang selektif.
 5. Tambahkan timeout ke fetch eksternal yang tersisa (analisis, dividen, berita) dan `Promise.all` di Analisis. (Cache market-summary M-15 ✅ `db0cca3`.)
@@ -1255,7 +1281,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (108 commit)
+### 15.1 Riwayat pengembangan (111 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1267,7 +1293,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | 2026-09-02/03 | Sprint keamanan: authz, SSRF, RLS, rate limit, upgrade Next `f24e8ce`; headers, validator, hapus xlsx, CSRF `56beb3d`; pin SHA `01950d7`; laporan final `a7f4dfa` |
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
 | 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
-| 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3` |
+| 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3`; dokumentasi `24ddbca` |
+| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9` |
 
 ### 15.2 Glosarium
 
