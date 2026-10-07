@@ -63,21 +63,28 @@ interface ChartResponse {
  * Field meta `chartPreviousClose`/`previousClose` dari Yahoo tidak bisa dipercaya
  * (contoh: IHSG memakai penutupan 2 hari lalu, VKTR memakai harga lama sebelum
  * corporate action), jadi acuan diambil dari bar harian sebelumnya bila tersedia.
+ *
+ * Tanggal sesi terakhir diambil dari `regularMarketTime` (waktu transaksi terakhir),
+ * bukan dari bar terakhir yang berisi angka: setelah tengah malam Yahoo kadang
+ * mengosongkan (`null`) bar sesi yang baru selesai, sehingga bar sebelumnya
+ * keliru dianggap sesi terakhir dan acuan bergeser satu hari (BBCA −2,02% padahal −0,82%).
  */
 function splitSessions(series: YahooSeries): { previousClose: number | null; sessionCloses: number[] } | null {
   const timestamps = series.timestamp;
   const rawCloses = series.indicators?.quote?.[0]?.close;
   if (!timestamps?.length || !rawCloses?.length) return null;
   const offsetMs = (series.meta?.gmtoffset ?? 0) * 1000;
+  const dateOf = (sec: number) => new Date(sec * 1000 + offsetMs).toISOString().slice(0, 10);
 
   const points: Array<{ date: string; close: number }> = [];
   timestamps.forEach((t, i) => {
     const close = rawCloses[i];
-    if (typeof close === 'number') points.push({ date: new Date(t * 1000 + offsetMs).toISOString().slice(0, 10), close });
+    if (typeof close === 'number') points.push({ date: dateOf(t), close });
   });
   if (points.length === 0) return null;
 
-  const latestDate = points[points.length - 1].date;
+  const marketTime = series.meta?.regularMarketTime;
+  const latestDate = marketTime ? dateOf(marketTime) : points[points.length - 1].date;
   const earlier = points.filter((p) => p.date < latestDate);
   return {
     previousClose: earlier.length > 0 ? earlier[earlier.length - 1].close : null,
