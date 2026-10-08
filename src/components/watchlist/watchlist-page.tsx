@@ -14,7 +14,7 @@ import { useIdxSessionState } from '@/components/home/home-dashboard';
 import { Badge, Card, Segmented, Stat, fmtInput, pct, pick, rp, sanitizeNumber, type Lang } from '@/components/shared/calc-ui';
 import { useLanguage } from '@/lib/language-context';
 import { usePolling } from '@/lib/use-polling';
-import { useDataRefreshEpoch } from '@/lib/refresh-signal';
+import { LIVE_POLL_MS, useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { IDX_TICKERS } from '@/lib/tickers';
 import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/lib/format';
@@ -83,7 +83,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
 
   // Admin menekan "Refresh semua data" → ambil ulang segera.
   const refreshEpoch = useDataRefreshEpoch();
-  usePolling(loadQuotes, { enabled: isActive && entries.length > 0, intervalMs: trading ? 60_000 : null, minGapMs: 30_000, key: `${symbolsKey}|${refreshEpoch}` });
+  usePolling(loadQuotes, { enabled: isActive && entries.length > 0, intervalMs: trading ? LIVE_POLL_MS : null, minGapMs: 15_000, key: `${symbolsKey}|${refreshEpoch}` });
 
   const addSymbol = (raw: string) => {
     const symbol = raw.toUpperCase().replace(/\.JK$/, '');
@@ -135,11 +135,16 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
 
   const signedPct = (v: number) => `${v > 0 ? '+' : ''}${pct(v, language)}`;
   const tone = (v: number | null) => (v === null || v === 0 ? 'text-slate-300' : v > 0 ? 'text-emerald-400' : 'text-rose-400');
-  // Harga berkedip halus setiap kali berubah (polling 60 detik saat bursa buka).
+  // Harga berkedip halus setiap kali berubah (polling 30 detik saat bursa buka).
   const lastOf = (r: Row) => (r.quote ? <Flash value={rp(r.quote.price, language)} /> : quoteError ? '—' : '…');
 
   const changeCell = (r: Row) =>
-    r.quote ? (
+    r.quote?.stale ? (
+      <span className="text-amber-400 text-[10px] font-bold" title={L('Tidak ada transaksi pada sesi bursa terakhir (mis. suspensi)', 'No trades in the last session (e.g. suspended)')}>
+        {L('tidak bertransaksi', 'not traded')}
+        {r.quote.lastTradeDate && <span className="block font-semibold text-amber-300/70">{L('sejak', 'since')} {r.quote.lastTradeDate}</span>}
+      </span>
+    ) : r.quote ? (
       r.changePct !== null ? (
         <span className={`tabular-nums ${tone(r.quote.change)}`}>
           <Flash value={`${r.quote.change > 0 ? '+' : ''}${formatNumberLocale(r.quote.change, language)}`} />
@@ -389,8 +394,8 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
 
             <p className="text-[10px] text-slate-500 mt-4 leading-relaxed">
               {L(
-                'Harga Yahoo Finance (tertunda), diperbarui tiap menit selama jam bursa. Rentang hari ini dihitung dari bar 5 menit. Harga incaran tersimpan bersama watchlist (ikut tersinkron ke akun) dan ditandai saat tercapai ketika halaman ini dibuka.',
-                'Yahoo Finance prices (delayed), refreshed every minute during market hours. The day range comes from 5-minute bars. Targets are saved with the watchlist (synced to your account) and flagged when reached while this page is open.'
+                'Harga Yahoo Finance (tertunda), diperbarui tiap 30 detik selama jam bursa. Rentang hari ini dihitung dari bar 5 menit. Harga incaran tersimpan bersama watchlist (ikut tersinkron ke akun) dan ditandai saat tercapai ketika halaman ini dibuka.',
+                'Yahoo Finance prices (delayed), refreshed every 30 seconds during market hours. The day range comes from 5-minute bars. Targets are saved with the watchlist (synced to your account) and flagged when reached while this page is open.'
               )}
             </p>
           </>

@@ -28,6 +28,9 @@ export interface TechnicalResponse {
     change: number;
     changePercent: number;
     suspect: boolean;
+    /** Tidak bertransaksi pada sesi bursa terakhir (suspensi / tanpa transaksi). */
+    stale: boolean;
+    lastTradeDate: string | null;
     volume: number;
     valueTraded: number;
     dayHigh: number | null;
@@ -73,7 +76,7 @@ export interface TechnicalResponse {
   summary: { score: number; rating: 'STRONG BUY' | 'BUY' | 'NEUTRAL' | 'SELL' | 'STRONG SELL' };
 }
 
-const cache = createTtlCache<TechnicalResponse | null>(60_000, 200);
+const cache = createTtlCache<TechnicalResponse | null>(30_000, 200);
 const WIB_OFFSET = 7 * 3600;
 
 const toBars = (s: OhlcSeries): Bars => ({ open: s.open, high: s.high, low: s.low, close: s.close, volume: s.volume, time: s.time });
@@ -237,6 +240,8 @@ async function analyze(ticker: string): Promise<TechnicalResponse | null> {
       change,
       changePercent: previousClose > 0 ? (change / previousClose) * 100 : 0,
       suspect: validated ? validated.issue !== null : false,
+      stale: validated?.stale === true,
+      lastTradeDate: validated?.lastTradeDate ?? null,
       volume: todayVolume,
       valueTraded: price * todayVolume,
       dayHigh: todayIsLast ? bars.high[n - 1] : null,

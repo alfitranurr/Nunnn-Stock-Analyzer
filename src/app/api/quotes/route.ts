@@ -8,7 +8,7 @@ import { getValidatedStockQuotes, logSuspectQuotes } from '@/lib/market-data';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const quotesCache = createTtlCache<QuoteItem[]>(30_000, 200);
+const quotesCache = createTtlCache<QuoteItem[]>(15_000, 200);
 
 /**
  * GET /api/quotes?symbols=BBCA,GTSI
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const { value: quotes } = await quotesCache(key, async () => {
       const { quotes: validated, suspect } = await getValidatedStockQuotes(symbols, { intraday: true });
       logSuspectQuotes('quotes', suspect);
-      return Array.from(validated.values()).map(({ quote, issue }) => ({
+      return Array.from(validated.values()).map(({ quote, issue, stale, lastTradeDate }) => ({
         symbol: quote.ticker,
         price: quote.price,
         previousClose: quote.previousClose,
@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
         volume: quote.volume,
         closes: quote.intraday,
         suspect: issue !== null,
+        stale: stale === true,
+        lastTradeDate: lastTradeDate ?? null,
       }));
     });
     return NextResponse.json({ quotes });

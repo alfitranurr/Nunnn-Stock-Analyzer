@@ -9,6 +9,10 @@ export interface QuoteItem {
   closes: number[]; // Harga intraday per 5 menit (sparkline)
   /** true bila perubahan harga tidak lolos pengecekan kewajaran (jangan dipakai untuk P&L). */
   suspect: boolean;
+  /** true bila tidak bertransaksi pada sesi bursa terakhir (suspensi / tanpa transaksi); perubahan = 0. */
+  stale?: boolean;
+  /** Tanggal (WIB) transaksi terakhir. */
+  lastTradeDate?: string | null;
 }
 
 export const QUOTES_MAX_SYMBOLS = 30;

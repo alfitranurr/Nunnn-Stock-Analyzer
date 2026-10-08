@@ -33,6 +33,8 @@ interface MarketScan {
     intraday: number[];
   };
   movers: StockMover[];
+  /** Saham yang tidak bertransaksi pada sesi terakhir (suspensi / tanpa transaksi). */
+  notTraded: Array<{ symbol: string; lastTradeDate: string | null }>;
   /** Saham yang datanya dilewati karena tidak lolos pengecekan kewajaran. */
   excluded: Array<{ symbol: string; issue: string }>;
   scannedAt: string;
@@ -41,8 +43,8 @@ interface MarketScan {
 const TOP_N = 6;
 const MAX_MIN_VALUE = 1e13;
 
-// Satu scan dipakai bersama oleh semua pengunjung selama 45 detik.
-const scanCache = createTtlCache<MarketScan>(45_000, 1);
+// Satu scan dipakai bersama oleh semua pengunjung selama 20 detik (klien memperbarui tiap 30 detik saat bursa buka).
+const scanCache = createTtlCache<MarketScan>(20_000, 1);
 
 async function scanMarket(): Promise<MarketScan> {
   const provider = getMarketDataProvider();
@@ -58,7 +60,13 @@ async function scanMarket(): Promise<MarketScan> {
   logSuspectQuotes('scan pasar', suspect);
 
   const movers: StockMover[] = [];
-  for (const { quote, issue } of quotes.values()) {
+  const notTraded: MarketScan['notTraded'] = [];
+  for (const { quote, issue, stale, lastTradeDate } of quotes.values()) {
+    if (stale) {
+      // Mis. saham yang ARA lalu disuspensi: kenaikan lamanya bukan pergerakan hari ini.
+      notTraded.push({ symbol: quote.ticker, lastTradeDate: lastTradeDate ?? null });
+      continue;
+    }
     if (issue) continue;
     movers.push({
       symbol: quote.ticker,
@@ -86,6 +94,7 @@ async function scanMarket(): Promise<MarketScan> {
       intraday: ihsg.intraday,
     },
     movers,
+    notTraded,
     excluded: suspect.map((s) => ({ symbol: s.quote.ticker, issue: s.issue ?? 'unknown' })),
     scannedAt: new Date().toISOString(),
   };
@@ -116,6 +125,7 @@ export async function GET(request: NextRequest) {
     ara: movers.filter((m) => m.limit === 'ARA').length,
     arb: movers.filter((m) => m.limit === 'ARB').length,
     totalValue: movers.reduce((sum, m) => sum + m.value, 0),
+    notTraded: scan.notTraded.length,
   };
 
   return NextResponse.json({
@@ -129,6 +139,7 @@ export async function GET(request: NextRequest) {
     },
     minValue,
     totalScanned: movers.length,
+    notTraded: scan.notTraded.slice(0, 50),
     dataQuality: {
       excludedCount: scan.excluded.length,
       excluded: scan.excluded.slice(0, 20),

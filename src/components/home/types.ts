@@ -34,10 +34,13 @@ export interface MarketSummaryData {
     ara: number;
     arb: number;
     totalValue: number;
+    /** Saham yang tidak bertransaksi pada sesi terakhir (tidak ikut naik/turun/tetap). */
+    notTraded?: number;
   };
   movers: Record<MoverCategory, StockMover[]>;
   minValue: number;
   totalScanned: number;
+  notTraded?: Array<{ symbol: string; lastTradeDate: string | null }>;
   /** Saham yang dilewati karena datanya tidak lolos pengecekan kewajaran. */
   dataQuality: { excludedCount: number; excluded: Array<{ symbol: string; issue: string }> };
   source: { id: string; label: string; delayed: boolean };

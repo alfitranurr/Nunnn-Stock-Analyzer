@@ -8,6 +8,13 @@ export interface ValidatedQuote {
   /** null = data wajar. Selain itu perubahan harganya tidak bisa dipercaya. */
   issue: QuoteIssue | null;
   detail: string | null;
+  /**
+   * true bila saham tidak bertransaksi pada sesi bursa terakhir (suspensi / tanpa transaksi).
+   * Perubahan "hari ini" lalu dibuat 0 agar kenaikan/penurunan lama tidak tampil sebagai pergerakan hari ini.
+   */
+  stale?: boolean;
+  /** Tanggal (WIB, YYYY-MM-DD) transaksi terakhir. */
+  lastTradeDate?: string | null;
 }
 
 const fmt = (n: number) => (Math.round(n * 100) / 100).toString();

@@ -10,7 +10,7 @@ import { QuickSearchTicker } from '@/components/quick-search-ticker';
 import { useIdxSessionState } from '@/components/home/home-dashboard';
 import { useLanguage } from '@/lib/language-context';
 import { authFetch, classifyApiError, type ApiErrorKind } from '@/lib/auth-fetch';
-import { useDataRefreshEpoch } from '@/lib/refresh-signal';
+import { LIVE_POLL_MS, useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { usePolling } from '@/lib/use-polling';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { formatIDRCompact, formatNumberLocale } from '@/lib/format';
@@ -157,7 +157,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
         // Chip tetap bisa dipakai tanpa persentase.
       }
     },
-    { enabled: isActive && signedIn, intervalMs: trading ? 60_000 : null, minGapMs: 30_000, key: `${chipSymbols.join(',')}:${epoch}` }
+    { enabled: isActive && signedIn, intervalMs: trading ? LIVE_POLL_MS : null, minGapMs: 15_000, key: `${chipSymbols.join(',')}:${epoch}` }
   );
 
   const loadTech = React.useCallback(async (symbol: string) => {
@@ -188,12 +188,12 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
     };
   }, [selected, isActive, signedIn]);
 
-  // LIVE: hanya harga & teknikal, tiap 60 detik saat bursa buka dan halaman terlihat (tanpa AI).
+  // LIVE: hanya harga & teknikal, tiap 30 detik saat bursa buka dan halaman terlihat (tanpa AI).
   React.useEffect(() => {
     if (!run || !isActive || !live || !trading) return;
     const id = window.setInterval(() => {
       if (document.visibilityState === 'visible') void loadTech(run);
-    }, 60_000);
+    }, LIVE_POLL_MS);
     return () => window.clearInterval(id);
   }, [run, isActive, live, trading, loadTech]);
 
@@ -247,7 +247,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
             type="button"
             onClick={() => setLive((v) => !v)}
             aria-pressed={live}
-            title={L('Perbarui harga & teknikal tiap 60 detik saat bursa buka (tanpa AI)', 'Refresh price & technicals every 60 seconds while the market is open (no AI)')}
+            title={L('Perbarui harga & teknikal tiap 30 detik saat bursa buka (tanpa AI)', 'Refresh price & technicals every 30 seconds while the market is open (no AI)')}
             className={`px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-2 cursor-pointer ${live ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-white/10 bg-white/5 text-slate-400'}`}
           >
             <span className={`h-2 w-2 rounded-full ${live && trading ? 'bg-emerald-400 animate-pulse' : live ? 'bg-emerald-400/50' : 'bg-slate-500'}`} />
@@ -496,6 +496,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
                 {fd?.sector && <Badge>{fd.sector}</Badge>}
                 {arStatus && <Badge tone={arStatus === 'ARA' ? 'emerald' : 'amber'}>{arStatus}</Badge>}
                 {q?.suspect && <Badge tone="amber">{L('harga perlu dicek', 'price needs checking')}</Badge>}
+                {q?.stale && <Badge tone="amber">{L(`tidak bertransaksi sejak ${q.lastTradeDate ?? '—'}`, `not traded since ${q.lastTradeDate ?? '—'}`)}</Badge>}
               </div>
               <p className="text-xs text-slate-400 truncate">{name}</p>
             </div>

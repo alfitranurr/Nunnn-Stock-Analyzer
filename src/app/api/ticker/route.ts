@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     }
     logSuspectQuotes(`ticker ${symbol}`, suspect);
 
-    const { quote, issue } = checked;
+    const { quote, issue, stale, lastTradeDate } = checked;
     return NextResponse.json({
       symbol,
       name: cleanCompanyName(quote.name || localName || symbol),
@@ -125,6 +125,8 @@ export async function GET(request: NextRequest) {
       previousClose: issue ? null : quote.previousClose,
       // Perubahan yang tidak lolos pengecekan tidak dikirim agar tidak menyesatkan.
       changePercent: issue ? null : quote.changePercent,
+      stale: stale === true,
+      lastTradeDate: lastTradeDate ?? null,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
