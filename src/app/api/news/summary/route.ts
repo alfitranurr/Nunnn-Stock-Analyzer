@@ -1,10 +1,11 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/utils';
 import { requireUser } from '@/lib/auth-guard';
 import { applyAiRateLimit, applyRateLimit } from '@/lib/rate-limit';
 import { IDX_TICKERS } from '@/lib/tickers';
 import { extractTickers } from '@/lib/news';
 import { THEME_BY_ID, THEME_IDS, themesForPrompt } from '@/lib/idx-themes';
+import { generateJson } from '@/lib/llm';
 
 // Always run dynamically — this route fetches live news and calls AI providers.
 export const dynamic = 'force-dynamic';
@@ -24,19 +25,6 @@ function isSameOrigin(request: NextRequest): boolean {
   } catch {
     return false;
   }
-}
-
-function cleanJsonString(str: string) {
-  let clean = str.trim();
-  if (clean.startsWith('```json')) {
-    clean = clean.substring(7);
-  } else if (clean.startsWith('```')) {
-    clean = clean.substring(3);
-  }
-  if (clean.endsWith('```')) {
-    clean = clean.substring(0, clean.length - 3);
-  }
-  return clean.trim();
 }
 
 async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | null> {
@@ -441,82 +429,16 @@ const GEMINI_SCHEMA = {
   required: ['headline', 'summary', 'keyPoints', 'sentiment', 'confidence', 'impact', 'horizon', 'affectedTickers', 'relatedThemes', 'watchPoints'],
 };
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-lite-latest'];
-
-interface ProviderResult {
-  provider: 'Gemini' | 'Groq' | 'OpenAI';
-  model: string;
-  raw: unknown;
-}
-
-async function callGemini(key: string, model: string, prompt: string, timeoutMs: number): Promise<unknown> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, responseMimeType: 'application/json', responseSchema: GEMINI_SCHEMA },
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`Gemini ${model} responded ${res.status}`);
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error(`Gemini ${model} returned no text`);
-  return JSON.parse(cleanJsonString(text));
-}
-
-async function callOpenAICompatible(url: string, key: string, model: string, prompt: string, timeoutMs: number): Promise<unknown> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`${model} responded ${res.status}`);
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error(`${model} returned no text`);
-  return JSON.parse(cleanJsonString(text));
-}
-
-/** Coba Gemini → Groq → OpenAI dalam batas waktu; kembalikan hasil pertama yang lolos validasi. */
+/** Rantai Gemini → Groq → OpenAI (lib/llm) dengan skema JSON; hasil divalidasi normalizeAnalysis. */
 async function generateAnalysis(prompt: string, basis: Basis, title: string, deadline: number) {
-  const attempts: Array<{ provider: ProviderResult['provider']; model: string; run: (timeout: number) => Promise<unknown> }> = [];
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const groqKey = process.env.GROQ_API_KEY;
-  const openAIKey = process.env.OPENAI_API_KEY;
-
-  if (geminiKey) {
-    for (const model of GEMINI_MODELS) {
-      attempts.push({ provider: 'Gemini', model, run: (t) => callGemini(geminiKey, model, prompt, t) });
-    }
-  }
-  if (groqKey) {
-    const model = 'llama-3.3-70b-versatile';
-    attempts.push({ provider: 'Groq', model, run: (t) => callOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', groqKey, model, prompt, t) });
-  }
-  if (openAIKey) {
-    const model = 'gpt-3.5-turbo';
-    attempts.push({ provider: 'OpenAI', model, run: (t) => callOpenAICompatible('https://api.openai.com/v1/chat/completions', openAIKey, model, prompt, t) });
-  }
-
-  for (const attempt of attempts) {
-    const remaining = deadline - Date.now();
-    if (remaining < 3000) break;
-    try {
-      const raw = await attempt.run(Math.min(12_000, remaining - 1000));
-      return { ...normalizeAnalysis(raw, basis, title), provider: attempt.provider, model: attempt.model };
-    } catch (err) {
-      console.warn(`[news-summary] ${attempt.provider} ${attempt.model} gagal:`, getErrorMessage(err));
-    }
-  }
-  return null;
+  const result = await generateJson({
+    prompt,
+    geminiSchema: GEMINI_SCHEMA,
+    deadline,
+    tag: 'news-summary',
+    normalize: (raw) => normalizeAnalysis(raw, basis, title),
+  });
+  return result ? { ...result.value, provider: result.provider, model: result.model } : null;
 }
 
 /** Cuplikan paragraf pertama artikel asli (tanpa interpretasi) untuk mode tanpa AI. */
