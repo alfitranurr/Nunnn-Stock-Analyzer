@@ -10,7 +10,7 @@
 --
 -- Setelah dijalankan: login dengan email admin (NEXT_PUBLIC_ADMIN_EMAIL). Aplikasi otomatis
 -- memanggil claim_first_admin() untuk menjadikan akun itu admin pertama. Lakukan segera,
--- karena klaim admin pertama berlaku untuk siapa pun yang lebih dulu memanggilnya.
+-- karena klaim admin pertama berlaku untuk pengguna login mana pun yang lebih dulu memanggilnya.
 -- =============================================================================
 
 begin;
@@ -115,7 +115,7 @@ begin
 end;
 $$;
 
--- Versi dengan advisory lock (000006) agar dua pemanggil bersamaan tidak sama-sama jadi admin.
+-- Versi yang diperkuat (lihat 000010): menolak pemanggil tanpa login dan tidak terpengaruh trigger force_pending.
 create or replace function public.claim_first_admin(p_email text)
 returns void
 language plpgsql
@@ -123,20 +123,30 @@ security definer
 set search_path = public
 as $$
 declare
+  caller_email text := lower(coalesce(auth.jwt() ->> 'email', ''));
   admin_count integer;
 begin
+  if auth.uid() is null or caller_email = '' then
+    raise exception 'Authentication required.' using errcode = '42501';
+  end if;
+  if lower(p_email) <> caller_email then
+    raise exception 'You can only claim admin for your own email.' using errcode = '42501';
+  end if;
+
   perform pg_advisory_xact_lock(hashtext('claim_first_admin'));
   select count(*) into admin_count from public.user_approvals where is_admin = true;
   if admin_count > 0 then
     raise exception 'An admin already exists. Ask an existing admin to grant you access.' using errcode = '42501';
   end if;
-  if lower(p_email) <> lower(auth.jwt() ->> 'email') then
-    raise exception 'You can only claim admin for your own email.' using errcode = '42501';
+
+  -- Sisipkan bila belum ada, lalu promosikan lewat UPDATE (trigger insert tidak berlaku untuk UPDATE).
+  if not exists (select 1 from public.user_approvals where lower(email) = caller_email) then
+    insert into public.user_approvals (email, approved, is_admin) values (caller_email, false, false);
   end if;
-  insert into public.user_approvals (email, approved, is_admin)
-  values (lower(p_email), true, true)
-  on conflict (email) do update
-  set approved = true, is_admin = true, approved_by = auth.uid();
+
+  update public.user_approvals
+  set approved = true, is_admin = true, approved_by = auth.uid()
+  where lower(email) = caller_email;
 end;
 $$;
 
@@ -154,6 +164,14 @@ begin
   return new;
 end;
 $$;
+
+-- Fungsi admin hanya untuk pengguna yang login (anon tidak perlu memanggilnya sama sekali).
+revoke execute on function public.claim_first_admin(text) from public, anon;
+revoke execute on function public.admin_set_user_approval(text, boolean) from public, anon;
+revoke execute on function public.admin_delete_user(text) from public, anon;
+grant execute on function public.claim_first_admin(text) to authenticated;
+grant execute on function public.admin_set_user_approval(text, boolean) to authenticated;
+grant execute on function public.admin_delete_user(text) to authenticated;
 
 -- ─── 3. Trigger ───
 drop trigger if exists user_approvals_set_updated_at on public.user_approvals;
