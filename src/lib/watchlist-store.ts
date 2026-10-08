@@ -10,9 +10,18 @@ import { getErrorMessage } from '@/lib/utils';
  * ke tabel `user_watchlists` (versi cloud menang saat login).
  */
 
+export type WatchlistTargetKind = 'buy' | 'sell';
+
+/** Harga incaran: beli bila harga turun ke/di bawahnya, jual bila naik ke/di atasnya. */
+export interface WatchlistTarget {
+  price: number;
+  kind: WatchlistTargetKind;
+}
+
 export interface WatchlistEntry {
   symbol: string;
   name: string;
+  target?: WatchlistTarget;
 }
 
 export const WATCHLIST_MAX = 20;
@@ -32,7 +41,12 @@ function sanitize(value: unknown): WatchlistEntry[] {
     const symbol = typeof item?.symbol === 'string' ? item.symbol.toUpperCase().trim() : '';
     if (!/^[A-Z0-9]{1,6}$/.test(symbol) || seen.has(symbol)) continue;
     seen.add(symbol);
-    result.push({ symbol, name: typeof item?.name === 'string' ? item.name : symbol });
+    const entry: WatchlistEntry = { symbol, name: typeof item?.name === 'string' ? item.name : symbol };
+    const t = item?.target;
+    if (t && typeof t.price === 'number' && t.price > 0 && Number.isFinite(t.price) && (t.kind === 'buy' || t.kind === 'sell')) {
+      entry.target = { price: t.price, kind: t.kind };
+    }
+    result.push(entry);
     if (result.length >= WATCHLIST_MAX) break;
   }
   return result;
@@ -124,6 +138,35 @@ export function toggleWatchlist(entry: WatchlistEntry): boolean {
   return addToWatchlist(entry);
 }
 
+/** Pasang atau hapus (null) harga incaran untuk satu saham. */
+export function setWatchlistTarget(symbol: string, target: WatchlistTarget | null) {
+  const upper = symbol.toUpperCase();
+  commit(
+    read().map((e) => {
+      if (e.symbol !== upper) return e;
+      const next: WatchlistEntry = { symbol: e.symbol, name: e.name };
+      if (target && target.price > 0) next.target = { price: target.price, kind: target.kind };
+      return next;
+    })
+  );
+}
+
+/** Geser saham satu posisi ke atas (-1) atau ke bawah (+1) dalam urutan manual. */
+export function moveWatchlistEntry(symbol: string, direction: -1 | 1) {
+  const list = [...read()];
+  const i = list.findIndex((e) => e.symbol === symbol.toUpperCase());
+  const j = i + direction;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  commit(list);
+}
+
+/** Status harga incaran pada harga sekarang. */
+export function isTargetReached(target: WatchlistTarget | undefined, price: number | null | undefined): boolean {
+  if (!target || price == null || !(price > 0)) return false;
+  return target.kind === 'buy' ? price <= target.price : price >= target.price;
+}
+
 export function useWatchlist() {
   const list = React.useSyncExternalStore(subscribe, read, () => EMPTY);
   return {
@@ -133,5 +176,7 @@ export function useWatchlist() {
     add: addToWatchlist,
     remove: removeFromWatchlist,
     toggle: toggleWatchlist,
+    setTarget: setWatchlistTarget,
+    move: moveWatchlistEntry,
   };
 }

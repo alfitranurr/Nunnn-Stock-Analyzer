@@ -19,17 +19,16 @@ interface WatchlistPanelProps {
   /** Bursa dalam jam perdagangan: harga di-refresh tiap menit. */
   trading: boolean;
   onSelectTicker: (symbol: string) => void;
-  variant?: 'compact' | 'full';
-  /** Buka tampilan penuh (hanya varian compact). */
+  /** Buka halaman Watchlist penuh. */
   onOpenFull?: () => void;
 }
 
 const COMPACT_ROWS = 6;
 const SUGGESTIONS = ['BBCA', 'BBRI', 'BMRI', 'TLKM', 'ASII', 'GTSI'];
 
-export function WatchlistPanel({ language, isActive, trading, onSelectTicker, variant = 'compact', onOpenFull }: WatchlistPanelProps) {
+/** Ringkasan watchlist untuk Beranda; halaman penuh ada di components/watchlist/watchlist-page.tsx. */
+export function WatchlistPanel({ language, isActive, trading, onSelectTicker, onOpenFull }: WatchlistPanelProps) {
   const isId = language === 'id';
-  const isFullView = variant === 'full';
   const { entries, isFull, has, add, remove } = useWatchlist();
 
   const [quotes, setQuotes] = React.useState<Record<string, QuoteItem>>({});
@@ -86,7 +85,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, va
     if (add(entry)) {
       setQuery('');
       setResults([]);
-      if (!isFullView) setShowAdd(false);
+      setShowAdd(false);
     }
   };
 
@@ -99,7 +98,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, va
     return list;
   }, [entries, quotes, sort]);
 
-  const visible = isFullView ? sorted : sorted.slice(0, COMPACT_ROWS);
+  const visible = sorted.slice(0, COMPACT_ROWS);
   const hiddenCount = sorted.length - visible.length;
 
   const sortOptions: Array<{ value: SortMode; label: string }> = [
@@ -230,7 +229,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, va
                 >
                   <span className="block font-bold text-xs text-emerald-400 group-hover:text-emerald-300">{entry.symbol}</span>
                   {entry.name !== entry.symbol && (
-                    <span className={`block text-[10px] text-slate-500 truncate ${isFullView ? '' : 'hidden sm:block'}`}>{entry.name}</span>
+                    <span className="hidden sm:block text-[10px] text-slate-500 truncate">{entry.name}</span>
                   )}
                 </button>
                 <span className="hidden sm:block">
@@ -273,7 +272,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, va
         </div>
       )}
 
-      {!isFullView && entries.length > 0 && onOpenFull && (
+      {entries.length > 0 && onOpenFull && (
         <button
           type="button"
           onClick={onOpenFull}

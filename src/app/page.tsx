@@ -5,8 +5,8 @@ import { getErrorMessage } from '@/lib/utils';
 import { Sidebar } from '@/components/sidebar';
 import { CalculatorForm } from '@/components/calculator-form';
 import { ResultsDisplay } from '@/components/results-display';
-import { HomeDashboard, useIdxSessionState } from '@/components/home/home-dashboard';
-import { WatchlistPanel } from '@/components/watchlist-panel';
+import { HomeDashboard } from '@/components/home/home-dashboard';
+import { WatchlistPage } from '@/components/watchlist/watchlist-page';
 import { connectWatchlistToUser } from '@/lib/watchlist-store';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
@@ -24,7 +24,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
-import { AlertCircle, Info, ChevronUp, Calculator, ShieldCheck, Star } from 'lucide-react';
+import { AlertCircle, Info, ChevronUp, Calculator, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
@@ -513,7 +513,6 @@ export default function Dashboard() {
     setCurrentTab('analysis');
   }, [setCurrentTab]);
 
-  const { trading: watchlistTrading } = useIdxSessionState(currentTab === 'watchlist');
 
   // Sinkronkan watchlist dengan akun Supabase (fallback ke browser).
   React.useEffect(() => {
@@ -627,25 +626,12 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
               animate={currentTab === 'watchlist' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-5 max-w-3xl"
+              className="space-y-6 md:space-y-8"
             >
-              <div>
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2">
-                  <Star className="h-6 w-6 text-amber-400" />
-                  Watchlist
-                </h1>
-                <p className="text-xs md:text-sm text-slate-400 mt-1">
-                  {language === 'id'
-                    ? 'Pantau hingga 20 saham. Harga diperbarui tiap menit selama jam bursa. Klik kode saham untuk analisis lengkap.'
-                    : 'Track up to 20 stocks. Prices refresh every minute during market hours. Click a ticker for full analysis.'}
-                </p>
-              </div>
-              <WatchlistPanel
+              <WatchlistPage
                 language={language}
                 isActive={currentTab === 'watchlist'}
-                trading={watchlistTrading}
                 onSelectTicker={handleSelectTicker}
-                variant="full"
               />
             </motion.div>
           </div>
