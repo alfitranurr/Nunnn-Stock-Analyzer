@@ -42,7 +42,7 @@ export function GlobalMarkets({ language, isActive }: GlobalMarketsProps) {
 
   // Admin menekan "Refresh semua data" → ambil ulang segera.
   const refreshEpoch = useDataRefreshEpoch();
-  usePolling(load, { enabled: isActive, intervalMs: 120_000, minGapMs: 60_000, key: refreshEpoch });
+  usePolling(load, { enabled: isActive, intervalMs: 60_000, minGapMs: 30_000, key: refreshEpoch });
 
   if (status === 'error') {
     return (

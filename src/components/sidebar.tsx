@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { GlobalRefreshButton } from '@/components/global-refresh-button';
 import { 
   Calculator,
   Briefcase,
@@ -76,12 +77,15 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             NUNNN STOCK
           </span>
         </button>
-        <button 
-          onClick={() => setIsMobileOpen(true)}
-          className="p-2 rounded-lg bg-input-bg border border-border-color text-foreground cursor-pointer"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          <GlobalRefreshButton language={language} variant="icon" />
+          <button
+            onClick={() => setIsMobileOpen(true)}
+            className="p-2 rounded-lg bg-input-bg border border-border-color text-foreground cursor-pointer"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
       </header>
 
       {/* Mobile Drawer (Overlay + Panel) */}
@@ -292,6 +296,17 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
         {/* Bottom Section */}
         <div className="mt-auto pt-3 border-t border-border-color space-y-3 shrink-0 w-full">
+          {/* Refresh data terpusat (semua halaman) */}
+          {isCollapsed ? (
+            <div className="flex justify-center w-full">
+              <GlobalRefreshButton language={language} variant="icon" />
+            </div>
+          ) : (
+            <div className="px-2.5">
+              <GlobalRefreshButton language={language} variant="full" />
+            </div>
+          )}
+
           {/* Language Switcher */}
           {!isCollapsed ? (
             <div className="flex flex-col gap-1.5 px-2.5">

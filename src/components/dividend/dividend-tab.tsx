@@ -21,7 +21,7 @@ import { StepperInput } from '@/components/stepper-input';
 import { useIdxSessionState } from '@/components/home/home-dashboard';
 import { useLanguage } from '@/lib/language-context';
 import { usePolling } from '@/lib/use-polling';
-import { useDataRefreshEpoch } from '@/lib/refresh-signal';
+import { LIVE_POLL_MS, useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { fetchQuotes } from '@/lib/quotes';
 import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/lib/format';
 import { formatWibTime } from '@/lib/market-hours';
@@ -211,7 +211,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
   // Admin menekan "Refresh semua data" → ambil ulang segera.
   const refreshEpoch = useDataRefreshEpoch();
   usePolling(loadDividends, { enabled: isActive, intervalMs: null, minGapMs: 30 * 60_000, key: `${ticker}|${refreshEpoch}` });
-  usePolling(loadQuote, { enabled: isActive, intervalMs: trading ? 60_000 : null, minGapMs: 60_000, key: `${ticker}|${refreshEpoch}` });
+  usePolling(loadQuote, { enabled: isActive, intervalMs: trading ? LIVE_POLL_MS : null, minGapMs: 15_000, key: `${ticker}|${refreshEpoch}` });
   usePolling(loadPopular, { enabled: isActive, intervalMs: null, minGapMs: 6 * 3600_000, key: refreshEpoch });
 
   React.useEffect(() => () => divAbortRef.current?.abort(), []);
@@ -877,8 +877,8 @@ export function DividendTab({ isActive }: DividendTabProps) {
           </li>
           <li>
             {L(
-              `Riwayat dividen & harga: ${ready?.source.label ?? 'Yahoo Finance'} (data tertunda, nominal disesuaikan stock split). Data riwayat diperbarui maksimal tiap 6 jam; harga diperbarui tiap menit selama jam bursa.`,
-              `Dividend history & prices: ${ready?.source.label ?? 'Yahoo Finance'} (delayed data, split-adjusted amounts). History refreshes at most every 6 hours; prices refresh every minute during market hours.`
+              `Riwayat dividen & harga: ${ready?.source.label ?? 'Yahoo Finance'} (data tertunda, nominal disesuaikan stock split). Data riwayat diperbarui maksimal tiap 6 jam; harga diperbarui tiap 30 detik selama jam bursa.`,
+              `Dividend history & prices: ${ready?.source.label ?? 'Yahoo Finance'} (delayed data, split-adjusted amounts). History refreshes at most every 6 hours; prices refresh every 30 seconds during market hours.`
             )}
           </li>
           <li>{L('Simulasi ini alat bantu hitung, bukan rekomendasi beli/jual.', 'This simulation is a calculation aid, not a buy/sell recommendation.')}</li>

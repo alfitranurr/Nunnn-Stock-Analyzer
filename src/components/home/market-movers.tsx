@@ -2,7 +2,11 @@
 
 import * as React from 'react';
 import { Star, Flame } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { formatNumberLocale, formatIDRCompact } from '@/lib/format';
+import { formatWibTime } from '@/lib/market-hours';
+import { LIVE_POLL_MS } from '@/lib/refresh-signal';
+import { Flash } from '@/components/shared/motion';
 import { useWatchlist } from '@/lib/watchlist-store';
 import type { Lang, MarketSummaryData, MoverCategory } from './types';
 
@@ -13,6 +17,8 @@ interface MarketMoversProps {
   minValue: number;
   onMinValueChange: (value: number) => void;
   onSelectTicker: (symbol: string) => void;
+  /** Bursa sedang dalam jam perdagangan (data diperbarui otomatis). */
+  trading: boolean;
 }
 
 const TABS: Array<{ id: MoverCategory; label: { id: string; en: string } }> = [
@@ -29,7 +35,7 @@ const MIN_VALUE_OPTIONS: Array<{ value: number; label: { id: string; en: string 
 ];
 
 /** Daftar saham penggerak pasar dengan filter likuiditas, badge ARA/ARB, dan tombol watchlist. */
-export function MarketMovers({ language, data, loading, minValue, onMinValueChange, onSelectTicker }: MarketMoversProps) {
+export function MarketMovers({ language, data, loading, minValue, onMinValueChange, onSelectTicker, trading }: MarketMoversProps) {
   const isId = language === 'id';
   const [tab, setTab] = React.useState<MoverCategory>('gainers');
   const watchlist = useWatchlist();
@@ -42,6 +48,17 @@ export function MarketMovers({ language, data, loading, minValue, onMinValueChan
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
           <Flame className="h-3.5 w-3.5 text-emerald-400" />
           {isId ? 'Penggerak Pasar' : 'Market Movers'}
+          {data && (
+            <span
+              className={`ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold normal-case tracking-normal ${trading ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-slate-500'}`}
+              title={trading
+                ? (isId ? `Diperbarui otomatis tiap ${LIVE_POLL_MS / 1000} detik selama jam bursa` : `Auto-refreshes every ${LIVE_POLL_MS / 1000} s during market hours`)
+                : (isId ? 'Bursa tutup: menampilkan data penutupan sesi terakhir' : 'Market closed: showing the last session close')}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${trading ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+              {trading ? `LIVE · ${LIVE_POLL_MS / 1000} ${isId ? 'dtk' : 's'}` : isId ? 'Data penutupan' : 'Closing data'}
+            </span>
+          )}
         </span>
         {showsLiquidityFilter && (
           <div className="flex items-center gap-1 text-[10px]" role="group" aria-label={isId ? 'Filter nilai transaksi' : 'Turnover filter'}>
@@ -96,14 +113,26 @@ export function MarketMovers({ language, data, loading, minValue, onMinValueChan
             <span>#</span>
             <span>{isId ? 'Saham' : 'Stock'}</span>
             <span className="text-right">{isId ? 'Harga · %' : 'Price · %'}</span>
-            <span className="text-right w-16 sm:w-20">{tab === 'volume' ? 'Volume' : isId ? 'Nilai' : 'Value'}</span>
+            <span
+              className="text-right w-16 sm:w-20"
+              title={tab === 'volume' ? undefined : isId ? 'Perkiraan: harga terakhir × volume (sumber gratis tidak menyediakan nilai transaksi persis)' : 'Estimate: last price × volume (free sources do not provide exact traded value)'}
+            >
+              {tab === 'volume' ? 'Volume' : isId ? 'Nilai ≈' : 'Value ≈'}
+            </span>
             <span />
           </div>
           {rows.map((m, i) => {
             const isUp = m.change >= 0;
             const watched = watchlist.has(m.symbol);
             return (
-              <div key={m.symbol} className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto_1.75rem] gap-2 items-center py-2">
+              <motion.div
+                key={m.symbol}
+                layout="position"
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto_auto_1.75rem] gap-2 items-center py-2"
+              >
                 <span className="text-[10px] font-bold text-slate-600 tabular-nums">{i + 1}</span>
                 <button
                   type="button"
@@ -122,9 +151,9 @@ export function MarketMovers({ language, data, loading, minValue, onMinValueChan
                   <span className="block text-[10px] text-slate-500 truncate">{m.name}</span>
                 </button>
                 <span className="text-right tabular-nums">
-                  <span className="block text-xs font-semibold text-slate-200">{formatNumberLocale(m.price, language)}</span>
+                  <span className="block text-xs font-semibold text-slate-200"><Flash value={formatNumberLocale(m.price, language)} /></span>
                   <span className={`block text-[10px] font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isUp ? '+' : ''}{formatNumberLocale(m.changePercent, language, 2)}%
+                    <Flash value={`${isUp ? '+' : ''}${formatNumberLocale(m.changePercent, language, 2)}%`} />
                   </span>
                 </span>
                 <span className="text-right text-[10px] text-slate-400 tabular-nums w-16 sm:w-20">
@@ -145,13 +174,23 @@ export function MarketMovers({ language, data, loading, minValue, onMinValueChan
                 >
                   <Star className={`h-3.5 w-3.5 ${watched ? 'fill-amber-400 text-amber-400' : 'text-slate-500'}`} />
                 </button>
-              </div>
+              </motion.div>
             );
           })}
         </div>
       )}
 
       <p className="text-[10px] text-slate-600 mt-auto">
+        {data && (
+          <span className="text-slate-500">
+            {isId ? 'Diperbarui' : 'Updated'} {formatWibTime(Date.parse(data.scannedAt), true)} WIB
+            {(data.breadth.notTraded ?? 0) > 0 &&
+              (isId
+                ? ` · ${data.breadth.notTraded} saham tidak ditransaksikan sesi ini (mis. suspensi) tidak ikut dihitung`
+                : ` · ${data.breadth.notTraded} stocks not traded this session (e.g. suspended) are excluded`)}
+            {' · '}
+          </span>
+        )}
         {isId
           ? 'Klik kode saham untuk analisis. ARA/ARB: harga menyentuh batas auto rejection harian.'
           : 'Click a ticker to analyze. ARA/ARB: price hit the daily auto-rejection limit.'}

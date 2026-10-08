@@ -20,7 +20,7 @@ import type { AppUser } from '@/lib/types';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { useLanguage } from '@/lib/language-context';
 import { usePolling, useNow } from '@/lib/use-polling';
-import { useDataRefreshEpoch } from '@/lib/refresh-signal';
+import { LIVE_POLL_MS, useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { getEffectiveIdxSession, getWibGreeting, isTradingWindow, type IdxSession } from '@/lib/market-hours';
 import { QuickSearchTicker } from '@/components/quick-search-ticker';
 import { PortfolioSnapshot } from '@/components/portfolio-snapshot';
@@ -89,10 +89,10 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
 
   const { now, session, trading } = useIdxSessionState(isActive, data?.ihsg.marketTime);
 
-  // Refresh tiap menit hanya saat jam bursa, tab Beranda aktif, dan browser terlihat.
+  // Refresh tiap 30 detik hanya saat jam bursa, tab Beranda aktif, dan browser terlihat.
   // Admin menekan "Refresh semua data" → ambil ulang segera.
   const refreshEpoch = useDataRefreshEpoch();
-  usePolling(loadMarket, { enabled: isActive, intervalMs: trading ? 60_000 : null, minGapMs: 30_000, key: `${minValue}|${refreshEpoch}` });
+  usePolling(loadMarket, { enabled: isActive, intervalMs: trading ? LIVE_POLL_MS : null, minGapMs: 15_000, key: `${minValue}|${refreshEpoch}` });
 
   const updatedAt = data ? Date.parse(data.scannedAt) || null : null;
   const userName = user?.email?.split('@')[0];
@@ -169,6 +169,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
             minValue={minValue}
             onMinValueChange={setMinValue}
             onSelectTicker={onSelectTicker}
+            trading={trading}
           />
         </div>
         <WatchlistPanel

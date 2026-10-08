@@ -8,6 +8,9 @@ import * as React from 'react';
  * Disiarkan juga ke tab browser lain lewat BroadcastChannel.
  */
 
+/** Interval pembaruan otomatis data harga selama jam bursa (semua halaman). */
+export const LIVE_POLL_MS = 30_000;
+
 let epoch = 0;
 const listeners = new Set<() => void>();
 const CHANNEL = 'nunnn-data-refresh';
