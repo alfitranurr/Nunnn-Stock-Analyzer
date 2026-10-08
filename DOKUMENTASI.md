@@ -51,7 +51,7 @@
 
 1. ✅ ~~**Menu Analisis dan Rangkuman AI selalu 401 di produksi.**~~ Diperbaiki di `abdd7d9`: sesi dikirim sebagai header `Authorization: Bearer`. Lihat [C-01](#c-01).
 2. ✅ ~~**Rate limit AI (10/jam) ikut membatasi route fundamental dan teknikal.**~~ Diperbaiki di `abdd7d9`. Lihat [C-02](#c-02).
-3. **Data sintetis ditampilkan seolah data nyata.** Contohnya broker summary, foreign flow, harga fallback 5000, serta fundamental dan berita fallback, semuanya tanpa penanda. Ini berisiko untuk keputusan investasi. Dividen sudah memakai data asli sejak `86e45a5`. Lihat [H-01](#h-01).
+3. ✅ ~~**Data sintetis ditampilkan seolah data nyata.**~~ Broker summary, foreign flow, harga fallback 5000, fundamental dan berita buatan sudah dihapus. Dividen sejak `86e45a5`, Analisis sejak `802aed7`; sekarang yang tidak tersedia tampil "—" atau error yang jujur. Lihat [H-01](#h-01).
 4. **Persetujuan admin belum dicek di RLS.** Server (`requireUser`) sudah memeriksanya sejak `abdd7d9`, tetapi CRUD tabel data lewat anon key belum. Lihat [H-02](#h-02).
 5. **Belum ada test maupun CI kualitas** (lint, type-check, build). Workflow SLSA juga tidak valid. Lihat [H-07](#h-07).
 
@@ -84,9 +84,10 @@ flowchart LR
   P -->|/api/analysis/*, /api/news/summary| R1[Route terproteksi<br/>requireUser: JWT + approval]
   B -->|/api/ticker, /api/quotes, /api/market-summary,<br/>/api/global-markets, /api/news, /api/dividend| R2[Route publik<br/>rate limit IP]
   R2 -->|harga saham BEI| MD[lib/market-data<br/>provider + validasi + cache]
-  MD --> Y[(Yahoo Finance<br/>chart/spark/quoteSummary)]
+  MD --> Y[(Yahoo Finance<br/>chart/spark/fundamentals-timeseries)]
   R1 --> Y
   R1 --> G[(Google News RSS)]
+  R1 --> TVS[(TradingView screener<br/>rasio fundamental)]
   R1 --> AI[(Gemini → Groq → OpenAI)]
   R2 -->|global & dividen| Y
   R2 --> G
@@ -183,7 +184,7 @@ Sumber: [package.json](package.json)
     │       ├── dividend/summary/route.ts      (51)   dividen TTM banyak saham (yield chip populer)
     │       └── keepalive/route.ts             (36)   ping Supabase (cron)
     ├── components/            19 komponen + folder home/, dividend/, ipo/, portfolio/, admin/, shared/ (lihat §5)
-    │   analysis-tab (2359) · compounding-tab (1707) · calculator-form (896) · percentage-tab (763)
+    │   compounding-tab (1707) · calculator-form (896) · percentage-tab (763)
     │   news-tab (762) · results-display (423) · sidebar (387) · history-table (352)
     │   auth-modal (320) · watchlist-panel (295) · client-bootstrap (294) · portfolio-snapshot (199)
     │   quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
@@ -195,6 +196,8 @@ Sumber: [package.json](package.json)
     │   ipo/       ipo-tab (799) · listing-simulator (202) · ipo-rules (100)
     │   portfolio/ portfolio-tab (569) · holding-modal (252)
     │   admin/     admin-panel-tab (711)
+    │   analysis/  analysis-tab (350) · sr-levels (195) · fundamentals-panel (117) · consensus-card (111)
+    │              technical-panel (105) · news-panel (73) · flow-panel (71)
     │   watchlist/ watchlist-page (477)
     │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
     │              page-header (39)  header standar semua halaman
@@ -224,14 +227,14 @@ Ringkasan akses tiap menu:
 | 4 | Persentase | `percentage-tab.tsx` | Publik | Riwayat lokal (5) |
 | 5 | Dividen | `dividend/dividend-tab.tsx` + `dividend/*` | Publik | — (tanpa simpan) |
 | 6 | E-IPO | `ipo/ipo-tab.tsx` + `ipo/*` | Publik | Supabase `ipo_plans` / lokal (simpan, muat, hapus) |
-| 7 | Analisis Saham Pro | `analysis-tab.tsx` | **Wajib login** | — |
+| 7 | Analisis Saham Pro | `analysis/analysis-tab.tsx` + `analysis/*` | **Wajib login** | — |
 | 8 | Portofolio Saya | `portfolio/portfolio-tab.tsx` + `holding-modal.tsx` | **Wajib login** | Supabase / lokal via [portfolio-store](src/lib/portfolio-store.ts) |
 | 9 | Admin Panel | `admin/admin-panel-tab.tsx` | **Hanya email admin** | Supabase RPC / lokal |
 | — | Riwayat | — | Nonaktif (badge "Segera") | — |
 
 ### 5.0 Sidebar & Navigasi ([sidebar.tsx](src/components/sidebar.tsx))
 
-- **Daftar menu:** [sidebar.tsx:47-60](src/components/sidebar.tsx#L47-L60).
+- **Daftar menu:** [sidebar.tsx:47-62](src/components/sidebar.tsx#L47-L62). Menu Admin selalu di urutan paling bawah, setelah Watchlist (`fc27b06`).
   - Menu `analysis` dan `portfolio` tampil dengan ikon gembok bila belum login.
   - Menu `watchlist` aktif sejak `db0cca3`; hanya `history` yang masih berstatus "Segera".
   - Menu `admin` hanya muncul bila email pengguna sama dengan `NEXT_PUBLIC_ADMIN_EMAIL` (default `admin@nunnnstock.com`, [sidebar.tsx:44](src/components/sidebar.tsx#L44)).
@@ -502,43 +505,50 @@ Dibangun ulang di `c2e9dde` mengikuti teks resmi **SEOJK 25/SEOJK.04/2025** (ber
 
 **Simulasi tersimpan:** daftar kartu dengan Muat dan Hapus (dengan konfirmasi). Tersimpan di `ipo_plans` (login) atau `nunnn_stock_ipo_plans` (lokal).
 
-### 5.8 Analisis Saham Pro ([analysis-tab.tsx](src/components/analysis-tab.tsx), wajib login)
+### 5.8 Analisis Saham Pro ([analysis/analysis-tab.tsx](src/components/analysis/analysis-tab.tsx), wajib login)
 
-- **Terkunci** bila belum login: ikon perisai dan CTA login ([analysis-tab.tsx:500-523](src/components/analysis-tab.tsx#L500-L523)).
-- **Header:**
-  - Ticker aktif.
-  - Toggle **LIVE**: refresh diam-diam tiap 60 detik ([analysis-tab.tsx:411-417](src/components/analysis-tab.tsx#L411-L417)).
-  - Tombol refresh.
-  - Pencarian dengan saran: 16 ticker populer ditambah `/api/ticker?q=`.
-  - Banner error dan stempel waktu "Diperbarui".
-- **Sebelum mencari:** panel hero dengan pilihan cepat Blue Chips (5) dan Growth (6).
-- **Pemuatan:** tiga request berurutan (fundamentals → technical → news, [analysis-tab.tsx:364-406](src/components/analysis-tab.tsx#L364-L406)), dengan skeleton penuh saat pertama kali dimuat.
+Ditulis ulang di `802aed7`. Semua angka berasal dari data pasar nyata; bagian yang datanya tidak tersedia tampil "—" atau pesan error, tidak pernah diisi angka buatan.
 
-**Kartu Konsensus:**
-- Skor gabungan = fundamental 30% + teknikal 35% + bandarmology 20% + narasi berita 15%, lalu −5 bila risiko High atau +2 bila Low ([analysis-tab.tsx:685](src/components/analysis-tab.tsx#L685)).
-- Menampilkan rating, daftar pro/kontra, 4 sub-skor, dan meter 5 warna.
-
-**TradingView:** iframe setinggi 540px dengan studi RSI, MACD, dan Pivot.
-
-**Dashboard teknikal:**
-- RSI(14) dan MACD.
-- Pivot S/R, dengan toggle Standar/Fibonacci.
-- SMA/EMA 20 dan 50.
-- Multi-timeframe (Weekly/Daily/"Hourly").
-- 6 kartu: Bollinger, Stochastic, ADX, ATR + VWAP, OBV, dan Risk (volatilitas, max drawdown, Sharpe).
-- Kesimpulan.
-
-**Bandarmology:**
-- Status akumulasi/distribusi, net foreign flow, bar MFI, dan tabel top-3 broker beli/jual.
-- ⚠️ Broker dan foreign flow adalah data **sintetis**, lihat [H-01](#h-01).
-
-**Sentimen:** badge sentimen, ringkasan AI (dengan label mesin), daftar berita terkait, dan kesimpulan.
-
-**Fundamental:**
-- 9 kartu metrik: P/E, PBV, ROE, ROA, DER, Dividend Yield, EPS, NPM, dan Market Cap.
-- Grafik batang SVG revenue dan laba bersih (toggle Tahunan/Kuartalan) beserta kesimpulan.
-
-> ⚠️ Warna legenda grafik (emerald/teal, [analysis-tab.tsx:2340-2349](src/components/analysis-tab.tsx#L2340-L2349)) tidak sama dengan warna batang (violet/teal, [:220](src/components/analysis-tab.tsx#L220), [:230](src/components/analysis-tab.tsx#L230)).
+- **Terkunci** bila belum login: header halaman, kartu gembok, dan CTA login ([analysis-tab.tsx:154](src/components/analysis/analysis-tab.tsx#L154)).
+- **Header:** toggle **LIVE** (titik berdenyut hanya saat bursa buka) dan tombol **Perbarui**.
+- **Pencarian:** `QuickSearchTicker` (seluruh emiten aktif) ditambah 12 chip saham populer. Kode yang dipilih dari Beranda atau Portofolio masuk lewat prop `initialTicker`.
+- **Pemuatan** ([analysis-tab.tsx:100-105](src/components/analysis/analysis-tab.tsx#L100-L105)): tiga request paralel yang saling lepas, masing-masing punya skeleton dan pesan error sendiri (404 kode tidak dikenal, 401/403/429, 502 sumber gagal). Bila pembaruan gagal, data terakhir tetap tampil dengan penanda.
+  - Teknikal: tiap 60 detik saat LIVE **dan** bursa buka.
+  - Fundamental: sekali per kode saham.
+  - Berita: tiap 10 menit saat LIVE.
+  - Polling berhenti saat tab atau halaman tidak aktif, dan ikut tombol "Refresh semua data" di Admin.
+- **Ringkasan harga:** logo, sektor, harga dan perubahan, rentang hari ini dan 52 minggu, volume (lot), nilai transaksi, waktu data (WIB), dan sumber (Yahoo, bisa tertunda ±10 menit). Badge "harga perlu dicek" muncul bila validasi harga menandainya.
+- **Grafik TradingView** (iframe dengan RSI, MACD, dan Pivot; simbol dikunci ke emiten aktif), berdampingan dengan **Skor Konsensus** ([consensus-card.tsx](src/components/analysis/consensus-card.tsx)):
+  - Skor 0–100 dan rating.
+  - Bar 4 komponen, dengan bobot yang dinormalkan ulang bila ada komponen yang tidak tersedia.
+  - Maksimal 5 poin positif dan 5 poin negatif.
+  - Disclaimer bahwa skor bukan rekomendasi beli/jual.
+- **Support & Resistance 9 titik** ([sr-levels.tsx](src/components/analysis/sr-levels.tsx)):
+  - Metode Klasik, Fibonacci, atau Camarilla.
+  - Setiap titik diberi label dan petunjuk: R4 *Resistance ekstrem*, R3 *Resistance kuat*, R2 *Resistance menengah*, R1 *Resistance terdekat*, PP *Pivot (titik keseimbangan)*, S1 *Support terdekat*, S2 *Support menengah*, S3 *Support kuat*, S4 *Support ekstrem*.
+  - Setiap titik juga menampilkan kekuatan (●), harga yang dibulatkan ke fraksi BEI, dan jarak % dari harga sekarang.
+  - Baris "▶ Harga sekarang" disisipkan di posisinya. Ada kartu resistance/support terdekat dan bias pivot (di atas, di bawah, atau tepat di pivot).
+  - Badge konfluensi "≈ SMA50 / VWAP20 / BB bawah / …" muncul bila indikator lain berjarak ≤1% atau ≤2 fraksi dari titik.
+  - Badge "sama dengan R3" muncul bila beberapa titik berimpit karena rentang sesi acuan sempit (sering terjadi pada Camarilla).
+  - Tanggal sesi acuan (H/L/C) dan rumus metode ditampilkan.
+- **Indikator Teknikal** ([technical-panel.tsx](src/components/analysis/technical-panel.tsx)):
+  - Tren mingguan, harian, dan per jam (dari data 60 menit sungguhan).
+  - RSI, MACD, Stochastic, ADX ±DI, Bollinger %B, ATR, VWAP 20 hari, serta volatilitas dan max drawdown.
+  - Tabel EMA/SMA 20/50/200 dengan posisi harga.
+  - Chip sinyal penyusun skor teknikal.
+- **Arus Volume & Dana** ([flow-panel.tsx](src/components/analysis/flow-panel.tsx)):
+  - Status tekanan beli/jual dari CMF(20), MFI(14), tren OBV, dan rasio volume terhadap rata-rata 20 hari. Saat bursa buka, rasio ini ditandai "sesi berjalan, belum final".
+  - Broker summary dan net beli asing **tidak ditampilkan**, karena tidak tersedia dari sumber gratis. Versi lama mengarangnya dari hash kode saham.
+- **Fundamental** ([fundamentals-panel.tsx](src/components/analysis/fundamentals-panel.tsx)):
+  - Sektor dan industri.
+  - 10 kartu: P/E TTM + EPS, PBV + P/S, ROE + ROA, DER (x) + current ratio, dividend yield, margin bersih + margin operasi, kapitalisasi + free float, pendapatan TTM, laba bersih, serta FCF + beta. Untuk sektor Finance, DER diberi catatan kurang relevan.
+  - Grafik batang pendapatan vs laba/rugi bersih, dengan toggle Tahunan (4–5 tahun) dan Kuartalan (sampai 6 kuartal). Warna legenda sama dengan warna batang.
+  - Sumber data ditulis di bawah grafik.
+- **Sentimen Berita** ([news-panel.tsx](src/components/analysis/news-panel.tsx)):
+  - Badge Bullish, Bearish, atau Netral.
+  - Ringkasan dan poin kunci.
+  - Metode (AI beserta nama model, atau kata kunci judul) dan tingkat keyakinan.
+  - Daftar maksimal 8 berita dari 7 hari terakhir yang menyebut kode atau nama emiten. Media kredibel didahulukan.
 
 ### 5.9 Portofolio Saya ([portfolio/portfolio-tab.tsx](src/components/portfolio/portfolio-tab.tsx), wajib login)
 
@@ -734,90 +744,94 @@ Semua fungsi mengembalikan `{ok:true, ...} | {ok:false, error}`, dengan EPSILON 
 | `whatPercent` | part / total × 100 | `zero-base` bila total = 0 |
 | `reversePercent` | final / (1 ± p/100) | `non-positive-factor` bila faktor ≤ EPSILON |
 
-### 6.7 Indikator teknikal ([api/analysis/technical/route.ts](src/app/api/analysis/technical/route.ts))
+### 6.7 Indikator teknikal ([lib/indicators.ts](src/lib/indicators.ts), dipakai [api/analysis/technical/route.ts](src/app/api/analysis/technical/route.ts))
 
-Data: Yahoo `v8/finance/chart`, harian 6 bulan dan mingguan 1 tahun. Semua indikator dihitung di server dan **tidak di-export**, sehingga belum bisa dites.
+**Sumber data:** Yahoo `v8/finance/chart` lewat `fetchOhlc` ([yahoo.ts:227](src/lib/yahoo.ts#L227)), dengan tiga seri: harian 1 tahun, mingguan 2 tahun, dan 60 menit 1 bulan. Harga terkini diambil dari harga tervalidasi [market-data](src/lib/market-data.ts).
 
-| Indikator | Fungsi (baris) | Parameter & catatan |
+- Bar harian terakhir memakai harga terkini, agar indikator mengikuti harga live.
+- Semua fungsi murni dan di-export, sehingga bisa dites.
+- Cache 60 detik per ticker.
+
+| Indikator | Fungsi | Definisi |
 |---|---|---|
-| RSI | `calculateRSI` (20) | Wilder 14. Hasil 50 bila data ≤ periode; **100 bila avgLoss = 0** (seri datar ikut jadi 100, [M-03](#m-03)) |
-| MFI | `calculateMFI` (56) | Periode 14. Seed jumlah mentah lalu smoothing Wilder (non-standar). TP sama dihitung sebagai negatif |
-| EMA | `calculateEMA` (98) | k = 2/(p+1), seed nilai pertama (bukan SMA) |
-| SMA | `calculateSMA` (113) | Rata-rata p terakhir; nilai terakhir bila data kurang |
-| MACD | `calculateMACD` (120) | 12/26/9, deteksi crossover, `histRising` |
-| Bollinger | `calculateBollingerBands` (171) | SMA20 ± 2σ (populasi), %B, bandwidth |
-| Stochastic | `calculateStochastic` (199) | %K 14 (fast), %D = SMA3. Sinyal 80/20 |
-| ATR | `calculateATR` (234) | Wilder 14 |
-| OBV | `calculateOBV` (260) | Tren 10 bar (`last > first×1,02`); divergensi ±2% |
-| "VWAP" | `calculateVWAP` (295) | Typical price berbobot volume untuk 20 bar **harian** (bukan VWAP intraday) |
-| ADX/DI | `calculateADX` (314) | Periode 14; >25 Strong, >20 Weak. Smoothing mencampur skala jumlah dan rata-rata |
-| Risk | `calculateRiskMetrics` (375) | Volatilitas = σ·√252; max drawdown 6 bulan; Sharpe = mean·252 / vol (rf = 0) |
-| Pivot | 714-737 | Classic PP/R1-3/S1-3 dan Fibonacci 0,382/0,618/1,0, dari **bar terakhir** (bisa bar yang masih berjalan) |
-| MA | 740-743 | SMA20/50, EMA20/50 |
+| SMA / EMA | `sma`, `ema`, `emaSeries` | EMA k = 2/(p+1), di-seed dengan SMA p bar pertama |
+| RSI | `rsi` | Wilder 14. Seri datar → 50; avgLoss 0 → 100 |
+| MACD | `macd` | 12/26/9. Sinyal Bullish/Bearish (Crossover) dan `histogramRising` |
+| Bollinger | `bollinger` | SMA20 ± 2σ (populasi), %B, bandwidth |
+| Stochastic | `stochastic` | Lambat 14,3,3: %K = SMA3 dari %K mentah, %D = SMA3 dari %K. Buy/Sell Signal = cross di area <20 / >80 |
+| ATR | `atr` | Wilder 14 |
+| ADX / ±DI | `adx` | Wilder 14 (jumlah yang di-smoothing). >25 Strong, >20 Weak |
+| MFI | `mfi` | Jumlah aliran dana positif/negatif selama 14 bar (definisi standar) |
+| CMF | `cmf` | Chaikin Money Flow 20 |
+| OBV | `obv` | Tren 10 bar relatif terhadap volume rata-rata (aman untuk OBV negatif). Divergensi bila harga ±2% berlawanan arah dengan OBV |
+| VWAP 20 hari | di route | Typical price berbobot volume untuk 20 bar **harian** (bukan VWAP intraday) |
+| Risk | `riskMetrics` | Volatilitas = σ·√252; max drawdown 1 tahun; proksi Sharpe (rf = 0). >50% High, >25% Moderate |
 
-**Multi-timeframe** ([technical/route.ts:771-807](src/app/api/analysis/technical/route.ts#L771-L807)):
-- **Weekly**: harga mingguan dibandingkan SMA20/50 mingguan dan RSI mingguan. Fallback: harga > EMA50.
-- **Daily**: harga dibandingkan SMA20 dan tanda histogram MACD.
-- **"Hourly"**: dihitung dari RSI dan Stochastic **harian**, jadi labelnya menyesatkan.
+**Tren multi-timeframe** (`trendFrom`, [technical/route.ts:94](src/app/api/analysis/technical/route.ts#L94)):
+- Mingguan memakai EMA10 vs SMA20; harian dan per jam memakai EMA20 vs SMA50.
+- BULLISH bila harga > EMA > SMA dan RSI ≥ 50; BEARISH bila kebalikannya dan RSI ≤ 50; selain itu SIDEWAYS.
 
-**Skor konsensus teknikal** ([technical/route.ts:809-868](src/app/api/analysis/technical/route.ts#L809-L868)):
+**Support & resistance 9 titik** (`pivotLevels`, [indicators.ts:273](src/lib/indicators.ts#L273)), dihitung dari H/L/C **sesi terakhir yang sudah selesai**. Bar hari ini dilewati sebelum 16:15 WIB (`lastCompletedIndex`, [technical/route.ts:83](src/app/api/analysis/technical/route.ts#L83)). Semua titik dibulatkan ke fraksi BEI.
 
-| Sinyal | Bullish | Bearish |
-|---|---|---|
-| RSI | <30: +1,5 · 55–70: +0,5 | >70: +1,5 · 30–45: +0,5 |
-| MACD | Bullish +1 (crossover +2) | Bearish +1 (crossover +2) |
-| Harga vs SMA20 / SMA50 | +0,5 / +1,0 | +0,5 / +1,0 |
-| Stochastic | Buy Signal +1,5 · Bullish +0,5 | Sell Signal +1,5 · Bearish +0,5 |
-| Bollinger %B | <10: +0,5 | >90: +0,5 |
-| ADX Strong | +DI > −DI: +1 | sebaliknya: +1 |
-| OBV divergence | Bullish +1 | Bearish +1 |
+| Metode | PP | R1 / S1 | R2 / S2 | R3 / S3 | R4 / S4 |
+|---|---|---|---|---|---|
+| Klasik | (H+L+C)/3 | 2PP − L / 2PP − H | PP ± (H−L) | H + 2(PP−L) / L − 2(H−PP) | R3 + (H−L) / S3 − (H−L) |
+| Fibonacci | (H+L+C)/3 | PP ± 0,382·(H−L) | PP ± 0,618·(H−L) | PP ± 1,000·(H−L) | PP ± 1,618·(H−L) |
+| Camarilla | (H+L+C)/3 | C ± 1,1(H−L)/12 | C ± 1,1(H−L)/6 | C ± 1,1(H−L)/4 | C ± 1,1(H−L)/2 |
 
-- Skor = bull / (bull + bear) × 100.
+**Skor konsensus teknikal** ([technical/route.ts:183-223](src/app/api/analysis/technical/route.ts#L183-L223)):
+
+| Sinyal | Bullish | Bearish | Bobot maks |
+|---|---|---|---|
+| RSI | <30: 1,5 · >55: 0,5 | >70: 1,5 · <45: 0,5 | 1,5 |
+| MACD | Bullish 1 (crossover 2) | Bearish 1 (crossover 2) | 2 |
+| Harga vs SMA20 / SMA50 / SMA200 | 0,5 / 1 / 1 | 0,5 / 1 / 1 | 2,5 |
+| Stochastic | Buy Signal 1,5 · Bullish 0,5 | Sell Signal 1,5 · Bearish 0,5 | 1,5 |
+| Bollinger %B | <10: 0,5 | >90: 0,5 | 0,5 |
+| ADX Strong | +DI > −DI: 1 | sebaliknya: 1 | 1 |
+| OBV divergence | Bullish 1 | Bearish 1 | 1 |
+
+- Skor = 50 + (bull − bear) / bobot maks × 50. Bobot maks hanya menjumlahkan indikator yang datanya tersedia.
+- Dengan rumus ini, "STRONG" butuh banyak sinyal kuat yang searah. Rumus lama (bull / (bull + bear)) memberi skor 0 dan STRONG SELL hanya dari 6 sinyal kecil yang searah.
 - Rating: ≥75 STRONG BUY, ≥55 BUY, ≤25 STRONG SELL, ≤45 SELL, selain itu NEUTRAL.
-- Komentar bobot di kode tidak cocok dengan nilai yang dipakai: komentar "Stochastic weight 1.0" padahal nilainya 1,5, dan "MA weight 1.5" padahal 0,5 + 1,0.
 
-### 6.8 Bandarmology (sintetis) ([technical/route.ts:745-899](src/app/api/analysis/technical/route.ts#L745-L899))
+### 6.8 Arus volume & dana ([technical/route.ts:164-176](src/app/api/analysis/technical/route.ts#L164-L176))
 
-**Input dari bar terakhir:**
-- `closePos` = (C − L) / (H − L); bernilai 0,5 bila H = L.
-- `volumeRatio` = volume terakhir / rata-rata volume 20 hari.
+Estimasi dari harga dan volume harian, **bukan data broker atau asing** (data itu tidak tersedia dari sumber gratis, jadi tidak ditampilkan).
 
-**Status:**
+- Skor = 50 + CMF × 200, lalu ±10 untuk tren OBV naik/turun, lalu + (MFI − 50) × 0,2. Hasilnya dibatasi 0–100.
+- Status: ≥75 tekanan beli kuat, ≥58 tekanan beli, ≤25 tekanan jual kuat, ≤42 tekanan jual, selain itu seimbang.
+- Rasio volume = volume hari ini / rata-rata 20 sesi sebelumnya. `partial: true` selama sesi berjalan, karena volume belum final.
 
-| Syarat | Status |
+### 6.9 Skor fundamental & skor konsensus ([lib/analysis-score.ts](src/lib/analysis-score.ts))
+
+**Poin fundamental** (`fundamentalScore`):
+
+| Metrik | Poin (bobot) |
 |---|---|
-| closePos > 0,65 & volRatio > 1,25 | BIG ACCUMULATION |
-| closePos > 0,55 & volRatio > 1,0 | ACCUMULATION |
-| closePos < 0,35 & volRatio > 1,25 | BIG DISTRIBUTION |
-| closePos < 0,45 & volRatio > 1,0 | DISTRIBUTION |
+| P/E | <0 atau EPS negatif: −2 · <12: +2 · <22: +1 · lainnya: −1 (2) |
+| PBV | <1,2: +2 · <3: +1 · lainnya: −1 (2) |
+| ROE | >15: +2 · >8: +1 · ≤0: −2 · lainnya 0 (2) |
+| DER (x) | <0,8: +1 · >2: −1 (1). Dilewati untuk sektor Finance |
+| Margin bersih | >15: +1 · <0: −1 (1) |
+| Dividend yield | ≥4: +1 (1) |
 
-**Foreign net buy:**
-- Rumusnya `round(C × Vol × (closePos − 0,5) × 0,65)` ([:763](src/app/api/analysis/technical/route.ts#L763)). Angka ini **rekaan**, bukan data asing sebenarnya.
-- Daftar broker dan jumlah lot dibuat dari hash ticker (`getBrokerSelection`/`getDeterministicBrokers`/`getDetailedBrokers`, sekitar baris 423-499).
+- Skor = (total − min) / (max − min) × 100. Min dan max dihitung hanya dari metrik yang tersedia ([M-08](#m-08) ✅).
+- Poin bernilai 0 tidak dicatat sebagai kontra.
 
-**Skor bandar:**
-- Komponen:
-  - MFI >70: bear +1,5; MFI <30: bull +1,5.
-  - Status: +1,5, atau +2,5 untuk status BIG.
-  - Foreign flow: ±1.
-  - Tren OBV: ±0,5.
-- Ambang rating sama dengan skor teknikal.
+**Skor sentimen** (`newsScore`): Bullish 75, Bearish 25, Netral 50. Bila tidak ada berita, sentimen tidak ikut dihitung.
 
-### 6.9 Skor fundamental & skor gabungan ([analysis-tab.tsx:525-827](src/components/analysis-tab.tsx#L525-L827))
+**Skor konsensus** (`consensus`, [analysis-score.ts:87-98](src/lib/analysis-score.ts#L87-L98)):
+- Rumus: 0,35·Teknikal + 0,30·Fundamental + 0,20·Arus volume + 0,15·Sentimen.
+- Komponen yang tidak tersedia dikeluarkan, lalu bobot sisanya dinormalkan ulang (tidak diisi 50 palsu).
+- −5 bila volatilitas High, +2 bila Low.
 
-**Poin fundamental:**
-
-| Metrik | Poin |
-|---|---|
-| P/E | <0: −2 · <12: +2 · <22: +1 · lainnya: −1 |
-| PBV | <1,2: +2 · <3: +1 · lainnya: −1 |
-| ROE | >15: +2 · >8: +1 · ≤0: −2 |
-| DER | <80: +1 · >200: −1 |
-| NPM | >15: +1 · <0: −1 |
-
-- Normalisasi memakai `minPossible = −5` yang di-*hardcode* ([analysis-tab.tsx:617](src/components/analysis-tab.tsx#L617)). Minimum sebenarnya −7, dan nilainya seharusnya bergantung pada metrik yang tersedia ([M-08](#m-08)).
-- Skor narasi: Bullish 80, Bearish 20, Netral 50.
-- **Skor gabungan** = 0,30·F + 0,35·T + 0,20·B + 0,15·N, lalu −5 bila risiko High dan +2 bila Low ([analysis-tab.tsx:685](src/components/analysis-tab.tsx#L685)).
+**Sentimen berita** ([analysis/news/route.ts](src/app/api/analysis/news/route.ts)):
+- AI lewat [lib/llm.ts](src/lib/llm.ts) dengan skema JSON `{sentiment, confidence, summary, keyPoints}`. Hasil di-cache 30 menit per kumpulan berita, dan kuota AI hanya terpakai saat AI benar-benar dipanggil.
+- Tanpa AI, dipakai cadangan kata kunci (`headlineScore`, [:45](src/app/api/analysis/news/route.ts#L45)):
+  - Frasa dinilai lebih dulu dengan bobot ±2 (net buy/sell, aliran masuk/keluar, asing borong/jual, laba naik/turun), lalu kata utuh.
+  - Setiap judul diberi nilai positif, negatif, atau netral.
+  - Label hanya berubah bila selisihnya minimal 2 judul dan 1,5×.
 
 ### 6.10 Parsing angka ([format.ts](src/lib/format.ts))
 
@@ -842,9 +856,9 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | `/api/global-markets` | GET | — | IP | — | Yahoo spark (harian + intraday 15m) untuk 8 instrumen. Cache 60 dtk | 502 |
 | `/api/news` | GET `?category=` / `?q=` / `?tickers=A,B` (maks 20) | — | IP | `q` ≤ 100 karakter; ticker lewat validator | Google News RSS (timeout 8 dtk). Cache 5 mnt per kueri | **502** |
 | `/api/news/summary` | POST `{title, source, link}` | Cek same-origin + proxy + `requireUser` (JWT + approval) | IP; kuota AI hanya bila memanggil AI (bukan dari cache) | `title` ≤ 300, `source` ≤ 120, `link` ≤ 2000 | Resolve link Google News, baca paragraf artikel (redirect diikuti maks 3, dicek SSRF tiap lompatan), Gemini (3 model) → Groq → OpenAI. Cache 24 jam per artikel | Cuplikan artikel asli (`mode: extract`) atau `mode: unavailable` |
-| `/api/analysis/fundamentals` | GET `?symbol=` | proxy + `requireUser` | IP (sejak `abdd7d9`) | validator | Yahoo v7 quote (revalidate 60), v10 quoteSummary | **Data deterministik palsu** |
-| `/api/analysis/technical` | GET `?symbol=` | proxy + `requireUser` | IP (sejak `abdd7d9`) | validator | Yahoo chart 1d/6mo + 1wk/1y | **Data deterministik, harga 5000** |
-| `/api/analysis/news` | GET `?symbol=` | proxy + `requireUser` | IP + AI | validator | Google & Yahoo RSS, Gemini/Groq/OpenAI | Berita fallback buatan + sentimen keyword |
+| `/api/analysis/fundamentals` | GET `?symbol=` | proxy + `requireUser` | IP | validator | TradingView screener (rasio, sektor) + Yahoo `fundamentals-timeseries` (pendapatan & laba tahunan/kuartalan) lewat [fundamentals-source.ts](src/lib/fundamentals-source.ts). Timeout 10 dtk, cache 6 jam | **404** ticker tidak dikenal, **502** semua sumber gagal. Metrik yang kosong → `null` |
+| `/api/analysis/technical` | GET `?symbol=` | proxy + `requireUser` | IP | validator | Yahoo chart 1d/1y + 1wk/2y + 60m/1mo, harga tervalidasi provider. Cache 60 dtk | **404** ticker tidak dikenal, **502** sumber gagal |
+| `/api/analysis/news` | GET `?symbol=` | proxy + `requireUser` | IP; kuota AI hanya bila memanggil AI | validator | Google News RSS per ticker (cache 10 mnt, maks 8 berita), [lib/llm.ts](src/lib/llm.ts) Gemini → Groq → OpenAI (batas 20 dtk). Cache sentimen 30 mnt (AI) / 5 mnt (kata kunci) | **502** feed gagal; tanpa berita → `method: none`; AI gagal → sentimen kata kunci |
 | `/api/dividend` | GET `?symbol=` | — | IP | validator, `.JK` dibuang | Yahoo chart `range=max&interval=1mo&events=div` (riwayat ex date + rata-rata harga per tahun) lewat [dividend-source.ts](src/lib/dividend-source.ts). Cache 6 jam per ticker | **404** ticker tidak dikenal, **502** sumber gagal (data lama tetap disajikan bila ada). Belum pernah bagi dividen → `events: []` |
 | `/api/dividend/summary` | GET `?symbols=A,B` (maks 20) | — | IP | validator | Cache yang sama dengan `/api/dividend` | Ticker yang gagal dilewati |
 | `/api/admin/refresh` | GET (status) / POST (refresh) | proxy + `requireAdmin` (`is_admin`), cek same-origin (POST) | IP | — | POST: kosongkan semua cache server lalu muat ulang daftar emiten aktif (TradingView) | Daftar bawaan bila TradingView gagal |
@@ -862,7 +876,7 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 - [validators.ts](src/lib/validators.ts) `validateTickerSymbol`: uppercase lalu dicocokkan dengan `^[A-Z]{1,5}(\.JK)?$`. Validator ini tidak menghapus `.JK`; route `ticker` dan `quotes` membuangnya sendiri.
 
 **Timeout & durasi:**
-- Fetch di `news`, `news/summary` (6–12 detik, dengan batas total 26 detik untuk AI) dan semua fetch lewat [lib/yahoo.ts](src/lib/yahoo.ts) (8 detik) memakai timeout (termasuk dividen sejak `86e45a5`). Route analisis belum.
+- Semua fetch eksternal memakai timeout: `news` (8 detik), `news/summary` (6–12 detik, dengan batas total 26 detik untuk AI), [lib/yahoo.ts](src/lib/yahoo.ts) (8 detik), fundamental (10 detik), dan [lib/llm.ts](src/lib/llm.ts) (12 detik per panggilan, dengan batas total per route).
 - `maxDuration` di [vercel.json](vercel.json): AI 30 detik, analisis 20 detik, dividen/news/market-summary 15 detik, ticker/quotes/global-markets 10 detik.
 
 ### 7.1 Lapisan data pasar
@@ -1109,9 +1123,9 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
   - Tentukan juga perilaku mode demo secara eksplisit di `requireUser`.
 
 <a id="c-02"></a>
-**C-02 ✅: Limiter "AI" (10/jam) ikut membatasi fundamental dan teknikal, diperparah auto-refresh 60 detik** · Availability/Cost · Diperbaiki di `abdd7d9` (fundamental & teknikal hanya limit IP). Rekomendasi cache sentimen per ticker di `analysis/news` masih terbuka
+**C-02 ✅: Limiter "AI" (10/jam) ikut membatasi fundamental dan teknikal, diperparah auto-refresh 60 detik** · Availability/Cost · Diperbaiki di `abdd7d9` (fundamental & teknikal hanya limit IP). Sejak `802aed7` sentimen di-cache 30 menit per kumpulan berita dan berita hanya di-refresh tiap 10 menit
 
-- **Lokasi:** [rate-limit.ts:70](src/lib/rate-limit.ts#L70); fundamentals dan technical meneruskan `user.id`; [analysis-tab.tsx:411-417](src/components/analysis-tab.tsx#L411-L417).
+- **Lokasi:** [rate-limit.ts:70](src/lib/rate-limit.ts#L70); fundamentals dan technical meneruskan `user.id`; auto-refresh di `analysis-tab.tsx` versi lama.
 - **Dampak:**
   - Satu analisis memakai 3 kuota. Dengan LIVE aktif, kuota 10/jam habis sekitar menit ke-3 sampai ke-4, lalu muncul error 429 dan pesan "Gagal memuat data fundamental".
   - Setiap refresh juga memanggil LLM lagi (sampai 5 model Gemini), sehingga biaya API membengkak.
@@ -1123,18 +1137,18 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 ### High
 
 <a id="h-01"></a>
-**H-01 (sebagian ✅): Data sintetis/fallback disajikan sebagai data nyata** · Integritas data · T · Dividen sudah memakai data asli tanpa fallback sejak `86e45a5`; analisis belum
+**H-01 ✅: Data sintetis/fallback disajikan sebagai data nyata** · Integritas data · T · Dividen sejak `86e45a5`, Analisis sejak `802aed7`
 
-- **Lokasi:**
-  - [technical/route.ts:423-499](src/app/api/analysis/technical/route.ts#L423-L499): broker summary dari hash ticker.
-  - [technical/route.ts:763](src/app/api/analysis/technical/route.ts#L763): foreign flow rekaan.
-  - [technical/route.ts:647](src/app/api/analysis/technical/route.ts#L647): harga fallback 5000.
-  - `getDeterministicStockData` (fundamentals) dan berita fallback buatan. (~~Dividen deterministik~~ dihapus di `86e45a5`.)
+- **Lokasi lama:**
+  - Broker summary dari hash ticker, foreign flow rekaan, dan harga fallback 5000 di `technical/route.ts`.
+  - `getDeterministicStockData` di route fundamental.
+  - Berita fallback buatan di `analysis/news`.
+  - Dividen deterministik.
 - **Dampak:** pengguna bisa mengambil keputusan beli/jual berdasarkan angka palsu tanpa tahu angka itu palsu.
-- **Rekomendasi:**
-  - Tambahkan `isFallback`/`isSynthetic` di setiap response dan tampilkan badge "Data simulasi" di UI.
-  - Atau hentikan fallback palsu dan tampilkan error yang jujur.
-  - Beri label "Estimasi model, bukan data broker" pada bagian Bandarmology.
+- **Perbaikan:**
+  - Semua fallback palsu dihapus. Route membalas 404 untuk kode yang tidak dikenal dan 502 bila sumber gagal; UI menampilkan pesan per bagian.
+  - Fundamental kini dari TradingView screener dan Yahoo `fundamentals-timeseries`.
+  - Bagian "Bandarmology" diganti **Arus Volume & Dana** (CMF/MFI/OBV), dengan keterangan bahwa data broker dan asing tidak tersedia.
 
 <a id="h-02"></a>
 **H-02 (sebagian ✅): Approval admin hanya dicek di klien** · Authorization · Route AI/analisis sudah mengecek approval di server sejak `abdd7d9`; RLS tabel data belum
@@ -1201,17 +1215,17 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 |---|---|---|---|---|
 | <a id="m-01"></a>M-01 | Kalkulasi | [format.ts:40-44](src/lib/format.ts#L40-L44) | Input dengan tepat 3 desimal dibaca sebagai ribuan: "0.125" → 125, "1.125" → 1125, termasuk di mode EN | Tentukan pemisah desimal dari bahasa aktif (ID = koma, EN = titik), jangan ditebak dari pola |
 | M-02 ✅ | Data | ticker/route.ts | ~~`symbol=BBCA.JK` dibentuk jadi `BBCA.JK.JK`~~ | Diperbaiki di `db0cca3` (`.JK` dibuang sebelum dipakai) |
-| <a id="m-03"></a>M-03 | Indikator | [technical/route.ts:48](src/app/api/analysis/technical/route.ts#L48) | RSI = 100 untuk seri datar (avgGain = avgLoss = 0) | Kembalikan 50 bila keduanya 0 |
-| M-04 | Indikator | technical/route.ts:277-279 | Tren OBV memakai pengali `×1,02`, sehingga salah arah bila OBV ≤ 0 | Bandingkan selisih terhadap \|first\| |
-| M-05 | Indikator | technical/route.ts:76-91, 336-344, 103 | Smoothing MFI/ADX non-standar; seed EMA memakai nilai pertama, bukan SMA | Ikuti definisi standar (Wilder/rolling sum) |
-| M-06 | Indikator | technical/route.ts:714-737 | Pivot dihitung dari bar hari ini yang belum selesai saat jam bursa | Pakai sesi terakhir yang sudah selesai |
-| M-07 | Label | technical/route.ts:796-807 | Tren "Hourly" dihitung dari data harian | Ganti nama jadi "Short-term" atau ambil data interval 1 jam |
-| <a id="m-08"></a>M-08 | Skor | [analysis-tab.tsx:617](src/components/analysis-tab.tsx#L617) | `minPossible = −5` di-*hardcode* (minimum sebenarnya −7, dan bergantung pada metrik yang ada); ROE 0–8 diberi 0 poin tetapi dicatat sebagai "kontra" | Hitung min/max dari metrik yang tersedia |
+| <a id="m-03"></a>M-03 ✅ | Indikator | [indicators.ts:47](src/lib/indicators.ts#L47) | ~~RSI = 100 untuk seri datar (avgGain = avgLoss = 0)~~ | Diperbaiki di `802aed7`: hasilnya 50 |
+| M-04 ✅ | Indikator | indicators.ts `obv` | ~~Tren OBV memakai pengali `×1,02`, sehingga salah arah bila OBV ≤ 0~~ | Diperbaiki di `802aed7`: selisih dibandingkan dengan volume rata-rata |
+| M-05 ✅ | Indikator | indicators.ts | ~~Smoothing MFI/ADX non-standar; seed EMA memakai nilai pertama, bukan SMA~~ | Diperbaiki di `802aed7`: MFI jumlah 14 bar, ADX Wilder, EMA di-seed SMA |
+| M-06 ✅ | Indikator | technical/route.ts `lastCompletedIndex` | ~~Pivot dihitung dari bar hari ini yang belum selesai saat jam bursa~~ | Diperbaiki di `802aed7`: sesi terakhir yang selesai (bar hari ini dilewati sebelum 16:15 WIB) |
+| M-07 ✅ | Label | technical/route.ts | ~~Tren "Hourly" dihitung dari data harian~~ | Diperbaiki di `802aed7`: memakai data 60 menit sungguhan |
+| <a id="m-08"></a>M-08 ✅ | Skor | [analysis-score.ts](src/lib/analysis-score.ts) | ~~`minPossible = −5` di-*hardcode*; ROE 0–8 diberi 0 poin tetapi dicatat sebagai "kontra"~~ | Diperbaiki di `802aed7`: min/max dari metrik yang tersedia, poin 0 tidak dicatat |
 | M-09 ✅ | Kalkulasi | calculator.ts | ~~`avgPriceReductionPct` memakai avg mentah, bukan `realAvgPriceAwal`~~ | Diperbaiki di `b9db7a6` |
 | <a id="m-10"></a>M-10 ✅ | Kalkulasi | dividend.ts | ~~Di mode nominal, `totalInvestmentRp` tidak dihitung ulang setelah dibulatkan ke lot~~ | Diperbaiki di `86e45a5`: yield dihitung dari modal terpakai (termasuk fee), sisa modal ditampilkan |
 | M-11 ✅ | Kalkulasi | e-ipo.ts | ~~Harga 0 atau lot 0 menghasilkan Infinity/NaN~~ | Diperbaiki di `c2e9dde`: input dijaga dan hasil hanya tampil bila harga & lot > 0 |
 | M-12 ✅ | Data | dividend | ~~Tanggal ex-date diberi label `cumDate`; `paymentDate` salinan tanggal yang sama; tahun lokal vs tanggal UTC~~ | Diperbaiki di `86e45a5`: ex date memakai zona WIB, cum date & tanggal cair dihitung dan diberi label perkiraan |
-| M-13 | Sentimen | analysis/news/route.ts:84-98, 180-184 | Kata kunci dicocokkan sebagai substring ("up" ikut cocok di "Rupiah", "jatuh" di "jatuh tempo"); parsing jawaban LLM cenderung menghasilkan Bullish | Cocokkan per kata utuh; minta output JSON terstruktur |
+| M-13 ✅ | Sentimen | analysis/news/route.ts | ~~Kata kunci dicocokkan sebagai substring ("up" cocok di "Rupiah"); parsing jawaban LLM cenderung menghasilkan Bullish~~ | Diperbaiki di `802aed7`: frasa + kata utuh per judul, output AI berupa JSON terstruktur |
 | <a id="m-14"></a>M-14 | Data | [page.tsx:382-406](src/app/page.tsx#L382-L406) | Rincian tahap pembelian digabung saat disimpan; `avgPriceAwalIncludesFee` tidak tersimpan di Supabase | Tambah kolom `tranches jsonb` dan `avg_includes_fee` |
 | M-15 ✅ | Performa | market-summary/route.ts | ~~Scan sekitar 940 ticker tiap request, tiap pengunjung, tiap 30 detik~~ | Diperbaiki di `db0cca3`: cache bersama 45 dtk, IHSG & scan paralel, polling hanya saat jam bursa dan tab aktif |
 | <a id="m-16"></a>M-16 ✅ | DB | migrasi 000005/000006 | Trigger `force_pending` bisa menimpa `is_admin` pada jalur insert `claim_first_admin`; saat ini hanya aman karena klien sudah insert baris lebih dulu | Kecualikan fungsi SECURITY DEFINER dari trigger |
@@ -1219,9 +1233,9 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 | M-18 ✅ | Config | supabase-config.ts | ~~Deteksi "Supabase terkonfigurasi" berbeda antara klien dan proxy~~ | Diperbaiki di `abdd7d9` (satu helper untuk klien, server, proxy) |
 
 Temuan Medium lain yang terkait performa dan robustness:
-- Loop Gemini sampai 5 model tanpa timeout bisa melewati `maxDuration` 30 detik. (✅ di `news/summary` sejak `abdd7d9`: 3 model, timeout per panggilan, batas total 26 detik; `analysis/news` belum.)
-- 3 fetch di Analisis dijalankan berurutan, padahal bisa `Promise.all`.
-- `?q=` di [analysis-tab.tsx:457](src/components/analysis-tab.tsx#L457) tidak di-*encode*.
+- ✅ ~~Loop Gemini sampai 5 model tanpa timeout bisa melewati `maxDuration` 30 detik.~~ `news/summary` (`abdd7d9`) dan `analysis/news` (`802aed7`) memakai [lib/llm.ts](src/lib/llm.ts): 3 model, timeout per panggilan, dan batas total.
+- ✅ ~~3 fetch di Analisis dijalankan berurutan.~~ Sejak `802aed7` ketiganya paralel dan saling lepas.
+- ✅ ~~`?q=` di Analisis tidak di-*encode*.~~ Pencarian kini memakai `QuickSearchTicker`.
 - ✅ ~~Body `news/summary` tanpa batas panjang~~ (dibatasi sejak `abdd7d9`).
 
 ### Low / UX
@@ -1230,7 +1244,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 |---|---|---|
 | <a id="l-01"></a>L-01 ✅ | compounding-tab, ipo-tab | ~~Modal simpan Compounding tidak pernah dibuka~~ (`f2c68f1`); ~~E-IPO tidak punya tombol simpan~~ (`c2e9dde`) |
 | <a id="l-02"></a>L-02 ✅ | dividend-tab.tsx | ~~Mojibake "â‰ˆ" dan "â†"~~ (halaman ditulis ulang di `86e45a5`) |
-| L-03 | analysis-tab.tsx:2340-2349 vs 220/230 | Warna legenda grafik fundamental tidak sama dengan warna batang |
+| L-03 ✅ | fundamentals-panel.tsx | ~~Warna legenda grafik fundamental tidak sama dengan warna batang~~ (`802aed7`) |
 | <a id="l-04"></a>L-04 ✅ | history-table.tsx | ~~Selector `[title="Masuk ke Akun"]` gagal di mode EN~~. Diganti prop `onSignInClick` di `b9db7a6` |
 | L-05 | layout.tsx:13-18 | `userScalable:false` memblok zoom (aksesibilitas, WCAG 1.4.4) |
 | L-06 | next.config.ts:8-13 | CSP masih `'unsafe-inline'` di script-src; host AI di `connect-src` tidak dibutuhkan karena AI dipanggil dari server |
@@ -1259,19 +1273,21 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `6d74662` | 2026-10-08 | — | 38 saham aktif tidak terpantau sama sekali (daftar Wikipedia Des 2024): tidak ada di scan pasar, hitungan ARA/ARB, maupun pencarian; 137 kode tidak aktif tetap dipindai |
 | `c52efc9` | 2026-10-08 | — | Tidak ada cara memaksa data segar; tombol Refresh semua data untuk admin (registry cache bersama via `globalThis` karena tiap route dibundel terpisah) |
 | `30f9770` | 2026-10-08 | — | Halaman Watchlist hanya widget yang direntangkan di kolom sempit (separuh layar kosong), tanpa perubahan Rp, rentang harian, nilai transaksi, ARA/ARB, harga incaran, pencarian langsung, maupun urutan manual |
+| `fc27b06` | 2026-10-08 | — | Menu Admin Panel tidak berada di urutan paling bawah sidebar |
+| `c1b5571` | 2026-10-08 | — | Rantai LLM dan parser RSS terduplikasi; `news/summary` diawali BOM; judul berita berawalan "Foto :" dan berakhiran "Halaman 1" |
+| `802aed7` | 2026-10-08 | H-01 (analisis), M-03–M-08, M-13, L-03 | Analisis: fundamental palsu dari hash kode saham, broker & asing rekaan, harga cadangan Rp5.000, berita buatan; Yahoo v7/v10 menolak tanpa crumb (401) sehingga fundamental selalu jatuh ke data palsu; S/R hanya 7 titik tanpa label, dari candle yang belum selesai; skor teknikal 0/STRONG SELL hanya dari 6 sinyal kecil; sentimen kata kunci menganggap "aliran keluar dana asing naik" positif |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
-**Masih terbuka:** H-01 (analisis), H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-13, M-14, M-16, M-17, L-03, L-05, L-06, L-07 (auth-modal), L-08.
+**Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
 
 ---
 
 ## 13. Utang Teknis & Kualitas Kode
 
 **File raksasa** (lebih dari 900 LOC):
-- `analysis-tab.tsx` (2374): chart, skeleton, scoring, dan UI dalam satu file, dengan 16 `useState`.
 - `compounding-tab.tsx` (1720): sudah dipecah ke komponen kecil (`Field`, `Segmented`, `StatCard`) dan logika dipindah ke `lib/compounding.ts`, tetapi masih satu file besar.
-- `page.tsx` (1138): auth, demo user, CRUD, dan routing tab.
-- `technical/route.ts` (997). (Dividen, E-IPO, Portofolio, dan Admin sudah dipecah ke folder `components/dividend/`, `ipo/`, `portfolio/`, `admin/`.)
+- `page.tsx` (924): auth, demo user, CRUD, dan routing tab.
+- (Dividen, E-IPO, Portofolio, Admin, dan Analisis sudah dipecah ke folder `components/dividend/`, `ipo/`, `portfolio/`, `admin/`, `analysis/`. Indikator berada di `lib/indicators.ts`, sehingga `technical/route.ts` kini 308 baris.)
 
 **Duplikasi:**
 
@@ -1281,23 +1297,19 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 1× (compounding versi singkat Juta/Miliar); halaman lain sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
 | Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding, Dividen, E-IPO & Portofolio | Pakai juga di Persentase |
 | Komponen UI kalkulator (Card, Field, Segmented, Stat) | [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) dipakai Dividen, E-IPO, Portofolio & Admin; Compounding masih punya versi lokal | `shared/calc-ui.tsx` |
-| Rantai fallback Gemini → Groq → OpenAI | 2× (`news/summary` sudah memakai pemanggil generik dengan timeout & validasi; `analysis/news` masih versi lama) | `lib/llm.ts` |
-| Parser RSS | 2× | `lib/rss.ts` |
-| String User-Agent Mozilla | 9× di 5 file (3 route analisis, news/summary, ticker search); route data pasar & dividen sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
+| Rantai fallback Gemini → Groq → OpenAI | ✅ satu: [lib/llm.ts](src/lib/llm.ts) (`c1b5571`) | — |
+| Parser RSS | ✅ satu: [lib/news-feed.ts](src/lib/news-feed.ts) (`c1b5571`) | — |
+| String User-Agent Mozilla | 3× (news/summary 2×, ticker search); sisanya sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
 | `NEXT_PUBLIC_ADMIN_EMAIL \|\| 'admin@…'` | 5× | `lib/config.ts` |
 | Literal kunci `nunnn_stock_*` | Puluhan | `lib/storage-keys.ts` |
-| Tipe `StockFundamentals` (server vs klien berbeda bentuk) | 2× | `lib/types.ts` |
 
 **Kode mati:**
 - `resolveTickerName` ([tickers.ts:958](src/lib/tickers.ts#L958)).
-- Array `open`, high/low mingguan, dan `_status` di `technical/route.ts`.
 - Kunci terjemahan `exportExcel`/`saveSim`.
 - Kunci terjemahan `compounding.targetReturn`, `durasiHari`, `setoranTambahan`, dan sejenisnya tidak lagi dipakai sejak label Compounding dibuat dinamis per periode.
 - Aset bawaan di `public/*.svg`.
 
 **Kebersihan lain:**
-- `analysis-tab.tsx` tidak punya `'use client'`. Saat ini aman karena hanya diimpor oleh page klien.
-- `news/summary/route.ts` diawali BOM.
 - `.gitignore` memuat `.vercel` dua kali.
 - Ada 6 `eslint-disable` (exhaustive-deps dan unused).
 
@@ -1312,10 +1324,10 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ### P0: dampak besar, kerja kecil (1–2 hari)
 1. ✅ **C-01** (`abdd7d9`): token Bearer + `requireUser(request)`.
-2. ✅ **C-02** (`abdd7d9`): limiter AI hanya untuk route LLM. Sisa: auto-refresh LIVE di Analisis masih memanggil `analysis/news` (AI) tiap menit; cache sentimen per ticker.
+2. ✅ **C-02** (`abdd7d9`): limiter AI hanya untuk route LLM. Cache sentimen per kumpulan berita dan refresh berita 10 menit ✅ `802aed7`.
 3. **H-04:** pindah ke `next/font/google`.
-4. **H-01:** tambahkan flag `isFallback`/`isSynthetic` dan badge di UI. (Dividen ✅ `86e45a5`: fallback dihapus.)
-5. **M-01, M-03:** perbaikan satu baris di logika kalkulasi. (M-09 ✅ `b9db7a6`, M-02 ✅ `db0cca3`, M-10 ✅ `86e45a5`.)
+4. ✅ **H-01:** fallback palsu dihapus (Dividen `86e45a5`, Analisis `802aed7`).
+5. **M-01:** perbaikan satu baris di logika parsing angka. (M-09 ✅ `b9db7a6`, M-02 ✅ `db0cca3`, M-10 ✅ `86e45a5`, M-03 ✅ `802aed7`.)
 6. ✅ **L-01, L-02, L-04:** simpan Compounding `f2c68f1`, selector login `b9db7a6`, mojibake `86e45a5`, simpan E-IPO `c2e9dde`.
 
 ### P1: keamanan & keandalan (1 minggu)
@@ -1323,19 +1335,19 @@ Temuan Medium lain yang terkait performa dan robustness:
 2. **H-03:** sisa DNS rebinding (resolve DNS dan cek alamat hasilnya). Bagian lain ✅ `abdd7d9`.
 3. **H-05:** pasang Upstash; **M-17:** `CRON_SECRET`.
 4. **H-06:** ganti `deploy.js` dengan manajemen env yang selektif.
-5. Tambahkan timeout ke fetch eksternal yang tersisa (analisis, berita analisis) dan `Promise.all` di Analisis. (Cache market-summary M-15 ✅ `db0cca3`.)
+5. ✅ Timeout di semua fetch eksternal dan request Analisis paralel (`802aed7`). (Cache market-summary M-15 ✅ `db0cca3`.)
 6. **M-14:** simpan rincian tahap Avg Down.
 
 ### P2: kualitas jangka panjang
 1. **Test (H-07):** pasang Vitest, lalu mulai dari fungsi murni:
    - `calculator.ts`, `compounding.ts`, `dividend.ts`, `e-ipo.ts`, `percentage.ts`
    - `format.ts` (termasuk kasus "0.125"), `validators.ts`
-   - Indikator di `technical/route.ts`, setelah dipindah ke `lib/indicators.ts` agar bisa dites: RSI, MACD, Bollinger, dan lain-lain, dicek terhadap nilai referensi.
+   - [lib/indicators.ts](src/lib/indicators.ts) dan [lib/analysis-score.ts](src/lib/analysis-score.ts) (sudah fungsi murni): RSI, MACD, Bollinger, pivot 9 titik, dan lain-lain, dicek terhadap nilai referensi.
 2. **CI:** buat `ci.yml` yang menjalankan `npm ci` → `npm run lint` → `npx tsc --noEmit` → `npm test` → `npm run build` pada setiap PR. Perbaiki atau hapus `slsa-provenance.yml`, pin image semgrep, dan hapus `|| true`.
-3. **Refactor:** pecah `analysis-tab.tsx` dan `page.tsx` (misalnya hook `useAuth`, `usePlans`), dan konsolidasikan duplikasi di §13.
+3. **Refactor:** pecah `page.tsx` (misalnya hook `useAuth`, `usePlans`) dan konsolidasikan duplikasi di §13. (`analysis-tab.tsx` ✅ dipecah di `802aed7`.)
 4. **i18n:** pindahkan semua teks *hardcoded* ke `translations.ts`.
 5. **Dokumentasi:** perbarui README (§3 dan §4 di dokumen ini) dan buat `.env.example`.
-6. **Indikator:** samakan dengan definisi standar (M-04 sampai M-07) dan cache data Yahoo per ticker.
+6. ✅ **Indikator:** definisi standar (M-04 sampai M-07) dan cache 60 detik per ticker (`802aed7`).
 
 ---
 
@@ -1363,7 +1375,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | **Average Down** | Membeli lagi saham yang turun untuk menurunkan harga rata-rata |
 | **Lot** | Satuan transaksi di BEI = 100 lembar |
 | **Floating P/L** | Untung/rugi yang belum direalisasikan (posisi masih dipegang) |
-| **Bandarmology** | Analisis jejak "bandar" (pemain besar) lewat volume, broker summary, dan arus dana asing. Di aplikasi ini bersifat estimasi atau sintetis |
+| **Bandarmology** | Analisis jejak "bandar" (pemain besar) lewat volume, broker summary, dan arus dana asing. Aplikasi ini hanya menampilkan estimasi arus volume (CMF/MFI/OBV), karena data broker dan asing per saham tidak tersedia dari sumber gratis |
+| **Pivot / S&R** | Titik support (S1–S4), resistance (R1–R4), dan pivot (PP) yang dihitung dari high, low, dan close sesi sebelumnya; acuan statistik, bukan jaminan harga berbalik |
 | **Foreign flow** | Selisih beli/jual investor asing |
 | **DRIP** | *Dividend Reinvestment Plan*: dividen dipakai lagi untuk membeli saham |
 | **DPS / Yield** | Dividen per saham / dividen dibagi harga |
