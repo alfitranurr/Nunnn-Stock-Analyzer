@@ -199,7 +199,7 @@ Sumber: [package.json](package.json)
     │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
     │              page-header (39)  header standar semua halaman
     └── lib/
-        translations.ts (634) · tickers.ts (1000, 979 kode BEI bawaan) · idx-universe.ts (daftar aktif live) · compounding.ts (357)
+        translations.ts (634) · tickers.ts (1003, 979 kode BEI bawaan) · idx-universe.ts (daftar aktif live) · compounding.ts (357)
         dividend.ts (540) · e-ipo.ts (354) · yahoo.ts (314) · calculator.ts (306) · news.ts (220) · format.ts (142)
         watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (100) · auth-guard.ts (93) · market-hours.ts (85)
         language-context.tsx (70) · use-polling.ts (66) · idx-themes.ts (54) · crypto.ts (48) · auth-fetch.ts (42)
