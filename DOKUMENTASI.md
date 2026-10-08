@@ -196,8 +196,8 @@ Sumber: [package.json](package.json)
     │   ipo/       ipo-tab (799) · listing-simulator (202) · ipo-rules (100)
     │   portfolio/ portfolio-tab (569) · holding-modal (252)
     │   admin/     admin-panel-tab (711)
-    │   analysis/  analysis-tab (350) · sr-levels (195) · fundamentals-panel (117) · consensus-card (111)
-    │              technical-panel (105) · news-panel (73) · flow-panel (71)
+    │   analysis/  analysis-tab (557) · sr-levels (195) · fundamentals-panel (117) · consensus-card (111)
+    │              news-panel (110) · technical-panel (105) · flow-panel (71)
     │   watchlist/ watchlist-page (477)
     │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
     │              page-header (39)  header standar semua halaman
@@ -230,15 +230,14 @@ Ringkasan akses tiap menu:
 | 7 | Analisis Saham Pro | `analysis/analysis-tab.tsx` + `analysis/*` | **Wajib login** | — |
 | 8 | Portofolio Saya | `portfolio/portfolio-tab.tsx` + `holding-modal.tsx` | **Wajib login** | Supabase / lokal via [portfolio-store](src/lib/portfolio-store.ts) |
 | 9 | Admin Panel | `admin/admin-panel-tab.tsx` | **Hanya email admin** | Supabase RPC / lokal |
-| — | Riwayat | — | Nonaktif (badge "Segera") | — |
 
 ### 5.0 Sidebar & Navigasi ([sidebar.tsx](src/components/sidebar.tsx))
 
 - **Daftar menu:** [sidebar.tsx:47-62](src/components/sidebar.tsx#L47-L62). Menu Admin selalu di urutan paling bawah, setelah Watchlist (`fc27b06`).
   - Menu `analysis` dan `portfolio` tampil dengan ikon gembok bila belum login.
-  - Menu `watchlist` aktif sejak `db0cca3`; hanya `history` yang masih berstatus "Segera".
+  - Menu `watchlist` aktif sejak `db0cca3`. Menu "Riwayat Rencana" (dulu berbadge "Segera", tidak pernah aktif) dihapus; rencana tersimpan tetap ada di tiap kalkulator.
   - Menu `admin` hanya muncul bila email pengguna sama dengan `NEXT_PUBLIC_ADMIN_EMAIL` (default `admin@nunnnstock.com`, [sidebar.tsx:44](src/components/sidebar.tsx#L44)).
-- **Ikon (lucide-react), unik per menu:** Beranda `Home`, Berita `Newspaper`, Avg Down `Calculator`, Compounding `Sprout`, Persentase `Percent`, Dividen `HandCoins`, E-IPO `Rocket`, Analisis `ChartCandlestick`, Portofolio `Briefcase`, Admin `ShieldCheck`, Riwayat `History`, Watchlist `Star`. Badge judul di setiap tab memakai ikon yang sama dengan sidebar.
+- **Ikon (lucide-react), unik per menu:** Beranda `Home`, Berita `Newspaper`, Avg Down `Calculator`, Compounding `Sprout`, Persentase `Percent`, Dividen `HandCoins`, E-IPO `Rocket`, Analisis `ChartCandlestick`, Portofolio `Briefcase`, Admin `ShieldCheck`, Watchlist `Star`. Badge judul di setiap tab memakai ikon yang sama dengan sidebar.
 - **Desktop:**
   - Sidebar fixed yang bisa diciutkan (260px ↔ 80px). Chevron untuk menciutkan baru muncul saat hover.
   - Klik logo membuka Beranda.
@@ -509,15 +508,21 @@ Dibangun ulang di `c2e9dde` mengikuti teks resmi **SEOJK 25/SEOJK.04/2025** (ber
 
 Ditulis ulang di `802aed7`. Semua angka berasal dari data pasar nyata; bagian yang datanya tidak tersedia tampil "—" atau pesan error, tidak pernah diisi angka buatan.
 
-- **Terkunci** bila belum login: header halaman, kartu gembok, dan CTA login ([analysis-tab.tsx:154](src/components/analysis/analysis-tab.tsx#L154)).
-- **Header:** toggle **LIVE** (titik berdenyut hanya saat bursa buka) dan tombol **Perbarui**.
-- **Pencarian:** `QuickSearchTicker` (seluruh emiten aktif) ditambah 12 chip saham populer. Kode yang dipilih dari Beranda atau Portofolio masuk lewat prop `initialTicker`.
-- **Pemuatan** ([analysis-tab.tsx:100-105](src/components/analysis/analysis-tab.tsx#L100-L105)): tiga request paralel yang saling lepas, masing-masing punya skeleton dan pesan error sendiri (404 kode tidak dikenal, 401/403/429, 502 sumber gagal). Bila pembaruan gagal, data terakhir tetap tampil dengan penanda.
-  - Teknikal: tiap 60 detik saat LIVE **dan** bursa buka.
-  - Fundamental: sekali per kode saham.
-  - Berita: tiap 10 menit saat LIVE.
-  - Polling berhenti saat tab atau halaman tidak aktif, dan ikut tombol "Refresh semua data" di Admin.
-- **Ringkasan harga:** logo, sektor, harga dan perubahan, rentang hari ini dan 52 minggu, volume (lot), nilai transaksi, waktu data (WIB), dan sumber (Yahoo, bisa tertunda ±10 menit). Badge "harga perlu dicek" muncul bila validasi harga menandainya.
+- **Terkunci** bila belum login: header halaman, kartu gembok, dan CTA login ([analysis-tab.tsx:244](src/components/analysis/analysis-tab.tsx#L244)).
+- **Tidak ada yang dimuat otomatis.** Analisis hanya berjalan setelah tombol **Analisis** ditekan, sehingga kuota AI tidak terbuang saat halaman sekadar dibuka.
+- **Kartu pemilihan saham:**
+  - `QuickSearchTicker` (seluruh emiten aktif), chip **Terakhir** (maks 6 saham yang pernah dianalisis, `nunnn_stock_analysis_recent`), dan chip **Populer** (12 saham).
+  - Saham terpilih tampil dengan logo, nama, harga, dan perubahan dari `/api/ticker` (route publik, tanpa AI).
+  - Sakelar **Sentimen AI** (diingat di `nunnn_stock_analysis_ai`) dan tombol **Analisis {kode}**, yang berubah jadi **Analisis ulang** untuk saham yang sama.
+  - Kode dari Beranda atau Portofolio (prop `initialTicker`) hanya memilih saham, tidak langsung menganalisis.
+  - Sebelum analisis pertama, ditampilkan 5 kartu ringkas fitur yang akan didapat.
+- **Analisis** ([analysis-tab.tsx:201](src/components/analysis/analysis-tab.tsx#L201)): teknikal, fundamental, dan berita dimuat paralel. Masing-masing punya skeleton dan pesan error sendiri (404 kode tidak dikenal, 401/403/429, 502 sumber gagal). Bila pembaruan gagal, data terakhir tetap tampil dengan penanda.
+- **Penghematan AI:**
+  - Berita diminta dengan `ai=1` hanya bila sakelar Sentimen AI menyala. Bila mati, sentimen memakai kata kunci judul (tanpa token).
+  - Panel Sentimen Berita menyediakan tombol **Analisis sentimen dengan AI (1 kuota)** untuk meminta AI per saham.
+  - Hasil AI disimpan server ±30 menit per kumpulan berita, jadi analisis ulang dengan berita yang sama tidak memakai kuota.
+- **LIVE** ([analysis-tab.tsx:174](src/components/analysis/analysis-tab.tsx#L174)): toggle di header. Hanya harga dan teknikal yang diperbarui, tiap 60 detik saat bursa buka dan halaman terlihat; tidak pernah memanggil AI. Tombol "Refresh semua data" di Admin memuat ulang teknikal dan fundamental (tanpa berita/AI).
+- **Ringkasan harga:** logo, sektor, harga dan perubahan, rentang hari ini, **batas ARB – ARA hari ini** (papan reguler, dari penutupan sebelumnya lewat `getAutoRejectionBounds`), rentang 52 minggu, volume (lot), nilai transaksi, waktu data (WIB), dan sumber (Yahoo, bisa tertunda ±10 menit). Badge ARA/ARB muncul bila harga menyentuh batas, dan badge "harga perlu dicek" bila validasi harga menandainya.
 - **Grafik TradingView** (iframe dengan RSI, MACD, dan Pivot; simbol dikunci ke emiten aktif), berdampingan dengan **Skor Konsensus** ([consensus-card.tsx](src/components/analysis/consensus-card.tsx)):
   - Skor 0–100 dan rating.
   - Bar 4 komponen, dengan bobot yang dinormalkan ulang bila ada komponen yang tidak tersedia.
@@ -827,7 +832,8 @@ Estimasi dari harga dan volume harian, **bukan data broker atau asing** (data it
 - −5 bila volatilitas High, +2 bila Low.
 
 **Sentimen berita** ([analysis/news/route.ts](src/app/api/analysis/news/route.ts)):
-- AI lewat [lib/llm.ts](src/lib/llm.ts) dengan skema JSON `{sentiment, confidence, summary, keyPoints}`. Hasil di-cache 30 menit per kumpulan berita, dan kuota AI hanya terpakai saat AI benar-benar dipanggil.
+- AI lewat [lib/llm.ts](src/lib/llm.ts) dengan skema JSON `{sentiment, confidence, summary, keyPoints}`, **hanya bila klien meminta `ai=1`**. Hasil di-cache 30 menit per kumpulan berita; kuota AI hanya terpakai saat AI benar-benar dipanggil (bukan dari cache).
+- Respons menyertakan `aiState`: `fresh` (baru memakai kuota), `cached`, `not_requested`, `quota_exhausted`, `unavailable` (tanpa kunci AI atau semua penyedia gagal), atau `no_news`.
 - Tanpa AI, dipakai cadangan kata kunci (`headlineScore`, [:45](src/app/api/analysis/news/route.ts#L45)):
   - Frasa dinilai lebih dulu dengan bobot ±2 (net buy/sell, aliran masuk/keluar, asing borong/jual, laba naik/turun), lalu kata utuh.
   - Setiap judul diberi nilai positif, negatif, atau netral.
@@ -858,7 +864,7 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | `/api/news/summary` | POST `{title, source, link}` | Cek same-origin + proxy + `requireUser` (JWT + approval) | IP; kuota AI hanya bila memanggil AI (bukan dari cache) | `title` ≤ 300, `source` ≤ 120, `link` ≤ 2000 | Resolve link Google News, baca paragraf artikel (redirect diikuti maks 3, dicek SSRF tiap lompatan), Gemini (3 model) → Groq → OpenAI. Cache 24 jam per artikel | Cuplikan artikel asli (`mode: extract`) atau `mode: unavailable` |
 | `/api/analysis/fundamentals` | GET `?symbol=` | proxy + `requireUser` | IP | validator | TradingView screener (rasio, sektor) + Yahoo `fundamentals-timeseries` (pendapatan & laba tahunan/kuartalan) lewat [fundamentals-source.ts](src/lib/fundamentals-source.ts). Timeout 10 dtk, cache 6 jam | **404** ticker tidak dikenal, **502** semua sumber gagal. Metrik yang kosong → `null` |
 | `/api/analysis/technical` | GET `?symbol=` | proxy + `requireUser` | IP | validator | Yahoo chart 1d/1y + 1wk/2y + 60m/1mo, harga tervalidasi provider. Cache 60 dtk | **404** ticker tidak dikenal, **502** sumber gagal |
-| `/api/analysis/news` | GET `?symbol=` | proxy + `requireUser` | IP; kuota AI hanya bila memanggil AI | validator | Google News RSS per ticker (cache 10 mnt, maks 8 berita), [lib/llm.ts](src/lib/llm.ts) Gemini → Groq → OpenAI (batas 20 dtk). Cache sentimen 30 mnt (AI) / 5 mnt (kata kunci) | **502** feed gagal; tanpa berita → `method: none`; AI gagal → sentimen kata kunci |
+| `/api/analysis/news` | GET `?symbol=` `[&ai=1]` | proxy + `requireUser` | IP; kuota AI hanya bila `ai=1` dan belum ada hasil AI tersimpan | validator | Google News RSS per ticker (cache 10 mnt, maks 8 berita), [lib/llm.ts](src/lib/llm.ts) Gemini → Groq → OpenAI (batas 20 dtk). Cache sentimen 30 mnt (AI) / 5 mnt (kata kunci) | **502** feed gagal; tanpa berita → `method: none`; AI gagal/kuota habis → sentimen kata kunci + `aiState` |
 | `/api/dividend` | GET `?symbol=` | — | IP | validator, `.JK` dibuang | Yahoo chart `range=max&interval=1mo&events=div` (riwayat ex date + rata-rata harga per tahun) lewat [dividend-source.ts](src/lib/dividend-source.ts). Cache 6 jam per ticker | **404** ticker tidak dikenal, **502** sumber gagal (data lama tetap disajikan bila ada). Belum pernah bagi dividen → `events: []` |
 | `/api/dividend/summary` | GET `?symbols=A,B` (maks 20) | — | IP | validator | Cache yang sama dengan `/api/dividend` | Ticker yang gagal dilewati |
 | `/api/admin/refresh` | GET (status) / POST (refresh) | proxy + `requireAdmin` (`is_admin`), cek same-origin (POST) | IP | — | POST: kosongkan semua cache server lalu muat ulang daftar emiten aktif (TradingView) | Daftar bawaan bila TradingView gagal |
@@ -969,6 +975,8 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `nunnn_stock_compounding_plans` | localStorage | Rencana Compounding |
 | `nunnn_stock_ipo_plans` | localStorage | Simulasi E-IPO tersimpan (mode lokal) |
 | `nunnn_stock_percentage_history` | localStorage | 5 riwayat persentase |
+| `nunnn_stock_analysis_recent` | localStorage | Maks 6 kode saham terakhir yang dianalisis |
+| `nunnn_stock_analysis_ai` | localStorage | Sakelar Sentimen AI (`0` = mati; default menyala) |
 | `nunnn_stock_watchlist` | localStorage | Watchlist (maks 20, `{symbol, name, target?: {price, kind: 'buy' \| 'sell'}}`); cadangan lokal dari `user_watchlists` |
 | `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}` | localStorage | Portofolio lokal ([portfolio-store](src/lib/portfolio-store.ts)) |
 | `nunnn_stock_mock_user` | localStorage | Sesi user demo |
@@ -1276,6 +1284,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `fc27b06` | 2026-10-08 | — | Menu Admin Panel tidak berada di urutan paling bawah sidebar |
 | `c1b5571` | 2026-10-08 | — | Rantai LLM dan parser RSS terduplikasi; `news/summary` diawali BOM; judul berita berawalan "Foto :" dan berakhiran "Halaman 1" |
 | `802aed7` | 2026-10-08 | H-01 (analisis), M-03–M-08, M-13, L-03 | Analisis: fundamental palsu dari hash kode saham, broker & asing rekaan, harga cadangan Rp5.000, berita buatan; Yahoo v7/v10 menolak tanpa crumb (401) sehingga fundamental selalu jatuh ke data palsu; S/R hanya 7 titik tanpa label, dari candle yang belum selesai; skor teknikal 0/STRONG SELL hanya dari 6 sinyal kecil; sentimen kata kunci menganggap "aliran keluar dana asing naik" positif |
+| `7487a56` | 2026-10-08 | — | Menu "Riwayat Rencana" berbadge "Segera" yang tidak pernah aktif masih tampil di sidebar |
+| `cb7faed` | 2026-10-08 | — | Analisis langsung dimuat (termasuk AI) setiap halaman dibuka dengan BBCA sebagai default, dan berita/AI di-refresh otomatis tiap 10 menit; tidak ada batas ARA/ARB di ringkasan harga |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
