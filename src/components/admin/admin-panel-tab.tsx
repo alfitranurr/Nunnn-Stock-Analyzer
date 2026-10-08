@@ -597,8 +597,21 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                   );
                 })}
               </ul>
+              {Object.values(probes).some((r) => r.status !== 'ok') && (
+                <div className="mt-3 p-3 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] text-[11px] text-slate-300 leading-relaxed">
+                  {L(
+                    'Cara tercepat: buka Supabase → SQL Editor, tempel seluruh isi file ',
+                    'Quickest fix: open Supabase → SQL Editor, paste the whole file '
+                  )}
+                  <code className="font-mono text-amber-300">supabase/migrations/20261008000009_repair_production_schema.sql</code>
+                  {L(
+                    ', lalu Run. File ini aman dijalankan ulang dan mencakup 000004–000008 (termasuk 000005–000006 yang tidak bisa diperiksa dari aplikasi). Setelah itu login ulang dengan email admin.',
+                    ', then Run. It is safe to re-run and covers 000004–000008 (including 000005–000006, which the app cannot check). Then sign in again with the admin email.'
+                  )}
+                </div>
+              )}
               <p className="text-[10px] text-slate-500 mt-3">
-                {L('Migrasi 000005 (RLS insert) dan 000006 (perbaikan claim_first_admin) tidak bisa diperiksa dari aplikasi; jalankan bila belum.', 'Migrations 000005 (insert RLS) and 000006 (claim_first_admin fix) cannot be checked from the app; run them if you have not.')}
+                {L('Migrasi 000005 (RLS insert) dan 000006 (perbaikan claim_first_admin) tidak bisa diperiksa dari aplikasi; keduanya sudah termasuk di file perbaikan 000009.', 'Migrations 000005 (insert RLS) and 000006 (claim_first_admin fix) cannot be checked from the app; both are included in repair file 000009.')}
               </p>
             </Card>
           )}
