@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `86e45a5` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
+> Kondisi kode: commit `c2e9dde` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -44,7 +44,7 @@
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 132 file ter-track git, sekitar 24,5k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
+| Ukuran | 135 file ter-track git, sekitar 24,6k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
@@ -182,8 +182,8 @@ Sumber: [package.json](package.json)
     │       ├── dividend/route.ts              (40)   riwayat dividen asli + harga tahunan (cache 6 jam)
     │       ├── dividend/summary/route.ts      (51)   dividen TTM banyak saham (yield chip populer)
     │       └── keepalive/route.ts             (36)   ping Supabase (cron)
-    ├── components/            22 komponen + folder home/ & dividend/ (lihat §5)
-    │   analysis-tab (2374) · compounding-tab (1720) · ipo-tab (1032)
+    ├── components/            21 komponen + folder home/, dividend/, ipo/, shared/ (lihat §5)
+    │   analysis-tab (2374) · compounding-tab (1720)
     │   portfolio-tab (957) · calculator-form (896) · admin-panel-tab (777) · percentage-tab (775)
     │   news-tab (765) · results-display (423) · sidebar (387) · history-table (352)
     │   auth-modal (320) · watchlist-panel (296) · client-bootstrap (294) · portfolio-snapshot (250)
@@ -192,10 +192,12 @@ Sumber: [package.json](package.json)
     │   home/  home-dashboard (232) · market-overview (187) · market-movers (161)
     │          global-markets (91) · sparkline (78) · market-status-bar (69) · types (45)
     │   dividend/  dividend-tab (873) · drip-projection (268) · ex-date-simulator (229)
-    │              dividend-history (179) · ui (167)
+    │              dividend-history (179)
+    │   ipo/       ipo-tab (805) · listing-simulator (202) · ipo-rules (100)
+    │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
     └── lib/
-        translations.ts (874) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
-        dividend.ts (547) · yahoo.ts (314) · calculator.ts (278) · e-ipo.ts (261) · news.ts (220) · format.ts (142)
+        translations.ts (742) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
+        dividend.ts (540) · e-ipo.ts (354) · yahoo.ts (314) · calculator.ts (306) · news.ts (220) · format.ts (142)
         watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (100) · auth-guard.ts (93) · market-hours.ts (85)
         language-context.tsx (70) · use-polling.ts (66) · idx-themes.ts (54) · crypto.ts (48) · auth-fetch.ts (42)
         supabase.ts (35) · utils.ts (35) · supabase-server.ts (34) · quotes.ts (28) · supabase-config.ts (14)
@@ -218,7 +220,7 @@ Ringkasan akses tiap menu:
 | 3 | Compounding | `compounding-tab.tsx` | Publik | Supabase / lokal (simpan, muat, hapus) |
 | 4 | Persentase | `percentage-tab.tsx` | Publik | Riwayat lokal (5) |
 | 5 | Dividen | `dividend/dividend-tab.tsx` + `dividend/*` | Publik | — (tanpa simpan) |
-| 6 | E-IPO | `ipo-tab.tsx` | Publik | Muat/hapus saja (tidak ada tombol save) |
+| 6 | E-IPO | `ipo/ipo-tab.tsx` + `ipo/*` | Publik | Supabase `ipo_plans` / lokal (simpan, muat, hapus) |
 | 7 | Analisis Saham Pro | `analysis-tab.tsx` | **Wajib login** | — |
 | 8 | Portofolio Saya | `portfolio-tab.tsx` | **Wajib login** | Supabase / lokal |
 | 9 | Admin Panel | `admin-panel-tab.tsx` | **Hanya email admin** | Supabase RPC |
@@ -469,24 +471,28 @@ Dibangun ulang di `86e45a5`. Semua angka berasal dari data asli; **tidak ada lag
 
 Bahasa: semua teks dwibahasa; isi input diformat ulang (titik/koma ribuan) saat bahasa diganti. Tidak ada fitur simpan.
 
-### 5.7 Kalkulator E-IPO ([ipo-tab.tsx](src/components/ipo-tab.tsx), [lib/e-ipo.ts](src/lib/e-ipo.ts))
+### 5.7 Kalkulator E-IPO ([ipo/ipo-tab.tsx](src/components/ipo/ipo-tab.tsx), [lib/e-ipo.ts](src/lib/e-ipo.ts))
 
-**Aturan OJK:** accordion berisi tabel golongan I–V, alokasi minimum, 3 tingkat penyesuaian (clawback), dan perbandingan aturan lama 1:2 dengan aturan baru 1:1.
+Dibangun ulang di `c2e9dde` mengikuti teks resmi **SEOJK 25/SEOJK.04/2025** (berlaku 17 Nov 2025, mencabut SEOJK 15/2020). Model lama ("jatah proporsional 1/X" dan "peluang %") salah: pesanan ritel 1.000 lot diperkirakan dapat 40 lot, padahal aturan hanya memberi maksimal 1 lot bila lot lebih sedikit dari pemesan. Kartu "aturan lama" juga dihapus karena tabelnya ternyata tabel aturan baru (SEOJK 15/2020 hanya punya 4 golongan).
 
-**Input:**
-- Ticker (maks 6 karakter; nama dan harga terisi otomatis), nama, dan harga.
-- Lot ditawarkan, oversubscription (×), dan jumlah pemesan.
-- Pesanan pribadi (lot), dengan baris "Dana dibutuhkan".
-- Slider rasio ritel 10–95%.
+**1. Data IPO (dari prospektus):** kode (opsional; tidak lagi mengambil harga pasar, hanya memberi peringatan bila kode sudah tercatat), nama, harga penawaran (−/+ mengikuti fraksi BEI), dan lot ditawarkan. Petunjuk: nilai 1 lot, nilai penawaran, dan golongan. Data IPO live tidak tersedia karena e-ipo.co.id memblokir akses mesin (Cloudflare 403).
 
-**Output:**
-- 4 kartu: nilai emisi, golongan, alokasi awal, dan alokasi setelah clawback.
-- Perbandingan **SEOJK 15/2020 (1:2)** dan **SEOJK 25/2025 (1:1, "Terbaru")**: pool lot, lot ritel/non-ritel, rata-rata jatah, peluang dapat 1 lot.
-- Simulasi pribadi:
-  - Badge Ritel (≤ Rp100 juta) atau Non-Ritel.
-  - Estimasi rata-rata, proporsional, jatah minimal yang dijamin, dan % peluang mendapat lot tambahan.
+**2. Kondisi pemesanan penjatahan terpusat:** oversubscribe terpusat (× terhadap alokasi minimal awal), jumlah pemesan ritel dan selain ritel, serta porsi pesanan dari ritel (% lot). Petunjuk menampilkan total lot dipesan dan rata-rata pesanan per orang, dengan peringatan bila rata-rata ritel > Rp100 juta atau rata-rata selain ritel ≤ Rp100 juta (asumsi tidak konsisten).
 
-**Rencana tersimpan:** bisa dimuat dan dihapus (`ipo_plans` atau `nunnn_stock_ipo_plans`). **Tidak ada tombol simpan** di UI.
+**3. Pesanan Anda:** jumlah lot (tombol "maks ritel"), badge Ritel/Selain ritel, dana disetor, peringatan batas 10% nilai penawaran, dan posisi antrean waktu pesan (Awal 10% / Tengah 50% / Akhir 90% / Atur).
+
+**Hasil penjatahan:**
+- Perkiraan jatah Anda (lot) + penjelasan tahap yang berlaku dalam bahasa sehari-hari, nilai jatah, dan dana yang dikembalikan.
+- Alur alokasi: nilai penawaran & golongan → alokasi terpusat awal → setelah penyesuaian I/II/III → lot per porsi (1 : 1).
+- Kartu porsi ritel dan selain ritel: lot tersedia, pemesan, total dipesan, oversubscribe porsi, dan ringkasan ("1 lot untuk X% tercepat", "≈ k lot per pemesan", atau "10 lot + proporsional").
+- Strategi pesanan: tabel 1 lot, 10 lot, **pesanan efisien terkecil** (dicari dengan pencarian biner), maks ritel, maks ritel + 1 lot (masuk selain ritel), dan pesanan Anda, beserta perkiraan jatah dan dana kembali.
+- Tombol **Simpan simulasi** (L-01 ✅).
+
+**4. Simulasi hari pertama listing** ([listing-simulator.tsx](src/components/ipo/listing-simulator.tsx)): lot dijual (default = jatah), harga jual sendiri + harga impas, fee beli IPO (default 0%) dan fee jual. Skenario: ARB hari 1, −10%, flat, +10%, ARA 1/2/3 hari berturut-turut, dihitung dengan `getAutoRejectionBounds` (batas yang berlaku saat ini, dibulatkan ke fraksi).
+
+**Aturan (akordeon)** ([ipo-rules.tsx](src/components/ipo/ipo-rules.tsx)): tabel golongan & penyesuaian dengan golongan aktif disorot, catatan definisi, dan urutan penjatahan di tiap porsi beserta contoh resmi SEOJK.
+
+**Simulasi tersimpan:** daftar kartu dengan Muat dan Hapus (dengan konfirmasi). Tersimpan di `ipo_plans` (login) atau `nunnn_stock_ipo_plans` (lokal).
 
 ### 5.8 Analisis Saham Pro ([analysis-tab.tsx](src/components/analysis-tab.tsx), wajib login)
 
@@ -680,37 +686,31 @@ Semua fungsi murni (tanpa I/O). Tanggal berupa string ISO kalender.
 - Hasil = lembar × harga ex × (1 − fee jual) + dividen bersih − lembar × harga cum × (1 + fee beli).
 - Harga impas = (biaya beli − dividen bersih) / (lembar × (1 − fee jual)), dibulatkan ke atas ke fraksi BEI.
 
-### 6.5 E-IPO ([e-ipo.ts](src/lib/e-ipo.ts))
+### 6.5 E-IPO ([e-ipo.ts](src/lib/e-ipo.ts), SEOJK 25/SEOJK.04/2025)
 
-**Golongan dan alokasi awal:**
+**Golongan & alokasi minimal penjatahan terpusat** (romawi VI–VII; nilai yang lebih tinggi antara % dan Rp, dibulatkan ke atas ke lot):
 
-| Golongan | Nilai emisi | Alokasi awal (maks % vs Rp minimal) |
-|---|---|---|
-| I | ≤ Rp100 M | 20% / Rp10 M |
-| II | ≤ Rp250 M | 15% / Rp20 M |
-| III | ≤ Rp500 M | 10% / Rp37,5 M |
-| IV | ≤ Rp1 T | 7,5% / Rp50 M |
-| V | > Rp1 T | 2,5% / Rp75 M |
-
-**Clawback** ([e-ipo.ts:104](src/lib/e-ipo.ts#L104)):
-
-| Oversubscription | Gol. I | II | III | IV | V |
+| Golongan | Nilai penawaran | Alokasi minimal | Penyesuaian I (2,5×–<10×) | II (10×–<25×) | III (≥ 25×) |
 |---|---|---|---|---|---|
-| < 2,5× | (tetap) | | | | |
-| 2,5–10× | 22,5% | 17,5% | 12,5% | 10% | 5% |
-| 10–25× | 25% | 20% | 15% | 12,5% | 7,5% |
-| ≥ 25× | 30% | 25% | 20% | 17,5% | 12,5% |
+| I | ≤ Rp100 M | 20% / Rp10 M | 22,5% | 25% | 30% |
+| II | > Rp100 M – ≤ Rp250 M | 15% / Rp20 M | 17,5% | 20% | 25% |
+| III | > Rp250 M – ≤ Rp500 M | 10% / Rp37,5 M | 12,5% | 15% | 20% |
+| IV | > Rp500 M – ≤ Rp1 T | 7,5% / Rp50 M | 10% | 12,5% | 17,5% |
+| V | > Rp1 T | 2,5% / Rp75 M | 5% | 7,5% | 12,5% |
 
-Hasil akhirnya adalah nilai terbesar antara % awal dan % penyesuaian.
+- Golongan I dengan nilai penawaran ≤ Rp10 miliar: seluruh saham masuk penjatahan terpusat, tanpa penyesuaian.
+- Tingkat pesanan (×) = total lot dipesan di penjatahan terpusat ÷ alokasi minimal awal. Bila alokasi awal sudah melebihi batas penyesuaian, tidak disesuaikan.
+- `calculatePoolAllocation` ([e-ipo.ts:71](src/lib/e-ipo.ts#L71)): porsi ritel = floor(alokasi / 2), selain ritel = sisanya (rasio 1 : 1).
 
-**Pembagian pool dan simulasi pribadi:**
-- Porsi ritel: aturan lama 1/3 (1:2), aturan baru 1/2 (1:1).
-- Rata-rata jatah = pool / jumlah pemesan.
-- Peluang dapat 1 lot = min(100, rata-rata × 100).
-- Pesanan pribadi:
-  - Masuk kategori ritel bila nilainya ≤ Rp100 juta.
-  - Estimasi = max(min(pesanan, rata-rata), pesanan / oversubscription).
-  - Dijamin = floor(estimasi); sisanya ditampilkan sebagai % peluang lot tambahan.
+**Penjatahan dalam satu porsi** `allocateInPool` ([e-ipo.ts:147](src/lib/e-ipo.ts#L147)), romawi VIII angka 7. Pemodal lain diasumsikan memesan rata-rata sama, yaitu (total − pesanan Anda) / (pemodal − 1), karena sebaran per orang tidak dipublikasikan. Tahap yang dihasilkan:
+- `filled`: total pesanan ≤ lot tersedia → semua terpenuhi.
+- `queue-one-lot`: lot < jumlah pemodal → hanya (lot / pemodal) × 100% pemodal tercepat yang mendapat 1 lot. Anda dapat bila posisi antrean di bawah batas itu. Contoh resmi SEOJK (100.000 lot, 125.000 pemodal → 80% pertama) terverifikasi.
+- `equal-rounds`: lot cukup untuk 1 lot/orang tetapi tidak 10 lot/orang → dibagi rata per putaran (level k terbesar yang muat), sisa putaran terakhir 1 lot per pemodal sesuai urutan waktu. Kasus ini tidak dijelaskan eksplisit di SEOJK; ini interpretasi dari huruf a–b.
+- `proportional`: semua mendapat min(pesanan, 10) lot, sisa lot dibagi proporsional terhadap pesanan yang belum terpenuhi lalu dibulatkan ke bawah; mungkin +1 lot dari sisa pembulatan sesuai urutan waktu (tidak dihitung).
+
+**Pesanan Anda** `calculateEIpo` ([e-ipo.ts:258](src/lib/e-ipo.ts#L258)): ritel bila nilai pesanan ≤ Rp100 juta; batas pesanan = 10% nilai penawaran; dana kembali = (pesan − jatah) × harga × 100. `smallestOrderForBestAllotment` ([e-ipo.ts:323](src/lib/e-ipo.ts#L323)) mencari pesanan terkecil yang jatahnya sama dengan pesanan ritel maksimal.
+
+**Listing:** `listingPnl` = lembar × harga jual × (1 − fee jual) − lembar × harga IPO × (1 + fee beli).
 
 ### 6.6 Persentase ([percentage.ts](src/lib/percentage.ts))
 
@@ -883,7 +883,12 @@ Hasil verifikasi: 17/17 angka (IHSG + 16 saham) identik dengan Stockbit pada 7 O
 
 Data bermasalah dikeluarkan dari breadth dan movers (jumlahnya dikirim di `dataQuality`), ditandai `suspect: true` di `/api/quotes`, dan dicatat lewat `console.warn`. Aturan ini menangkap data yang **mustahil**, tidak semua data yang **salah**: acuan basi yang perubahannya masih di dalam batas (seperti kasus VKTR) hanya dicegah oleh metode acuan harian di atas.
 
-**Batas ARA/ARB** (`getAutoRejectionBounds`, [calculator.ts:102](src/lib/calculator.ts#L102)): ±35% untuk acuan ≤ Rp200, ±25% untuk ≤ Rp5.000, ±20% di atasnya, dibulatkan ke fraksi, dengan minimal satu fraksi. Diasumsikan simetris; sesuaikan bila BEI mengubah aturan ARB.
+**Batas ARA/ARB** (`getAutoRejectionBounds(ref, waktu)`, [calculator.ts:123](src/lib/calculator.ts#L123); sejak `2204733` bergantung tanggal transaksi):
+- ARA: 35% untuk acuan ≤ Rp200, 25% untuk ≤ Rp5.000, 20% di atasnya (juga di hari pertama saham IPO).
+- ARB ([`getAutoRejectionDownPct`](src/lib/calculator.ts#L112)): **15% untuk semua rentang** sejak 8 Apr 2025 (Kep-00003/BEI/04-2025) sampai 31 Des 2026; mulai 1 Jan 2027 kembali simetris dengan ARA (Kep-00136/BEI/09-2026).
+- Acuan Rp1–Rp10 (sejak harga minimum Rp1, 28 Sep 2026): batas tetap ±Rp1.
+- Dibulatkan ke fraksi, minimal satu fraksi. Papan Akselerasi dan saham pemantauan khusus memakai batas lain (belum dimodelkan).
+- Sebelum `2204733` ARB dianggap simetris (−25% untuk Rp200–Rp5.000), sehingga jumlah ARB di Beranda bisa kurang dan penurunan > 15% yang mustahil lolos validasi.
 
 **Sesi bursa** ([market-hours.ts:27](src/lib/market-hours.ts#L27), WIB): Senin–Kamis pra-pembukaan 08:45, sesi 1 09:00–12:00, sesi 2 13:30–15:50, pra-penutupan 15:50–16:00; Jumat sesi 1 09:00–11:30, sesi 2 14:00–15:50. Hari libur tidak dijadwalkan; bila sampai 09:30 IHSG belum bertransaksi hari itu, status menjadi "Libur Bursa" (`getEffectiveIdxSession`).
 
@@ -903,8 +908,8 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | `portfolio_holdings` | ticker, company_name, lot ≥ 0, avg_price ≥ 0 | portfolio-tab, portfolio-snapshot |
 | `portfolio_cash` | user_id (PK), cash_balance ≥ 0 | portfolio-tab, portfolio-snapshot |
 | `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (rencana trading memakai ulang kolom-kolom ini, lihat di bawah) |
-| `ipo_plans` | price, total_lots, oversubscription ≥ 1, total_subscribers, retail_ratio 0–100, personal_order_lots | ipo-tab |
-| `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel, `requireUser` (server). ⚠️ Per 8 Okt 2026 database produksi **belum punya kolom `is_admin`** (migrasi 000004 belum diterapkan penuh); jalankan ulang migrasi 000004–000007 agar Admin Panel dan `claim_first_admin` berfungsi |
+| `ipo_plans` | price, total_lots, oversubscription (≥ 0 sejak migrasi 000008), total_subscribers, retail_ratio 0–100 (desimal, untuk rasio pemesan ritel), personal_order_lots, retail_demand_pct & queue_pct ([migrasi 000008](supabase/migrations/20261008000008_ipo_plans_allocation_inputs.sql)) | ipo/ipo-tab. Bila migrasi 000008 belum dijalankan, simpan otomatis memakai kolom lama |
+| `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel, `requireUser` (server). ⚠️ Per 8 Okt 2026 database produksi **belum punya kolom `is_admin`** (migrasi 000004 belum diterapkan penuh); jalankan ulang migrasi 000004–000008 agar Admin Panel, `claim_first_admin`, watchlist, dan simpan E-IPO lengkap berfungsi |
 | `user_watchlists` | user_id (PK), items jsonb (array, maks 20), updated_at ([migrasi 000007](supabase/migrations/20261007000007_create_user_watchlists.sql)) | watchlist-store. **Migrasi ini perlu dijalankan di Supabase** agar watchlist tersinkron ke akun |
 
 **Pemetaan kolom untuk rencana trading di `compounding_plans`** ([compounding-tab.tsx:475](src/components/compounding-tab.tsx#L475)). Tidak butuh migrasi karena kolomnya `varchar(20)`/`numeric` tanpa batasan nilai:
@@ -935,7 +940,7 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `nunnn_stock_language` | localStorage | `id` / `en` |
 | `nunnn_stock_saved_plans` | localStorage | Rencana Avg Down (mode lokal) |
 | `nunnn_stock_compounding_plans` | localStorage | Rencana Compounding |
-| `nunnn_stock_ipo_plans` | localStorage | Rencana E-IPO |
+| `nunnn_stock_ipo_plans` | localStorage | Simulasi E-IPO tersimpan (mode lokal) |
 | `nunnn_stock_percentage_history` | localStorage | 5 riwayat persentase |
 | `nunnn_stock_watchlist` | localStorage | Watchlist (maks 20, `{symbol, name}`); cadangan lokal dari `user_watchlists` |
 | `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}` | localStorage | Portofolio lokal |
@@ -1190,7 +1195,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 | <a id="m-08"></a>M-08 | Skor | [analysis-tab.tsx:617](src/components/analysis-tab.tsx#L617) | `minPossible = −5` di-*hardcode* (minimum sebenarnya −7, dan bergantung pada metrik yang ada); ROE 0–8 diberi 0 poin tetapi dicatat sebagai "kontra" | Hitung min/max dari metrik yang tersedia |
 | M-09 ✅ | Kalkulasi | calculator.ts | ~~`avgPriceReductionPct` memakai avg mentah, bukan `realAvgPriceAwal`~~ | Diperbaiki di `b9db7a6` |
 | <a id="m-10"></a>M-10 ✅ | Kalkulasi | dividend.ts | ~~Di mode nominal, `totalInvestmentRp` tidak dihitung ulang setelah dibulatkan ke lot~~ | Diperbaiki di `86e45a5`: yield dihitung dari modal terpakai (termasuk fee), sisa modal ditampilkan |
-| M-11 | Kalkulasi | [e-ipo.ts:84-98](src/lib/e-ipo.ts#L84-L98) | Harga 0 atau lot 0 menghasilkan Infinity/NaN | Guard input ≤ 0 |
+| M-11 ✅ | Kalkulasi | e-ipo.ts | ~~Harga 0 atau lot 0 menghasilkan Infinity/NaN~~ | Diperbaiki di `c2e9dde`: input dijaga dan hasil hanya tampil bila harga & lot > 0 |
 | M-12 ✅ | Data | dividend | ~~Tanggal ex-date diberi label `cumDate`; `paymentDate` salinan tanggal yang sama; tahun lokal vs tanggal UTC~~ | Diperbaiki di `86e45a5`: ex date memakai zona WIB, cum date & tanggal cair dihitung dan diberi label perkiraan |
 | M-13 | Sentimen | analysis/news/route.ts:84-98, 180-184 | Kata kunci dicocokkan sebagai substring ("up" ikut cocok di "Rupiah", "jatuh" di "jatuh tempo"); parsing jawaban LLM cenderung menghasilkan Bullish | Cocokkan per kata utuh; minta output JSON terstruktur |
 | <a id="m-14"></a>M-14 | Data | [page.tsx:382-406](src/app/page.tsx#L382-L406) | Rincian tahap pembelian digabung saat disimpan; `avgPriceAwalIncludesFee` tidak tersimpan di Supabase | Tambah kolom `tranches jsonb` dan `avg_includes_fee` |
@@ -1209,7 +1214,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 | ID | Lokasi | Masalah |
 |---|---|---|
-| <a id="l-01"></a>L-01 (sebagian ✅) | [ipo-tab.tsx](src/components/ipo-tab.tsx) | ~~Modal simpan Compounding tidak pernah dibuka~~ (diperbaiki di `f2c68f1`). E-IPO masih tidak punya tombol simpan sama sekali |
+| <a id="l-01"></a>L-01 ✅ | compounding-tab, ipo-tab | ~~Modal simpan Compounding tidak pernah dibuka~~ (`f2c68f1`); ~~E-IPO tidak punya tombol simpan~~ (`c2e9dde`) |
 | <a id="l-02"></a>L-02 ✅ | dividend-tab.tsx | ~~Mojibake "â‰ˆ" dan "â†"~~ (halaman ditulis ulang di `86e45a5`) |
 | L-03 | analysis-tab.tsx:2340-2349 vs 220/230 | Warna legenda grafik fundamental tidak sama dengan warna batang |
 | <a id="l-04"></a>L-04 ✅ | history-table.tsx | ~~Selector `[title="Masuk ke Akun"]` gagal di mode EN~~. Diganti prop `onSignInClick` di `b9db7a6` |
@@ -1231,9 +1236,11 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `84ebbe7` | 2026-10-08 | — | Setelah tengah malam acuan harga bergeser sehari karena bar sesi terakhir di Yahoo menjadi `null` (BBCA −2,02% padahal −0,82%) |
 | `abdd7d9` | 2026-10-08 | C-01, C-02, M-18, sebagian H-02 & H-03 | Berita: mode "Heuristic Engine" yang mengarang temuan & saran beli/jual; pemeriksaan approval meminta kolom `is_admin` yang tidak ada di database produksi; artikel dibaca dari seluruh HTML (menu/iklan ikut) dan redirect tidak diikuti; feed tanpa cache, duplikat, judul berakhiran nama media, kategori Politik tidak relevan |
 | `86e45a5` | 2026-10-08 | M-10, M-12, L-02, L-09, sebagian H-01 (dividen) | Dividen: riwayat palsu untuk emiten tanpa dividen (GOTO tampil yield ≈1.354%); DPS hanya dari tahun kalender berjalan (BBRI Rp209, seharusnya Rp346 TTM); bulan bayar digabung dari 10 tahun lalu dibagi rata (BBCA 6×, TLKM 3×); DRIP membeli per lembar, bukan per lot; data saham lama tetap tampil saat request saham baru gagal; yield chip populer hardcoded dan basi; belum ada tombol −/+ |
+| `2204733` | 2026-10-08 | — | Batas ARB dianggap simetris padahal 15% sejak Apr 2025 (Beranda kurang menghitung ARB, validasi meloloskan penurunan mustahil); aturan ±Rp1 untuk saham Rp1–Rp10 |
+| `c2e9dde` | 2026-10-08 | M-11, L-01 (E-IPO) | E-IPO: model jatah salah (pesanan ritel 1.000 lot "dapat 40 lot", seharusnya maks 1 lot sesuai urutan waktu); "peluang %" seperti undian; kartu SEOJK 15/2020 memakai tabel aturan baru; oversubscribe IPO dipakai untuk penyesuaian (seharusnya oversubscribe terpusat); kode saham menimpa harga penawaran dengan harga pasar; tanpa batas 10% per pemodal; `Math.ceil` menampilkan 1 lot untuk rata-rata 0,05 lot |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
-**Masih terbuka:** H-01 (analisis), H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-11, M-13, M-14, M-16, M-17, L-01 (E-IPO), L-03, L-05, L-06, L-07 (auth-modal), L-08, L-10.
+**Masih terbuka:** H-01 (analisis), H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-13, M-14, M-16, M-17, L-03, L-05, L-06, L-07 (auth-modal), L-08, L-10.
 
 ---
 
@@ -1243,15 +1250,16 @@ Temuan Medium lain yang terkait performa dan robustness:
 - `analysis-tab.tsx` (2374): chart, skeleton, scoring, dan UI dalam satu file, dengan 16 `useState`.
 - `compounding-tab.tsx` (1720): sudah dipecah ke komponen kecil (`Field`, `Segmented`, `StatCard`) dan logika dipindah ke `lib/compounding.ts`, tetapi masih satu file besar.
 - `page.tsx` (1138): auth, demo user, CRUD, dan routing tab.
-- `ipo-tab.tsx` (1032), `technical/route.ts` (997), `portfolio-tab.tsx` (957). (Dividen sudah dipecah ke folder `components/dividend/` sejak `86e45a5`.)
+- `technical/route.ts` (997), `portfolio-tab.tsx` (957). (Dividen dan E-IPO sudah dipecah ke folder `components/dividend/` dan `components/ipo/` sejak `86e45a5` dan `c2e9dde`.)
 
 **Duplikasi:**
 
 | Pola | Jumlah | Konsolidasi ke |
 |---|---|---|
-| Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo, IpoEmitenLogo, PortfolioEmitenLogo) | 5× | [`components/company-logo.tsx`](src/components/company-logo.tsx) (sudah ada sejak `86e45a5`, dipakai Dividen) |
-| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 3× (ipo, portfolio, compounding versi singkat Juta/Miliar); results-display, history-table & dividen sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
-| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding & Dividen | Pakai juga di E-IPO, Persentase, Portofolio |
+| Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo, PortfolioEmitenLogo) | 4× | [`components/company-logo.tsx`](src/components/company-logo.tsx) (sudah dipakai Dividen & E-IPO) |
+| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 2× (portfolio, compounding versi singkat Juta/Miliar); results-display, history-table, dividen & E-IPO sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
+| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding, Dividen & E-IPO | Pakai juga di Persentase, Portofolio |
+| Komponen UI kalkulator (Card, Field, Segmented, Stat) | [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) dipakai Dividen & E-IPO; Compounding masih punya versi lokal | `shared/calc-ui.tsx` |
 | Rantai fallback Gemini → Groq → OpenAI | 2× (`news/summary` sudah memakai pemanggil generik dengan timeout & validasi; `analysis/news` masih versi lama) | `lib/llm.ts` |
 | Parser RSS | 2× | `lib/rss.ts` |
 | String User-Agent Mozilla | 9× di 5 file (3 route analisis, news/summary, ticker search); route data pasar & dividen sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
@@ -1262,7 +1270,6 @@ Temuan Medium lain yang terkait performa dan robustness:
 **Kode mati:**
 - `resolveTickerName` ([tickers.ts:958](src/lib/tickers.ts#L958)).
 - Array `open`, high/low mingguan, dan `_status` di `technical/route.ts`.
-- Export di `e-ipo.ts` yang hanya dipakai di file itu sendiri.
 - Kunci terjemahan `exportExcel`/`saveSim`.
 - Kunci terjemahan `compounding.targetReturn`, `durasiHari`, `setoranTambahan`, dan sejenisnya tidak lagi dipakai sejak label Compounding dibuat dinamis per periode.
 - Aset bawaan di `public/*.svg`.
@@ -1288,7 +1295,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 3. **H-04:** pindah ke `next/font/google`.
 4. **H-01:** tambahkan flag `isFallback`/`isSynthetic` dan badge di UI. (Dividen ✅ `86e45a5`: fallback dihapus.)
 5. **M-01, M-03:** perbaikan satu baris di logika kalkulasi. (M-09 ✅ `b9db7a6`, M-02 ✅ `db0cca3`, M-10 ✅ `86e45a5`.)
-6. **L-01:** tambahkan tombol simpan E-IPO. (Simpan Compounding ✅ `f2c68f1`; selector login L-04 ✅ `b9db7a6`; mojibake L-02 ✅ `86e45a5`.)
+6. ✅ **L-01, L-02, L-04:** simpan Compounding `f2c68f1`, selector login `b9db7a6`, mojibake `86e45a5`, simpan E-IPO `c2e9dde`.
 
 ### P1: keamanan & keandalan (1 minggu)
 1. **H-02:** approval sudah dicek di server (`abdd7d9`); tambahkan juga di RLS tabel data.
@@ -1313,7 +1320,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (113 commit)
+### 15.1 Riwayat pengembangan (116 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1326,7 +1333,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
 | 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
 | 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3`; dokumentasi `24ddbca` |
-| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5` |
+| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5`; batas ARB 15% & aturan Rp1–Rp10 `2204733`; Kalkulator E-IPO sesuai SEOJK 25/2025 (urutan waktu, strategi pesanan, simulasi listing, simpan) `c2e9dde` |
 
 ### 15.2 Glosarium
 
@@ -1347,8 +1354,9 @@ Temuan Medium lain yang terkait performa dan robustness:
 | **Golongan IPO** | Kelas I–V berdasarkan nilai emisi; menentukan porsi alokasi terpusat |
 | **Clawback** | Penambahan porsi alokasi terpusat saat oversubscription tinggi |
 | **Oversubscription** | Total pesanan dibagi saham yang ditawarkan |
-| **SEOJK 15/2020 vs 25/2025** | Aturan OJK: rasio ritel:non-ritel 1:2 (lama) vs 1:1 (baru) |
-| **ARA / ARB** | Auto Rejection Atas/Bawah: batas kenaikan/penurunan harga harian |
+| **SEOJK 25/2025** | Aturan OJK penjatahan E-IPO yang berlaku sejak 17 Nov 2025 (mencabut SEOJK 15/2020): 5 golongan, porsi ritel : selain ritel 1 : 1, batas pesanan 10%, penjatahan 10 lot → urutan waktu → proporsional |
+| **Penjatahan terpusat / pasti** | *Pooling* (dibagi sistem e-IPO ke semua pemesan) / *fixed allotment* (ditentukan penjamin emisi, umumnya institusi) |
+| **ARA / ARB** | Auto Rejection Atas/Bawah: batas kenaikan/penurunan harga harian. ARB 15% sampai akhir 2026, simetris dengan ARA mulai 2027 |
 | **RDN** | Rekening Dana Nasabah (kas di sekuritas) |
 | **IHSG (`^JKSE`)** | Indeks Harga Saham Gabungan |
 | **RLS** | Row Level Security Postgres/Supabase |
