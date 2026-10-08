@@ -194,7 +194,7 @@ Sumber: [package.json](package.json)
     │              dividend-history (179)
     │   ipo/       ipo-tab (799) · listing-simulator (202) · ipo-rules (100)
     │   portfolio/ portfolio-tab (569) · holding-modal (252)
-    │   admin/     admin-panel-tab (714)
+    │   admin/     admin-panel-tab (711)
     │   watchlist/ watchlist-page (477)
     │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
     │              page-header (39)  header standar semua halaman
