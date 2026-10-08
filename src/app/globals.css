@@ -204,9 +204,6 @@ body {
 .app-splash__word {
   animation: splashRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
 }
-.app-splash__tag {
-  animation: splashRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
-}
 .app-splash__bar {
   animation: splashRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
 }

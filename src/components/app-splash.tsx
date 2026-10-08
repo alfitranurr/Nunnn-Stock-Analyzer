@@ -106,12 +106,10 @@ export function AppSplash() {
         </svg>
 
         <div className="app-splash__word mt-5 text-2xl sm:text-3xl font-black tracking-[0.18em] text-emerald-400">NUNNN STOCK</div>
-        <p className="app-splash__tag mt-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Kalkulator &amp; analisis saham BEI</p>
 
         <div className="app-splash__bar mt-7 h-1.5 w-48 overflow-hidden rounded-full bg-white/10">
           <div className="app-splash__bar-fill h-full w-2/5 rounded-full bg-gradient-to-r from-emerald-500/20 via-emerald-400 to-emerald-500/20 shadow-[0_0_12px_rgba(52,211,153,0.6)]" />
         </div>
-        <p className="mt-3 text-[10px] font-semibold text-slate-600">Menyiapkan data pasar…</p>
       </div>
     </div>
   );
