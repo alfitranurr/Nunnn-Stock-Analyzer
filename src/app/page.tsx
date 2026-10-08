@@ -10,20 +10,21 @@ import { WatchlistPanel } from '@/components/watchlist-panel';
 import { connectWatchlistToUser } from '@/lib/watchlist-store';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
-import { PortfolioTab } from '@/components/portfolio-tab';
+import { PortfolioTab } from '@/components/portfolio/portfolio-tab';
 import { AnalysisTab } from '@/components/analysis-tab';
 import { NewsTab } from '@/components/news-tab';
-import { AdminPanelTab } from '@/components/admin-panel-tab';
+import { AdminPanelTab } from '@/components/admin/admin-panel-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { CompoundingTab } from '@/components/compounding-tab';
 import { PercentageTab } from '@/components/percentage-tab';
 import { DividendTab } from '@/components/dividend/dividend-tab';
 import { IpoTab } from '@/components/ipo/ipo-tab';
+import { PageHeader } from '@/components/shared/page-header';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
-import { Sparkles, AlertCircle, Info, ChevronUp, Calculator, ShieldCheck, Star } from 'lucide-react';
+import { AlertCircle, Info, ChevronUp, Calculator, ShieldCheck, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
@@ -676,28 +677,12 @@ export default function Dashboard() {
               className="space-y-6 md:space-y-8"
             >
               {/* Header Banner */}
-              <div className="relative overflow-hidden rounded-3xl border border-white/25 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
-                <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-                <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
-                
-                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                  <div className="space-y-2 w-full">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                      <Calculator className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-                      <span>{language === 'id' ? 'Average Down & Floating Loss Analysis' : 'Average Down & Floating Loss Analysis'}</span>
-                    </div>
-                    
-                    <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
-                      {t('calculator.title')}
-                      <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
-                    </h1>
-                    
-                    <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
-                      {t('calculator.desc')}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <PageHeader
+                icon={Calculator}
+                eyebrow={language === 'id' ? 'Average Down & floating loss' : 'Average down & floating loss'}
+                title={t('calculator.title')}
+                description={t('calculator.desc')}
+              />
 
               {/* Alert Status Konfigurasi Supabase */}
               {!isSupabaseConfigured && process.env.NODE_ENV !== 'production' && (
@@ -822,9 +807,11 @@ export default function Dashboard() {
             >
               <PortfolioTab
                 user={user}
+                isActive={currentTab === 'portfolio'}
                 onSignInClick={() => setIsAuthModalOpen(true)}
                 onAvgDownClick={handleAvgDownFromPortfolio}
                 onAnalyzeClick={handleAnalyzeFromPortfolio}
+                onChanged={() => setPortfolioRefreshKey((k) => k + 1)}
               />
             </motion.div>
           </div>

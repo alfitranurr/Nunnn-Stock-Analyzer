@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { PageHeader } from '@/components/shared/page-header';
 import {
   Search,
   Newspaper,
@@ -537,16 +538,12 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
   return (
     <div className="space-y-5">
       {/* Header ringkas */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-5 md:p-6">
-        <div className="absolute -top-10 -right-10 w-60 h-60 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-        <div className="relative z-10 space-y-1.5">
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2">
-            <Newspaper className="h-6 w-6 text-emerald-400 shrink-0" />
-            {t('news.title')}
-          </h1>
-          <p className="text-xs md:text-sm text-slate-400 leading-relaxed">{t('news.desc')}</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Newspaper}
+        eyebrow={L('Berita pasar · analisis AI', 'Market news · AI analysis')}
+        title={t('news.title')}
+        description={t('news.desc')}
+      />
 
       {/* Pencarian & kategori */}
       <div className="space-y-3">

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { PageHeader } from '@/components/shared/page-header';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, ClipboardList, FolderOpen, Rocket, Save, Trash2, Users, Wallet } from 'lucide-react';
 import { StepperInput } from '@/components/stepper-input';
@@ -332,22 +333,15 @@ export function IpoTab({ user }: IpoTabProps) {
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-5 md:p-7 shadow-2xl w-full">
-        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-            <Rocket className="h-3.5 w-3.5" />
-            <span>{L('Penjatahan E-IPO · SEOJK 25/2025', 'E-IPO Allocation · SEOJK 25/2025')}</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">{L('Kalkulator E-IPO', 'E-IPO Calculator')}</h1>
-          <p className="text-xs md:text-sm text-slate-400 leading-relaxed max-w-3xl">
-            {L(
-              'Perkirakan berapa lot yang benar-benar Anda dapat di penjatahan terpusat, berapa dana yang kembali, ukuran pesanan yang efisien, dan untung/rugi di hari pertama listing.',
-              'Estimate how many lots you will actually get in pooling allocation, how much money is refunded, the efficient order size, and listing-day P/L.'
-            )}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Rocket}
+        eyebrow={L('Penjatahan E-IPO · SEOJK 25/2025', 'E-IPO allocation · SEOJK 25/2025')}
+        title={L('Kalkulator E-IPO', 'E-IPO Calculator')}
+        description={L(
+          'Perkirakan berapa lot yang benar-benar Anda dapat di penjatahan terpusat, berapa dana yang kembali, ukuran pesanan yang efisien, dan untung/rugi di hari pertama listing.',
+          'Estimate how many lots you will actually get in pooling allocation, how much money is refunded, the efficient order size, and listing-day P/L.'
+        )}
+      />
 
       {/* 1. Data IPO */}
       <Card>

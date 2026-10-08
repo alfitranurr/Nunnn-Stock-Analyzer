@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { PageHeader } from '@/components/shared/page-header';
 import {
   AlertTriangle,
   CalendarDays,
@@ -325,22 +326,15 @@ export function DividendTab({ isActive }: DividendTabProps) {
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-5 md:p-7 shadow-2xl w-full">
-        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-            <HandCoins className="h-3.5 w-3.5" />
-            <span>{L('Dividen & Passive Income', 'Dividends & Passive Income')}</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">{L('Kalkulator Dividen Saham', 'Stock Dividend Calculator')}</h1>
-          <p className="text-xs md:text-sm text-slate-400 leading-relaxed max-w-3xl">
-            {L(
-              'Riwayat dividen asli dari bursa, jadwal cum date & pembayaran berikutnya, simulasi pajak, DRIP, dan cek dividend trap untuk saham BEI.',
-              'Actual dividend history, upcoming cum & payment dates, tax simulation, DRIP and a dividend-trap check for IDX stocks.'
-            )}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={HandCoins}
+        eyebrow={L('Dividen & passive income', 'Dividends & passive income')}
+        title={L('Kalkulator Dividen Saham', 'Stock Dividend Calculator')}
+        description={L(
+          'Riwayat dividen asli dari bursa, jadwal cum date & pembayaran berikutnya, simulasi pajak, DRIP, dan cek dividend trap untuk saham BEI.',
+          'Actual dividend history, upcoming cum & payment dates, tax simulation, DRIP and a dividend-trap check for IDX stocks.'
+        )}
+      />
 
       {/* 1. Pilih saham */}
       <Card className="space-y-4">

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { PageHeader } from '@/components/shared/page-header';
 import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
 import { authFetch } from '@/lib/auth-fetch';
 import type { AppUser } from '@/lib/types';
@@ -834,29 +835,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full z-50">
-        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 w-full">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-              <BarChart2 className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-              <span>{language === 'id' ? 'Analisis Finansial & Teknikal Saham' : 'Stock Financial & Technical Analysis'}</span>
-            </div>
-            
-            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
-              {t('analysis.title')}
-              <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
-            </h1>
-            
-            <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">
-              {language === 'id' ? 'Emiten aktif' : 'Active Ticker'}: <span className="font-bold text-emerald-400">{activeTicker.split('.')[0]}</span> - {language === 'id' ? 'Bursa Efek Indonesia (BEI / IDX)' : 'Indonesia Stock Exchange (IDX)'}
-            </p>
-          </div>
-
-          {/* Refresh and Smart Search Bar Container */}
-          <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
+      <PageHeader
+        className="z-50"
+        icon={BarChart2}
+        eyebrow={language === 'id' ? 'Analisis finansial & teknikal' : 'Financial & technical analysis'}
+        title={t('analysis.title')}
+        description={<>{language === 'id' ? 'Emiten aktif' : 'Active Ticker'}: <span className="font-bold text-emerald-400">{activeTicker.split('.')[0]}</span> - {language === 'id' ? 'Bursa Efek Indonesia (BEI / IDX)' : 'Indonesia Stock Exchange (IDX)'}</>}
+        actions={<>
             {hasAnalyzed && (
               <>
                 {/* LIVE indicator with toggle */}
@@ -926,9 +911,8 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </>}
+      />
 
       {errorMsg && (
         <div className="border border-red-500/20 bg-red-500/10 p-4 rounded-xl flex items-start gap-3">

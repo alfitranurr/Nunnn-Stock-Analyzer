@@ -4,17 +4,9 @@ import * as React from 'react';
 import { TrendingUp, TrendingDown, Wallet, Briefcase, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { AppUser } from '@/lib/types';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { loadPortfolio, type Holding } from '@/lib/portfolio-store';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { formatIDRCompact, formatNumberLocale } from '@/lib/format';
-
-interface Holding {
-  id: string;
-  ticker: string;
-  company_name?: string;
-  lot: number;
-  avg_price: number;
-}
 
 interface PortfolioSnapshotProps {
   user: AppUser | null;
@@ -34,57 +26,14 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
   const isId = language === 'id';
   const money = (v: number) => formatIDRCompact(v, language);
 
-  const loadFromLocalStorage = React.useCallback(() => {
-    if (!user) return;
-    try {
-      const storedHoldings = localStorage.getItem(`nunnn_stock_portfolio_holdings_${user.id}`);
-      const storedCash = localStorage.getItem(`nunnn_stock_portfolio_cash_${user.id}`);
-      setHoldings(storedHoldings ? JSON.parse(storedHoldings) : []);
-      setCashBalance(storedCash !== null && !Number.isNaN(parseFloat(storedCash)) ? parseFloat(storedCash) : null);
-    } catch {
-      // ignore
-    }
-  }, [user]);
-
-  // Load holdings + cash from Supabase (if configured) or localStorage.
-  // Mirrors the logic in PortfolioTab.fetchData so the snapshot stays in sync.
+  // Sumber data sama dengan halaman Portofolio (lib/portfolio-store).
   const loadData = React.useCallback(async () => {
     if (!user) return;
-
-    if (isSupabaseConfigured && !user.isMock) {
-      try {
-        const { data: cashDataArray, error: cashError } = await supabase
-          .from('portfolio_cash')
-          .select('cash_balance')
-          .eq('user_id', user.id);
-        if (cashError) throw cashError;
-        setCashBalance(cashDataArray && cashDataArray.length > 0 ? Number(cashDataArray[0].cash_balance) : null);
-
-        const { data: holdingsData, error: holdingsError } = await supabase
-          .from('portfolio_holdings')
-          .select('*')
-          .order('ticker');
-        if (holdingsError) throw holdingsError;
-
-        setHoldings(
-          (holdingsData || []).map((h: Record<string, unknown>) => ({
-            id: h.id as string,
-            ticker: h.ticker as string,
-            company_name: h.company_name as string | undefined,
-            lot: h.lot as number,
-            avg_price: Number(h.avg_price),
-          }))
-        );
-      } catch {
-        // Fall back to localStorage on error
-        loadFromLocalStorage();
-      }
-    } else {
-      loadFromLocalStorage();
-    }
-
+    const data = await loadPortfolio(user);
+    setHoldings(data.holdings);
+    setCashBalance(data.cash);
     setLoading(false);
-  }, [user, loadFromLocalStorage]);
+  }, [user]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { PageHeader } from '@/components/shared/page-header';
 import {
   AlertCircle,
   ArrowDown,
@@ -14,7 +15,6 @@ import {
   Percent,
   Save,
   Sigma,
-  Sparkles,
   Trash2,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
@@ -485,24 +485,12 @@ export function PercentageTab() {
   return (
     <div className="space-y-6 md:space-y-8 animate-fadeIn font-sans">
       {/* Main Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-card-bg via-[#161b22] to-[#0d1117] p-6 md:p-8 shadow-2xl w-full">
-        <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] pointer-events-none" />
-
-        <div className="relative z-10 space-y-2 w-full">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-            <Percent className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-            <span>{t('percentage.badge')}</span>
-          </div>
-
-          <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
-            {t('percentage.title')}
-            <Sparkles className="h-6 w-6 text-emerald-400 shrink-0" />
-          </h1>
-
-          <p className="text-xs md:text-sm text-slate-400 leading-relaxed w-full">{t('percentage.desc')}</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Percent}
+        eyebrow={t('percentage.badge')}
+        title={t('percentage.title')}
+        description={t('percentage.desc')}
+      />
 
       {/* Mode Selector */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 bg-input-bg border border-border-color p-1 rounded-2xl text-[11px] font-extrabold select-none">
