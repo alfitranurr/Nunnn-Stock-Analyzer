@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `c2e9dde` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
+> Kondisi kode: commit `4b0603f` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -44,7 +44,7 @@
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 135 file ter-track git, sekitar 24,6k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
+| Ukuran | 138 file ter-track git, sekitar 24,3k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
@@ -182,26 +182,28 @@ Sumber: [package.json](package.json)
     │       ├── dividend/route.ts              (40)   riwayat dividen asli + harga tahunan (cache 6 jam)
     │       ├── dividend/summary/route.ts      (51)   dividen TTM banyak saham (yield chip populer)
     │       └── keepalive/route.ts             (36)   ping Supabase (cron)
-    ├── components/            21 komponen + folder home/, dividend/, ipo/, shared/ (lihat §5)
-    │   analysis-tab (2374) · compounding-tab (1720)
-    │   portfolio-tab (957) · calculator-form (896) · admin-panel-tab (777) · percentage-tab (775)
-    │   news-tab (765) · results-display (423) · sidebar (387) · history-table (352)
-    │   auth-modal (320) · watchlist-panel (296) · client-bootstrap (294) · portfolio-snapshot (250)
+    ├── components/            19 komponen + folder home/, dividend/, ipo/, portfolio/, admin/, shared/ (lihat §5)
+    │   analysis-tab (2359) · compounding-tab (1707) · calculator-form (896) · percentage-tab (763)
+    │   news-tab (762) · results-display (423) · sidebar (387) · history-table (352)
+    │   auth-modal (320) · watchlist-panel (296) · client-bootstrap (294) · portfolio-snapshot (199)
     │   quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
     │   educational-tip-card (117) · trending-news-strip (106) · company-logo (34) · theme-provider (11)
     │   home/  home-dashboard (232) · market-overview (187) · market-movers (161)
     │          global-markets (91) · sparkline (78) · market-status-bar (69) · types (45)
-    │   dividend/  dividend-tab (873) · drip-projection (268) · ex-date-simulator (229)
+    │   dividend/  dividend-tab (867) · drip-projection (268) · ex-date-simulator (229)
     │              dividend-history (179)
-    │   ipo/       ipo-tab (805) · listing-simulator (202) · ipo-rules (100)
+    │   ipo/       ipo-tab (799) · listing-simulator (202) · ipo-rules (100)
+    │   portfolio/ portfolio-tab (569) · holding-modal (252)
+    │   admin/     admin-panel-tab (698)
     │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
+    │              page-header (39)  header standar semua halaman
     └── lib/
-        translations.ts (742) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
+        translations.ts (634) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
         dividend.ts (540) · e-ipo.ts (354) · yahoo.ts (314) · calculator.ts (306) · news.ts (220) · format.ts (142)
         watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (100) · auth-guard.ts (93) · market-hours.ts (85)
         language-context.tsx (70) · use-polling.ts (66) · idx-themes.ts (54) · crypto.ts (48) · auth-fetch.ts (42)
         supabase.ts (35) · utils.ts (35) · supabase-server.ts (34) · quotes.ts (28) · supabase-config.ts (14)
-        dividend-source.ts (36) · types.ts (26) · global-markets.ts (19) · validators.ts (17)
+        portfolio-store.ts (141) · dividend-source.ts (36) · types.ts (26) · global-markets.ts (19) · validators.ts (17)
         market-data/  index (64) · yahoo-provider (57) · validate (54) · types (37)
 ```
 
@@ -222,8 +224,8 @@ Ringkasan akses tiap menu:
 | 5 | Dividen | `dividend/dividend-tab.tsx` + `dividend/*` | Publik | — (tanpa simpan) |
 | 6 | E-IPO | `ipo/ipo-tab.tsx` + `ipo/*` | Publik | Supabase `ipo_plans` / lokal (simpan, muat, hapus) |
 | 7 | Analisis Saham Pro | `analysis-tab.tsx` | **Wajib login** | — |
-| 8 | Portofolio Saya | `portfolio-tab.tsx` | **Wajib login** | Supabase / lokal |
-| 9 | Admin Panel | `admin-panel-tab.tsx` | **Hanya email admin** | Supabase RPC |
+| 8 | Portofolio Saya | `portfolio/portfolio-tab.tsx` + `holding-modal.tsx` | **Wajib login** | Supabase / lokal via [portfolio-store](src/lib/portfolio-store.ts) |
+| 9 | Admin Panel | `admin/admin-panel-tab.tsx` | **Hanya email admin** | Supabase RPC / lokal |
 | — | Riwayat | — | Nonaktif (badge "Segera") | — |
 
 ### 5.0 Sidebar & Navigasi ([sidebar.tsx](src/components/sidebar.tsx))
@@ -256,7 +258,7 @@ Urutan dari atas:
 | Global & Makro | [global-markets.tsx](src/components/home/global-markets.tsx) | USD/IDR, LQ45, Emas, Brent, Batu Bara (API2), Nikkei 225, Hang Seng, S&P 500 Futures dengan grafik mini; refresh tiap 2 menit saat Beranda aktif ([lib/global-markets.ts](src/lib/global-markets.ts)) |
 | Penggerak Pasar | [market-movers.tsx](src/components/home/market-movers.tsx) | Tab Gainers / Losers / Top Nilai / Top Volume (6 baris). Filter nilai transaksi Semua / ≥ Rp1 M / ≥ Rp10 M (default ≥ Rp1 M, hanya untuk Gainers/Losers). Badge ARA/ARB. Klik kode → Analisis; tombol ☆ → watchlist |
 | Watchlist | [watchlist-panel.tsx](src/components/watchlist-panel.tsx) | Varian ringkas (6 baris + "Lihat semua"); lihat di bawah |
-| Ringkasan Portofolio | [portfolio-snapshot.tsx](src/components/portfolio-snapshot.tsx) | Login saja. Total ekuitas (+ nilai pasar), **P&L hari ini**, P&L total, kas RDN ("Belum diatur" bila kosong, tanpa angka fiktif). Satuan "jt / M / T" ([format.ts](src/lib/format.ts) `formatIDRCompact`). Harga semua saham diambil sekali lewat `/api/quotes`; perubahan yang meragukan tidak dihitung ke P&L hari ini |
+| Ringkasan Portofolio | [portfolio-snapshot.tsx](src/components/portfolio-snapshot.tsx) | Login saja. Total ekuitas (+ nilai pasar), **P&L hari ini**, P&L total, kas RDN ("Belum diatur" bila kosong, tanpa angka fiktif). Satuan "jt / M / T" ([format.ts](src/lib/format.ts) `formatIDRCompact`). Data dibaca lewat [portfolio-store](src/lib/portfolio-store.ts) yang sama dengan halaman Portofolio. Harga semua saham diambil sekali lewat `/api/quotes`; perubahan yang meragukan tidak dihitung ke P&L hari ini |
 | Berita | [trending-news-strip.tsx](src/components/trending-news-strip.tsx) | 4 berita `/api/news?category=saham` (2 kolom); pesan berbeda untuk gagal dimuat vs kosong |
 | Tips | [educational-tip-card.tsx](src/components/educational-tip-card.tsx) | 1 tip acak dari 8 tip dwibahasa (isi dikoreksi di `db0cca3`) |
 | Akses Cepat | home-dashboard.tsx | 8 menu dengan ikon yang sama seperti sidebar; ikon gembok untuk Analisis/Portofolio bila belum login |
@@ -532,40 +534,41 @@ Dibangun ulang di `c2e9dde` mengikuti teks resmi **SEOJK 25/SEOJK.04/2025** (ber
 
 > ⚠️ Warna legenda grafik (emerald/teal, [analysis-tab.tsx:2340-2349](src/components/analysis-tab.tsx#L2340-L2349)) tidak sama dengan warna batang (violet/teal, [:220](src/components/analysis-tab.tsx#L220), [:230](src/components/analysis-tab.tsx#L230)).
 
-### 5.9 Portofolio Saya ([portfolio-tab.tsx](src/components/portfolio-tab.tsx), wajib login)
+### 5.9 Portofolio Saya ([portfolio/portfolio-tab.tsx](src/components/portfolio/portfolio-tab.tsx), wajib login)
 
-**Ringkasan:** Total Equity, Modal Diinvestasikan, dan Total Return (Rp/%).
+Dibangun ulang di `3b89457`. Data dibaca/ditulis lewat [lib/portfolio-store.ts](src/lib/portfolio-store.ts) (Supabase untuk akun cloud, localStorage untuk mode lokal), sama dengan ringkasan di Beranda.
 
-**Holdings:**
-- Tombol "Tambah Saham" dan refresh.
-- Harga diambil 4 ticker sekaligus secara paralel ([portfolio-tab.tsx:217-262](src/components/portfolio-tab.tsx#L217-L262)). Label "(Menggunakan Avg)" muncul bila harga gagal diambil.
-- Desktop: tabel dengan kolom Saham, Lot, Avg, Last, Invested, Market Value, P&L, Aksi. Mobile: tampilan kartu.
-- Aksi per baris:
-  - **Analisis**: membuka tab Analisis.
-  - **Avg Down**: mengisi kalkulator Avg Down secara otomatis.
-  - **Ubah**: membuka modal edit.
-  - **Hapus**: dengan modal konfirmasi.
+**Ringkasan (5 kartu):** nilai portofolio (saham + kas bila diisi), modal, floating P/L (Rp & %), P/L hari ini (perubahan meragukan tidak dihitung), dan estimasi dividen 12 bulan (dividen kotor TTM × lembar, dari `/api/dividend/summary`) beserta yield on cost.
 
-**Modal tambah/ubah:** ticker (nama dan harga terisi otomatis; terkunci saat mode edit), nama, lot, dan avg price.
+**Kas RDN (opsional):** belum diatur sampai pengguna mengisinya; disimpan dengan upsert ke `portfolio_cash`. Tidak ada lagi kas fiktif Rp100 juta yang dibuat otomatis.
 
-**Penyimpanan:**
-- Supabase `portfolio_holdings` dan `portfolio_cash`, atau localStorage `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}`.
-- Penggunaan pertama otomatis membuat 2 holding demo ([portfolio-tab.tsx:122-127](src/components/portfolio-tab.tsx#L122-L127)).
-- Error ditampilkan dengan `alert()`.
+**Kepemilikan:**
+- Harga semua saham dalam satu request `/api/quotes` (tervalidasi), di-refresh tiap 60 detik saat jam bursa dan hanya saat tab dibuka. Keterangan sumber & jam update WIB.
+- Bar alokasi + bobot per saham, urutan Nilai / P/L % / Hari ini / Kode.
+- Desktop (≥ lg): tabel Saham, Lot (+bobot), Avg, Harga (+% hari ini), Nilai pasar, Floating P/L, Dividen 12 bln, Aksi. Mobile/tablet: kartu.
+- Saham tanpa harga dinilai di harga rata-rata dan tidak dihitung ke P/L (ditandai "harga belum ada").
+- Aksi: Analisis, Avg Down (mengisi kalkulator), Ubah, Hapus (konfirmasi). Notifikasi memakai toast (bukan `alert()`).
 
-### 5.10 Admin Panel ([admin-panel-tab.tsx](src/components/admin-panel-tab.tsx))
+**Modal tambah/ubah** ([holding-modal.tsx](src/components/portfolio/holding-modal.tsx)): kode 4 huruf dengan nama dari daftar BEI (peringatan bila tidak ada di daftar), lot & harga dengan tombol −/+, tombol "harga pasar". Menambah saham yang sudah dimiliki = **beli lagi**: digabung dengan rata-rata tertimbang (sebelumnya gagal karena constraint `unique (user_id, ticker)`). Harga "4.300" kini terbaca 4.300 (sebelumnya 4,3). Esc dan klik latar menutup modal.
 
-**Sub-tab Persetujuan Pengguna:**
-- Statistik total, disetujui, dan pending.
-- Pencarian email dan filter Semua/Disetujui/Pending.
-- Tabel berisi email (dengan tag "Admin (Anda)"), tanggal daftar, dan status.
-- Aksi: Setujui/Tangguhkan (dengan konfirmasi) dan Hapus. Aksi untuk baris milik sendiri dinonaktifkan.
-- Semua aksi berjalan lewat RPC `admin_set_user_approval` dan `admin_delete_user`.
+**Yang dihapus:** holding contoh BBRI/ANTM yang otomatis ditulis ke penyimpanan pengguna baru.
 
-**Sub-tab Status Database & Koneksi:**
-- Badge status Supabase dan auth.
-- Jumlah 5 jenis data lokal.
-- Tombol "Reset Data Simulasi": membuat ulang password admin demo dan menampilkannya sekali ([admin-panel-tab.tsx:87-118](src/components/admin-panel-tab.tsx#L87-L118)).
+### 5.10 Admin Panel ([admin/admin-panel-tab.tsx](src/components/admin/admin-panel-tab.tsx))
+
+Dibangun ulang di `3b89457`, dua bagian:
+
+**Pengguna:**
+- Statistik total, disetujui, menunggu. Pencarian email, filter dengan jumlah per status.
+- Daftar diurutkan **menunggu dulu** (disorot kuning), lalu terbaru. Badge "Admin" (kolom `is_admin`) dan "Anda".
+- Setujui / Tangguhkan (konfirmasi) / Hapus (konfirmasi); aksi pada akun sendiri dinonaktifkan. Tombol **Setujui semua (N)**.
+- Desktop tabel, mobile kartu. Tanggal daftar dalam WIB; mode demo menampilkan "—" (tidak dicatat).
+- Error tetap tampil sampai ditutup; keberhasilan memakai toast.
+
+**Sistem:**
+- Koneksi: mode data (Supabase / demo), **ping Supabase** dengan waktu respons, akun yang login.
+- **Skema database** (mode cloud): pemeriksaan baca-saja per migrasi (tabel/kolom/fungsi yang dibuatnya) dengan status OK / Belum ada / Error dan nama file migrasi. Per 8 Okt 2026 pemeriksaan ini mendeteksi database produksi belum punya kolom `user_approvals.is_admin` (000004), tabel `user_watchlists` (000007), dan kolom baru `ipo_plans` (000008).
+- Jumlah data di browser ini (Avg Down, Compounding, E-IPO, portofolio akun ini, pengguna demo).
+- **Reset data demo** hanya muncul di mode demo. Password admin baru ditampilkan di panel yang **tetap terlihat** dengan tombol Salin sampai ditutup (sebelumnya hilang setelah 4 detik).
 
 ### 5.11 Modal
 
@@ -905,8 +908,8 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | Tabel | Kolom penting | Dipakai oleh |
 |---|---|---|
 | `avg_down_plans` | ticker, company_name, lot_awal, avg_price_awal, current_price, lot_baru, harga_beli_baru, fee_beli, fee_jual. Semua angka dibatasi CHECK > 0 | page.tsx:335/409/465 |
-| `portfolio_holdings` | ticker, company_name, lot ≥ 0, avg_price ≥ 0 | portfolio-tab, portfolio-snapshot |
-| `portfolio_cash` | user_id (PK), cash_balance ≥ 0 | portfolio-tab, portfolio-snapshot |
+| `portfolio_holdings` | ticker, company_name, lot ≥ 0, avg_price ≥ 0, `unique (user_id, ticker)` | portfolio-store (portfolio-tab, portfolio-snapshot) |
+| `portfolio_cash` | user_id (PK), cash_balance ≥ 0. Hanya ditulis bila pengguna mengisi kas (upsert) | portfolio-store |
 | `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (rencana trading memakai ulang kolom-kolom ini, lihat di bawah) |
 | `ipo_plans` | price, total_lots, oversubscription (≥ 0 sejak migrasi 000008), total_subscribers, retail_ratio 0–100 (desimal, untuk rasio pemesan ritel), personal_order_lots, retail_demand_pct & queue_pct ([migrasi 000008](supabase/migrations/20261008000008_ipo_plans_allocation_inputs.sql)) | ipo/ipo-tab. Bila migrasi 000008 belum dijalankan, simpan otomatis memakai kolom lama |
 | `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel, `requireUser` (server). ⚠️ Per 8 Okt 2026 database produksi **belum punya kolom `is_admin`** (migrasi 000004 belum diterapkan penuh); jalankan ulang migrasi 000004–000008 agar Admin Panel, `claim_first_admin`, watchlist, dan simpan E-IPO lengkap berfungsi |
@@ -943,7 +946,7 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `nunnn_stock_ipo_plans` | localStorage | Simulasi E-IPO tersimpan (mode lokal) |
 | `nunnn_stock_percentage_history` | localStorage | 5 riwayat persentase |
 | `nunnn_stock_watchlist` | localStorage | Watchlist (maks 20, `{symbol, name}`); cadangan lokal dari `user_watchlists` |
-| `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}` | localStorage | Portofolio lokal |
+| `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}` | localStorage | Portofolio lokal ([portfolio-store](src/lib/portfolio-store.ts)) |
 | `nunnn_stock_mock_user` | localStorage | Sesi user demo |
 | `nunnn_stock_simulated_users` | localStorage | User demo (hash SHA-256 + salt) |
 | `sb-<ref>-auth-token` | localStorage (bawaan supabase-js) | Sesi Supabase. **Bukan cookie**, lihat [C-01](#c-01) |
@@ -1020,6 +1023,7 @@ Belum ada `.env.example`.
 - **Kelas kustom:** `.glass-card`, `.glass-input`, `.mesh-bg`, `.text-profit-glow`, `.text-loss-glow`, plus scrollbar kustom.
 - **Font:** Plus Jakarta Sans lewat `@import` Google Fonts ([globals.css:1](src/app/globals.css#L1)).
 - **Tema:** hanya gelap (`forcedTheme="dark"`), dengan aksen emerald di atas latar `#121518`.
+- **Komponen layout bersama** (sejak `4b0603f`): [`PageHeader`](src/components/shared/page-header.tsx) dipakai semua halaman kecuali Beranda (ukuran judul, jarak, badge kategori, dan slot aksi seragam); [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) (Card, CardTitle, Field, Segmented, Stat, Badge) dipakai Dividen, E-IPO, Portofolio, dan Admin.
 - **Viewport:** `maximumScale: 1, userScalable: false` ([layout.tsx:13-18](src/app/layout.tsx#L13-L18)), sehingga pengguna tidak bisa zoom (masalah aksesibilitas).
 
 ---
@@ -1223,7 +1227,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | L-07 (sebagian ✅) | Berbagai file | Teks *hardcoded* ID masih ada di auth-modal. History-table, Compounding, dan Beranda (akses cepat) sudah dwibahasa |
 | L-08 | README.md | Usang: versi Next, xlsx, confetti, link LICENSE yang tidak ada, tree salah, env var kurang, endpoint kurang |
 | L-09 ✅ | dividend-tab.tsx | ~~Props tidak dipakai; state toast tidak pernah di-set~~ (`86e45a5`: props hanya `isActive`) |
-| L-10 | portfolio-tab.tsx | Error ditampilkan dengan `alert()` padahal sudah ada sistem toast |
+| L-10 ✅ | portfolio-tab.tsx | ~~Error ditampilkan dengan `alert()`~~ (toast sejak `3b89457`) |
 
 ### 12.1 Status perbaikan
 
@@ -1238,9 +1242,11 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `86e45a5` | 2026-10-08 | M-10, M-12, L-02, L-09, sebagian H-01 (dividen) | Dividen: riwayat palsu untuk emiten tanpa dividen (GOTO tampil yield ≈1.354%); DPS hanya dari tahun kalender berjalan (BBRI Rp209, seharusnya Rp346 TTM); bulan bayar digabung dari 10 tahun lalu dibagi rata (BBCA 6×, TLKM 3×); DRIP membeli per lembar, bukan per lot; data saham lama tetap tampil saat request saham baru gagal; yield chip populer hardcoded dan basi; belum ada tombol −/+ |
 | `2204733` | 2026-10-08 | — | Batas ARB dianggap simetris padahal 15% sejak Apr 2025 (Beranda kurang menghitung ARB, validasi meloloskan penurunan mustahil); aturan ±Rp1 untuk saham Rp1–Rp10 |
 | `c2e9dde` | 2026-10-08 | M-11, L-01 (E-IPO) | E-IPO: model jatah salah (pesanan ritel 1.000 lot "dapat 40 lot", seharusnya maks 1 lot sesuai urutan waktu); "peluang %" seperti undian; kartu SEOJK 15/2020 memakai tabel aturan baru; oversubscribe IPO dipakai untuk penyesuaian (seharusnya oversubscribe terpusat); kode saham menimpa harga penawaran dengan harga pasar; tanpa batas 10% per pemodal; `Math.ceil` menampilkan 1 lot untuk rata-rata 0,05 lot |
+| `3b89457` | 2026-10-08 | L-10 | Portofolio: holding contoh BBRI/ANTM ditulis otomatis; kas RDN Rp100 juta fiktif dimasukkan ke `portfolio_cash`; beli lagi saham yang sama gagal (constraint unik); harga "4.300" terbaca 4,3; satu request harga per saham; P/L dihitung 0 diam-diam saat harga gagal; update gagal tetap mengubah tampilan. Admin: password admin demo hilang setelah 4 detik; error hilang sendiri; reset data muncul juga di mode cloud; tanggal daftar palsu di mode demo |
+| `4b0603f` | 2026-10-08 | — | Header halaman tidak seragam (judul 3xl vs 4xl, ikon dekoratif, badge berkedip) |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
-**Masih terbuka:** H-01 (analisis), H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-13, M-14, M-16, M-17, L-03, L-05, L-06, L-07 (auth-modal), L-08, L-10.
+**Masih terbuka:** H-01 (analisis), H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-13, M-14, M-16, M-17, L-03, L-05, L-06, L-07 (auth-modal), L-08.
 
 ---
 
@@ -1250,16 +1256,16 @@ Temuan Medium lain yang terkait performa dan robustness:
 - `analysis-tab.tsx` (2374): chart, skeleton, scoring, dan UI dalam satu file, dengan 16 `useState`.
 - `compounding-tab.tsx` (1720): sudah dipecah ke komponen kecil (`Field`, `Segmented`, `StatCard`) dan logika dipindah ke `lib/compounding.ts`, tetapi masih satu file besar.
 - `page.tsx` (1138): auth, demo user, CRUD, dan routing tab.
-- `technical/route.ts` (997), `portfolio-tab.tsx` (957). (Dividen dan E-IPO sudah dipecah ke folder `components/dividend/` dan `components/ipo/` sejak `86e45a5` dan `c2e9dde`.)
+- `technical/route.ts` (997). (Dividen, E-IPO, Portofolio, dan Admin sudah dipecah ke folder `components/dividend/`, `ipo/`, `portfolio/`, `admin/`.)
 
 **Duplikasi:**
 
 | Pola | Jumlah | Konsolidasi ke |
 |---|---|---|
-| Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo, PortfolioEmitenLogo) | 4× | [`components/company-logo.tsx`](src/components/company-logo.tsx) (sudah dipakai Dividen & E-IPO) |
-| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 2× (portfolio, compounding versi singkat Juta/Miliar); results-display, history-table, dividen & E-IPO sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
-| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding, Dividen & E-IPO | Pakai juga di Persentase, Portofolio |
-| Komponen UI kalkulator (Card, Field, Segmented, Stat) | [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) dipakai Dividen & E-IPO; Compounding masih punya versi lokal | `shared/calc-ui.tsx` |
+| Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo) | 3× | [`components/company-logo.tsx`](src/components/company-logo.tsx) (sudah dipakai Dividen, E-IPO, Portofolio) |
+| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 1× (compounding versi singkat Juta/Miliar); halaman lain sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
+| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding, Dividen, E-IPO & Portofolio | Pakai juga di Persentase |
+| Komponen UI kalkulator (Card, Field, Segmented, Stat) | [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) dipakai Dividen, E-IPO, Portofolio & Admin; Compounding masih punya versi lokal | `shared/calc-ui.tsx` |
 | Rantai fallback Gemini → Groq → OpenAI | 2× (`news/summary` sudah memakai pemanggil generik dengan timeout & validasi; `analysis/news` masih versi lama) | `lib/llm.ts` |
 | Parser RSS | 2× | `lib/rss.ts` |
 | String User-Agent Mozilla | 9× di 5 file (3 route analisis, news/summary, ticker search); route data pasar & dividen sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
@@ -1320,7 +1326,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (116 commit)
+### 15.1 Riwayat pengembangan (119 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1333,7 +1339,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
 | 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
 | 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3`; dokumentasi `24ddbca` |
-| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5`; batas ARB 15% & aturan Rp1–Rp10 `2204733`; Kalkulator E-IPO sesuai SEOJK 25/2025 (urutan waktu, strategi pesanan, simulasi listing, simpan) `c2e9dde` |
+| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5`; batas ARB 15% & aturan Rp1–Rp10 `2204733`; Kalkulator E-IPO sesuai SEOJK 25/2025 (urutan waktu, strategi pesanan, simulasi listing, simpan) `c2e9dde`; Portofolio (beli lagi digabung, P/L hari ini, alokasi, dividen) & Admin Panel (cek skema database, setujui semua) `3b89457`; header seragam semua halaman `4b0603f` |
 
 ### 15.2 Glosarium
 
