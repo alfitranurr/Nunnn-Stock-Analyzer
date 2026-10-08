@@ -26,6 +26,13 @@ interface StockSentiment {
   generatedAt: string;
 }
 
+/**
+ * Status AI untuk respons ini: 'fresh' = baru dipanggil (memakai kuota), 'cached' = hasil AI tersimpan,
+ * 'not_requested' = klien tidak meminta AI (`ai=1`), 'quota_exhausted' = kuota AI pengguna habis,
+ * 'unavailable' = kunci AI tidak ada / semua penyedia gagal, 'no_news' = tidak ada berita.
+ */
+type AiState = 'fresh' | 'cached' | 'not_requested' | 'quota_exhausted' | 'unavailable' | 'no_news';
+
 const MAX_NEWS = 8;
 const AI_TTL_MS = 30 * 60_000;
 const TIME_BUDGET_MS = 20_000;
@@ -113,8 +120,10 @@ function normalize(raw: unknown): Omit<StockSentiment, 'method' | 'generatedAt' 
 }
 
 /**
- * GET /api/analysis/news?symbol=BBCA
+ * GET /api/analysis/news?symbol=BBCA[&ai=1]
  * Berita 7 hari terakhir yang benar-benar menyebut emiten (kode atau nama), plus sentimen.
+ * AI hanya dipanggil bila klien meminta `ai=1` (tombol eksplisit di UI) dan hasilnya belum tersimpan;
+ * tanpa itu dipakai hasil AI tersimpan atau perkiraan kata kunci (tanpa token).
  * Tidak ada judul buatan: bila tidak ada berita relevan, daftar kosong dan sentimen "Netral (tanpa berita)".
  */
 export async function GET(request: NextRequest) {
@@ -126,6 +135,7 @@ export async function GET(request: NextRequest) {
   const ticker = validateTickerSymbol(request.nextUrl.searchParams.get('symbol'))?.replace(/\.JK$/, '');
   if (!ticker) return NextResponse.json({ error: 'Invalid or missing symbol parameter', code: 'invalid_symbol' }, { status: 400 });
   const name = IDX_TICKERS[ticker] || ticker;
+  const wantAi = request.nextUrl.searchParams.get('ai') === '1';
 
   let news: NewsItem[];
   try {
@@ -146,18 +156,27 @@ export async function GET(request: NextRequest) {
       symbol: ticker,
       news: [],
       analysis: { sentiment: 'Netral', confidence: 'low', summary: 'Tidak ada berita yang menyebut emiten ini dalam 7 hari terakhir.', keyPoints: [], method: 'none', generatedAt: now } satisfies StockSentiment,
+      aiState: 'no_news' satisfies AiState,
     });
   }
 
   const key = `${ticker}:${news.map((n) => n.id).join('|')}`;
   const hit = analysisCache.get(key);
-  if (hit && hit.expires > Date.now()) return NextResponse.json({ symbol: ticker, news, analysis: hit.value });
+  // Hasil AI tersimpan selalu dipakai; perkiraan kata kunci tersimpan hanya bila AI tidak diminta.
+  if (hit && hit.expires > Date.now() && (hit.value.method === 'ai' || !wantAi)) {
+    const aiState: AiState = hit.value.method === 'ai' ? 'cached' : 'not_requested';
+    return NextResponse.json({ symbol: ticker, news, analysis: hit.value, aiState });
+  }
 
   let analysis: StockSentiment | null = null;
-  if (hasLlmKey() && user) {
-    // Kuota AI hanya terpakai saat benar-benar memanggil AI (bukan dari cache).
-    const aiLimited = await applyAiRateLimit(user.id);
-    if (!aiLimited) {
+  let aiState: AiState = 'not_requested';
+  if (wantAi) {
+    if (!hasLlmKey() || !user) {
+      aiState = 'unavailable';
+    } else if (await applyAiRateLimit(user.id)) {
+      // Kuota AI hanya terpakai saat benar-benar memanggil AI (bukan dari cache).
+      aiState = 'quota_exhausted';
+    } else {
       const result = await generateJson({
         prompt: buildPrompt(ticker, name, news),
         geminiSchema: SCHEMA,
@@ -165,12 +184,17 @@ export async function GET(request: NextRequest) {
         tag: 'analysis-news',
         normalize,
       });
-      if (result) analysis = { ...result.value, method: 'ai', model: `${result.provider} ${result.model}`, generatedAt: now };
+      if (result) {
+        analysis = { ...result.value, method: 'ai', model: `${result.provider} ${result.model}`, generatedAt: now };
+        aiState = 'fresh';
+      } else {
+        aiState = 'unavailable';
+      }
     }
   }
   if (!analysis) analysis = { ...keywordSentiment(news), generatedAt: now };
 
   analysisCache.set(key, { expires: Date.now() + (analysis.method === 'ai' ? AI_TTL_MS : 5 * 60_000), value: analysis });
   if (analysisCache.size > 500) analysisCache.delete(analysisCache.keys().next().value as string);
-  return NextResponse.json({ symbol: ticker, news, analysis });
+  return NextResponse.json({ symbol: ticker, news, analysis, aiState });
 }

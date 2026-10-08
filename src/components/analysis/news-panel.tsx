@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ExternalLink, Newspaper } from 'lucide-react';
+import { ExternalLink, Loader2, Newspaper, Sparkles } from 'lucide-react';
 import { Badge, Card, CardTitle, pick, type Lang } from '@/components/shared/calc-ui';
 
 export interface AnalysisNewsItem {
@@ -11,6 +11,9 @@ export interface AnalysisNewsItem {
   pubDate: string;
   source: string;
 }
+
+/** Status AI dari server (lihat route `/api/analysis/news`). */
+export type AiState = 'fresh' | 'cached' | 'not_requested' | 'quota_exhausted' | 'unavailable' | 'no_news';
 
 export interface AnalysisSentiment {
   sentiment: 'Bullish' | 'Bearish' | 'Netral';
@@ -23,7 +26,21 @@ export interface AnalysisSentiment {
 }
 
 /** Sentimen berita (AI terstruktur atau hitungan kata) dan daftar berita relevan 7 hari terakhir. */
-export function NewsPanel({ language, news, analysis }: { language: Lang; news: AnalysisNewsItem[]; analysis: AnalysisSentiment }) {
+export function NewsPanel({
+  language,
+  news,
+  analysis,
+  aiState,
+  aiBusy,
+  onRequestAi,
+}: {
+  language: Lang;
+  news: AnalysisNewsItem[];
+  analysis: AnalysisSentiment;
+  aiState: AiState;
+  aiBusy: boolean;
+  onRequestAi: () => void;
+}) {
   const L = (id: string, en: string) => pick(language, id, en);
   const tone = analysis.sentiment === 'Bullish' ? 'emerald' : analysis.sentiment === 'Bearish' ? 'amber' : 'slate';
   const confidence = { high: L('tinggi', 'high'), medium: L('sedang', 'medium'), low: L('rendah', 'low') }[analysis.confidence];
@@ -46,7 +63,27 @@ export function NewsPanel({ language, news, analysis }: { language: Lang; news: 
               {analysis.keyPoints.map((p) => <li key={p}>{p}</li>)}
             </ul>
           )}
-          <p className="text-[10px] text-slate-500 mt-3">{L('Metode', 'Method')}: {method} · {L('keyakinan', 'confidence')} {confidence}</p>
+          <p className="text-[10px] text-slate-500 mt-3">
+            {L('Metode', 'Method')}: {method} · {L('keyakinan', 'confidence')} {confidence}
+            {aiState === 'cached' ? L(' · hasil AI tersimpan (tanpa kuota)', ' · saved AI result (no quota)') : ''}
+          </p>
+          {aiState === 'quota_exhausted' && (
+            <p className="text-[11px] text-amber-400 mt-2">{L('Kuota AI kamu sedang habis, jadi ditampilkan perkiraan kata kunci. Coba lagi nanti.', 'Your AI quota is used up, so a keyword estimate is shown. Try again later.')}</p>
+          )}
+          {aiState === 'unavailable' && (
+            <p className="text-[11px] text-amber-400 mt-2">{L('Layanan AI sedang tidak tersedia, jadi ditampilkan perkiraan kata kunci.', 'The AI service is unavailable, so a keyword estimate is shown.')}</p>
+          )}
+          {analysis.method === 'keyword' && aiState !== 'quota_exhausted' && (
+            <button
+              type="button"
+              onClick={onRequestAi}
+              disabled={aiBusy}
+              className="mt-3 w-full px-3 py-2 rounded-xl border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/15 text-violet-300 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {aiBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {aiBusy ? L('Menganalisis dengan AI…', 'Analyzing with AI…') : L('Analisis sentimen dengan AI (1 kuota)', 'Analyze sentiment with AI (1 quota)')}
+            </button>
+          )}
         </div>
         <div className="lg:col-span-3">
           {news.length === 0 ? (
