@@ -42,3 +42,34 @@ function subscribe(listener: () => void) {
 export function useDataRefreshEpoch(): number {
   return React.useSyncExternalStore(subscribe, () => epoch, () => 0);
 }
+
+/** Ringkasan respons POST /api/admin/refresh (refresh server oleh admin dari tombol sidebar). */
+export interface ServerRefreshResult {
+  refreshedAt: string;
+  durationMs: number;
+  cleared: { caches: number; entries: number };
+  allInstances?: boolean;
+  generation?: string | null;
+  universe: unknown;
+  coverage?: unknown;
+}
+
+let lastServerRefresh: ServerRefreshResult | null = null;
+const serverListeners = new Set<() => void>();
+
+export function publishServerRefresh(result: ServerRefreshResult) {
+  lastServerRefresh = result;
+  serverListeners.forEach((l) => l());
+}
+
+/** Hasil refresh server terakhir di sesi browser ini (null bila belum pernah). */
+export function useLastServerRefresh(): ServerRefreshResult | null {
+  return React.useSyncExternalStore(
+    (l) => {
+      serverListeners.add(l);
+      return () => serverListeners.delete(l);
+    },
+    () => lastServerRefresh,
+    () => null
+  );
+}

@@ -78,7 +78,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           </span>
         </button>
         <div className="flex items-center gap-2">
-          <GlobalRefreshButton language={language} variant="icon" />
+          <GlobalRefreshButton language={language} variant="icon" isAdmin={!!isAdmin} />
           <button
             onClick={() => setIsMobileOpen(true)}
             className="p-2 rounded-lg bg-input-bg border border-border-color text-foreground cursor-pointer"
@@ -299,11 +299,11 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           {/* Refresh data terpusat (semua halaman) */}
           {isCollapsed ? (
             <div className="flex justify-center w-full">
-              <GlobalRefreshButton language={language} variant="icon" />
+              <GlobalRefreshButton language={language} variant="icon" isAdmin={!!isAdmin} />
             </div>
           ) : (
             <div className="px-2.5">
-              <GlobalRefreshButton language={language} variant="full" />
+              <GlobalRefreshButton language={language} variant="full" isAdmin={!!isAdmin} />
             </div>
           )}
 

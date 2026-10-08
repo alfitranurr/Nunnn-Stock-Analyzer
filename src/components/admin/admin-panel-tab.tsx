@@ -31,7 +31,7 @@ import { useLanguage } from '@/lib/language-context';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
 import { getErrorMessage, isNetworkError } from '@/lib/utils';
 import { authFetch } from '@/lib/auth-fetch';
-import { bumpDataRefresh } from '@/lib/refresh-signal';
+import { bumpDataRefresh, useDataRefreshEpoch, useLastServerRefresh } from '@/lib/refresh-signal';
 
 interface AdminPanelTabProps {
   user: AppUser | null;
@@ -160,8 +160,9 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
   const [coverage, setCoverage] = React.useState<ListingCoverage | null>(null);
   const [officialForm, setOfficialForm] = React.useState<{ count: string; asOf: string; source: string } | null>(null);
   const [savingOfficial, setSavingOfficial] = React.useState(false);
-  const [lastRefresh, setLastRefresh] = React.useState<RefreshResult | null>(null);
-  const [refreshingData, setRefreshingData] = React.useState(false);
+  // Hasil refresh server terakhir dari tombol "Perbarui data" di sidebar.
+  const lastRefresh = useLastServerRefresh() as RefreshResult | null;
+  const refreshEpoch = useDataRefreshEpoch();
 
   const showToast = React.useCallback((message: string) => {
     setToast(message);
@@ -348,33 +349,22 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
     }
   };
 
-  /** Kosongkan semua cache server, muat ulang daftar emiten, lalu minta semua halaman mengambil data baru. */
-  const refreshAllData = async () => {
-    setRefreshingData(true);
-    setError(null);
-    try {
-      const res = await authFetch('/api/admin/refresh', { method: 'POST' });
-      if (!res.ok) {
-        const message = await apiError(res);
-        setError(L(`Refresh gagal: ${message}`, `Refresh failed: ${message}`));
-        return;
-      }
-      const json = (await res.json()) as RefreshResult;
-      setLastRefresh(json);
-      setUniverse(json.universe);
-      if (json.coverage) setCoverage(json.coverage);
-      bumpDataRefresh();
-      showToast(
-        json.coverage
-          ? L(`Data diperbarui: ${json.coverage.tracked} emiten terpantau (${json.coverage.active} aktif + ${json.coverage.suspended.length} suspensi) dari ${json.coverage.official.count} tercatat di BEI.`, `Data refreshed: ${json.coverage.tracked} stocks tracked (${json.coverage.active} active + ${json.coverage.suspended.length} suspended) of ${json.coverage.official.count} listed on IDX.`)
-          : L(`Data diperbarui: ${json.universe.count} emiten aktif.`, `Data refreshed: ${json.universe.count} active stocks.`)
-      );
-    } catch (err) {
-      reportError(err, 'Refresh data gagal.', 'Data refresh failed.');
-    } finally {
-      setRefreshingData(false);
-    }
-  };
+  // Tombol "Perbarui data" di sidebar (satu-satunya tombol refresh): status daftar & cakupan emiten ikut diperbarui.
+  React.useEffect(() => {
+    if (!lastRefresh) return;
+    const t = window.setTimeout(() => {
+      setUniverse(lastRefresh.universe);
+      if (lastRefresh.coverage) setCoverage(lastRefresh.coverage);
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [lastRefresh]);
+  const seenEpoch = React.useRef(refreshEpoch);
+  React.useEffect(() => {
+    if (seenEpoch.current === refreshEpoch || !isActive) return;
+    seenEpoch.current = refreshEpoch;
+    const t = window.setTimeout(() => void loadUniverseStatus(), 0);
+    return () => window.clearTimeout(t);
+  }, [refreshEpoch, isActive, loadUniverseStatus]);
 
   const runSystemCheck = React.useCallback(async () => {
     refreshLocalStats();
@@ -517,16 +507,6 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
         )}
         actions={
           <>
-            <button
-              type="button"
-              onClick={() => void refreshAllData()}
-              disabled={refreshingData}
-              title={L('Kosongkan cache server dan muat ulang semua data & daftar emiten', 'Clear server caches and reload all data & the stock list')}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-60 whitespace-nowrap"
-            >
-              <DatabaseZap className={`h-4 w-4 ${refreshingData ? 'animate-pulse' : ''}`} />
-              {refreshingData ? L('Memperbarui…', 'Refreshing…') : L('Refresh semua data', 'Refresh all data')}
-            </button>
             <Segmented
               ariaLabel={L('Bagian', 'Section')}
               value={section}
@@ -684,19 +664,9 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
               icon={<DatabaseZap className="h-5 w-5 text-emerald-400" />}
               title={L('Data pasar & daftar emiten', 'Market data & stock list')}
               subtitle={L(
-                'Daftar emiten aktif diambil otomatis dari screener TradingView (cache 1 jam), sehingga IPO baru langsung ikut dipindai. Harga dari Yahoo Finance (tertunda) dengan cache 30–60 detik.',
-                'The active stock list is loaded automatically from the TradingView screener (1-hour cache), so new IPOs are scanned right away. Prices come from Yahoo Finance (delayed) with 30–60 second caches.'
+                'Daftar emiten aktif diambil otomatis dari screener TradingView (cache 1 jam), sehingga IPO baru langsung ikut dipindai. Harga dari Yahoo Finance (tertunda) dengan cache 15–20 detik. Untuk memperbarui semua data, pakai tombol "Perbarui data" di sidebar: sebagai admin, tombol itu juga mengosongkan cache server di semua instance.',
+                'The active stock list is loaded automatically from the TradingView screener (1-hour cache), so new IPOs are scanned right away. Prices come from Yahoo Finance (delayed) with 15–20 second caches. To refresh everything, use the "Refresh data" button in the sidebar: for admins it also expires server caches on every instance.'
               )}
-              right={
-                <button
-                  type="button"
-                  onClick={() => void refreshAllData()}
-                  disabled={refreshingData}
-                  className="self-start shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-60"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingData ? 'animate-spin' : ''}`} /> {L('Refresh semua data', 'Refresh all data')}
-                </button>
-              }
             />
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Stat
@@ -813,8 +783,8 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
             )}
             <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
               {L(
-                'Refresh membuat semua cache data (harga, scan pasar, pasar global, berita, dividen, fundamental, teknikal, daftar emiten) kedaluwarsa di SEMUA server — server lain mengetahuinya paling lambat ±10 detik lewat penanda refresh bersama — lalu halaman yang sedang terbuka di browser ini (termasuk tab lain) langsung mengambil data baru. Pengunjung lain mendapat data baru pada pembaruan berikutnya. Data lama disimpan sebagai cadangan bila sumber sedang gagal. Hasil AI tidak dibuang karena tetap valid untuk berita yang sama (hemat token). Data Yahoo gratis tetap tertunda; harga real-time penuh butuh feed data berlisensi BEI.',
-                'Refresh expires every data cache (prices, market scan, global markets, news, dividends, fundamentals, technicals, stock list) on ALL servers — others learn about it within ~10 s via a shared refresh marker — then pages open in this browser (including other tabs) fetch new data immediately. Other visitors get new data on their next update. Old data is kept as a fallback if a source is failing. AI results are kept since they stay valid for the same news (saves tokens). Free Yahoo data stays delayed; true real-time prices need a licensed IDX data feed.'
+                'Tombol "Perbarui data" di sidebar (akun admin) membuat semua cache data (harga, scan pasar, pasar global, berita, dividen, fundamental, teknikal, daftar emiten) kedaluwarsa di SEMUA server — server lain mengetahuinya paling lambat ±10 detik lewat penanda refresh bersama — lalu halaman yang sedang terbuka di browser ini (termasuk tab lain) langsung mengambil data baru. Pengunjung lain mendapat data baru pada pembaruan berikutnya. Data lama disimpan sebagai cadangan bila sumber sedang gagal. Hasil AI tidak dibuang karena tetap valid untuk berita yang sama (hemat token). Data Yahoo gratis tetap tertunda; harga real-time penuh butuh feed data berlisensi BEI.',
+                'The sidebar "Refresh data" button (admin account) expires every data cache (prices, market scan, global markets, news, dividends, fundamentals, technicals, stock list) on ALL servers — others learn about it within ~10 s via a shared refresh marker — then pages open in this browser (including other tabs) fetch new data immediately. Other visitors get new data on their next update. Old data is kept as a fallback if a source is failing. AI results are kept since they stay valid for the same news (saves tokens). Free Yahoo data stays delayed; true real-time prices need a licensed IDX data feed.'
               )}
             </p>
           </Card>
