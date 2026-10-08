@@ -205,6 +205,76 @@ export async function fetchChartQuote(
   }
 }
 
+export interface YahooDividendHistory {
+  name: string;
+  /** Pembagian dividen per lembar (sudah disesuaikan stock split), urut tanggal ex-date naik. */
+  events: Array<{ exDate: string; amount: number }>;
+  /** Rata-rata harga penutupan bulanan per tahun kalender (disesuaikan split), untuk yield historis. */
+  yearlyAvgClose: Record<number, number>;
+}
+
+interface DividendChartResponse {
+  chart?: {
+    result?: Array<
+      YahooSeries & {
+        events?: { dividends?: Record<string, { date?: number; amount?: number }> };
+      }
+    >;
+    error?: { code?: string } | null;
+  };
+}
+
+/**
+ * Riwayat dividen + harga bulanan sepanjang masa dalam satu request Chart API.
+ * Tanggal event Yahoo adalah tanggal EX (09:00 WIB), dikonversi memakai zona waktu bursa.
+ * Mengembalikan null bila simbol tidak dikenal; melempar error bila jaringan/Yahoo gagal.
+ */
+export async function fetchDividendHistory(symbol: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<YahooDividendHistory | null> {
+  const res = await fetch(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=max&interval=1mo&events=div`,
+    { headers: { 'User-Agent': YAHOO_UA }, cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) }
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Yahoo chart ${res.status}`);
+
+  const data: DividendChartResponse = await res.json();
+  const series = data.chart?.result?.[0];
+  if (!series?.meta) return null;
+
+  const offsetMs = (series.meta.gmtoffset ?? 0) * 1000;
+  const dateOf = (sec: number) => new Date(sec * 1000 + offsetMs).toISOString().slice(0, 10);
+
+  // Gabungkan entri pada tanggal yang sama: duplikat persis dibuang, nominal berbeda dijumlah (reguler + spesial).
+  const byDate = new Map<string, number[]>();
+  for (const ev of Object.values(series.events?.dividends ?? {})) {
+    if (typeof ev?.date !== 'number' || typeof ev.amount !== 'number' || !(ev.amount > 0) || !Number.isFinite(ev.amount)) continue;
+    const date = dateOf(ev.date);
+    const amounts = byDate.get(date) ?? [];
+    if (!amounts.includes(ev.amount)) amounts.push(ev.amount);
+    byDate.set(date, amounts);
+  }
+  const events = Array.from(byDate, ([exDate, amounts]) => ({
+    exDate,
+    amount: Math.round(amounts.reduce((a, b) => a + b, 0) * 10000) / 10000,
+  })).sort((a, b) => a.exDate.localeCompare(b.exDate));
+
+  const sums = new Map<number, { total: number; count: number }>();
+  const closes = series.indicators?.quote?.[0]?.close ?? [];
+  (series.timestamp ?? []).forEach((t, i) => {
+    const close = closes[i];
+    if (typeof close !== 'number' || !(close > 0)) return;
+    const year = Number(dateOf(t).slice(0, 4));
+    const s = sums.get(year) ?? { total: 0, count: 0 };
+    s.total += close;
+    s.count += 1;
+    sums.set(year, s);
+  });
+  const yearlyAvgClose: Record<number, number> = {};
+  for (const [year, s] of sums) yearlyAvgClose[year] = Math.round((s.total / s.count) * 100) / 100;
+
+  return { name: series.meta.longName || series.meta.shortName || '', events, yearlyAvgClose };
+}
+
 /**
  * Cache in-memory sederhana dengan deduplikasi request yang sedang berjalan.
  * Pada Fluid Compute, satu instance melayani banyak request sehingga hasil
