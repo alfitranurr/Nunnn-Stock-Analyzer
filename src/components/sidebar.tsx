@@ -4,7 +4,6 @@ import * as React from 'react';
 import { 
   Calculator,
   Briefcase,
-  History,
   Star,
   ChartCandlestick,
   ChevronLeft,
@@ -55,7 +54,6 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
     { id: 'ipo', label: t('sidebar.ipo'), icon: Rocket, active: true },
     { id: 'analysis', label: t('sidebar.analysis'), icon: ChartCandlestick, active: true, isLocked: !user },
     { id: 'portfolio', label: t('sidebar.portfolio'), icon: Briefcase, active: true, isLocked: !user },
-    { id: 'history', label: t('sidebar.history'), icon: History, active: false, labelBadge: t('common.soon') },
     { id: 'watchlist', label: t('sidebar.watchlist'), icon: Star, active: true },
     // Admin selalu paling bawah.
     ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true }] : []),
@@ -149,11 +147,6 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       <item.icon className={cn("h-5 w-5", currentTab === item.id && "text-emerald-400")} />
                       <span className="font-medium text-sm text-left">{item.label}</span>
                     </div>
-                    {item.labelBadge && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                        {item.labelBadge}
-                      </span>
-                    )}
                     {item.isLocked && (
                       <Lock className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                     )}
@@ -290,11 +283,6 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/item:scale-110 shrink-0", currentTab === item.id && "text-emerald-400")} />
                 {!isCollapsed && <span className="text-[13px] font-semibold text-left whitespace-nowrap">{item.label}</span>}
               </div>
-              {!isCollapsed && item.labelBadge && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm">
-                  {item.labelBadge}
-                </span>
-              )}
               {!isCollapsed && item.isLocked && (
                 <Lock className="h-3 w-3 text-slate-500 dark:text-slate-600 shrink-0" />
               )}
