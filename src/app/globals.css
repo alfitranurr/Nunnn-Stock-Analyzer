@@ -164,3 +164,82 @@ body {
   text-shadow: none;
 }
 
+
+/* ─── Splash pemuatan awal (components/app-splash.tsx) ─── */
+.app-splash {
+  transition: opacity 0.55s ease, visibility 0.55s ease;
+  /* Pengaman tanpa JavaScript: tutup sendiri setelah 10 detik. */
+  animation: splashAutoHide 0.5s ease 10s forwards;
+}
+.app-splash--leaving {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.app-splash__content {
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.app-splash--leaving .app-splash__content {
+  transform: translateY(-14px) scale(1.04);
+}
+.app-splash__glow {
+  animation: splashGlow 3s ease-in-out infinite;
+}
+.app-splash__candle {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: splashCandle 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.app-splash__line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: splashLine 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.3s forwards;
+}
+.app-splash__dot {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: splashDot 0.35s ease 0.95s forwards, splashPulse 1.6s ease-in-out 1.3s infinite;
+}
+.app-splash__word {
+  animation: splashRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+.app-splash__tag {
+  animation: splashRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+.app-splash__bar {
+  animation: splashRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
+.app-splash__bar-fill {
+  animation: splashBar 1.2s ease-in-out infinite;
+}
+@keyframes splashCandle {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+@keyframes splashLine {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes splashDot {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes splashPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+}
+@keyframes splashRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashBar {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+@keyframes splashGlow {
+  0%, 100% { opacity: 0.6; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes splashAutoHide {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}

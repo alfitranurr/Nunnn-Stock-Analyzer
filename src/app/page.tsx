@@ -27,6 +27,7 @@ import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
 import { AlertCircle, Info, ChevronUp, Calculator, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
+import { signalAppReady } from '@/components/app-splash';
 
 export default function Dashboard() {
   const [currentTab, setCurrentTabRaw] = React.useState('home');
@@ -297,7 +298,8 @@ export default function Dashboard() {
       }
     };
 
-    checkSession();
+    // Splash awal ditutup setelah sesi selesai diperiksa (berhasil atau gagal).
+    void checkSession().finally(() => signalAppReady());
 
     return () => {
       isMounted = false;

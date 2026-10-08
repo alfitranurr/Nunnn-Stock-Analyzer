@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClientBootstrap } from "@/components/client-bootstrap";
+import { AppSplash } from "@/components/app-splash";
 import { LanguageProvider } from "@/lib/language-context";
 import "./globals.css";
 
@@ -25,6 +26,8 @@ export default function RootLayout({
   return (
     <html lang="id" className="dark" suppressHydrationWarning>
       <body className="antialiased min-h-screen">
+        {/* Animasi pemuatan awal: dirender server agar langsung tampil saat reload */}
+        <AppSplash />
         <ClientBootstrap />
         <LanguageProvider>
           <ThemeProvider
