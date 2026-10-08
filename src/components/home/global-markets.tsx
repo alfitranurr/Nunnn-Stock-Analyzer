@@ -5,6 +5,7 @@ import { Globe2 } from 'lucide-react';
 import { GLOBAL_INSTRUMENTS } from '@/lib/global-markets';
 import { formatNumberLocale } from '@/lib/format';
 import { usePolling } from '@/lib/use-polling';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { Sparkline } from './sparkline';
 import type { Lang } from './types';
 
@@ -39,7 +40,9 @@ export function GlobalMarkets({ language, isActive }: GlobalMarketsProps) {
     }
   }, []);
 
-  usePolling(load, { enabled: isActive, intervalMs: 120_000, minGapMs: 60_000 });
+  // Admin menekan "Refresh semua data" → ambil ulang segera.
+  const refreshEpoch = useDataRefreshEpoch();
+  usePolling(load, { enabled: isActive, intervalMs: 120_000, minGapMs: 60_000, key: refreshEpoch });
 
   if (status === 'error') {
     return (

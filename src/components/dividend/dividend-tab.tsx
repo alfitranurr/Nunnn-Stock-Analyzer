@@ -19,6 +19,7 @@ import { StepperInput } from '@/components/stepper-input';
 import { useIdxSessionState } from '@/components/home/home-dashboard';
 import { useLanguage } from '@/lib/language-context';
 import { usePolling } from '@/lib/use-polling';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { fetchQuotes } from '@/lib/quotes';
 import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/lib/format';
 import { formatWibTime } from '@/lib/market-hours';
@@ -205,9 +206,11 @@ export function DividendTab({ isActive }: DividendTabProps) {
     }
   };
 
-  usePolling(loadDividends, { enabled: isActive, intervalMs: null, minGapMs: 30 * 60_000, key: ticker });
-  usePolling(loadQuote, { enabled: isActive, intervalMs: trading ? 60_000 : null, minGapMs: 60_000, key: ticker });
-  usePolling(loadPopular, { enabled: isActive, intervalMs: null, minGapMs: 6 * 3600_000 });
+  // Admin menekan "Refresh semua data" → ambil ulang segera.
+  const refreshEpoch = useDataRefreshEpoch();
+  usePolling(loadDividends, { enabled: isActive, intervalMs: null, minGapMs: 30 * 60_000, key: `${ticker}|${refreshEpoch}` });
+  usePolling(loadQuote, { enabled: isActive, intervalMs: trading ? 60_000 : null, minGapMs: 60_000, key: `${ticker}|${refreshEpoch}` });
+  usePolling(loadPopular, { enabled: isActive, intervalMs: null, minGapMs: 6 * 3600_000, key: refreshEpoch });
 
   React.useEffect(() => () => divAbortRef.current?.abort(), []);
 

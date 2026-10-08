@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { useIdxSessionState } from '@/components/home/home-dashboard';
 import { useLanguage } from '@/lib/language-context';
 import { usePolling } from '@/lib/use-polling';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/lib/format';
 import { formatWibTime } from '@/lib/market-hours';
@@ -113,9 +114,11 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
     setDividends(result);
   };
 
-  usePolling(loadData, { enabled: isActive && !!user, intervalMs: null, minGapMs: 30_000, key: user?.id ?? '' });
-  usePolling(loadQuotes, { enabled: isActive && !!tickersKey, intervalMs: trading ? 60_000 : null, minGapMs: 60_000, key: tickersKey });
-  usePolling(loadDividends, { enabled: isActive && !!tickersKey, intervalMs: null, minGapMs: 6 * 3600_000, key: tickersKey });
+  // Admin menekan "Refresh semua data" → ambil ulang segera.
+  const refreshEpoch = useDataRefreshEpoch();
+  usePolling(loadData, { enabled: isActive && !!user, intervalMs: null, minGapMs: 30_000, key: `${user?.id ?? ''}|${refreshEpoch}` });
+  usePolling(loadQuotes, { enabled: isActive && !!tickersKey, intervalMs: trading ? 60_000 : null, minGapMs: 60_000, key: `${tickersKey}|${refreshEpoch}` });
+  usePolling(loadDividends, { enabled: isActive && !!tickersKey, intervalMs: null, minGapMs: 6 * 3600_000, key: `${tickersKey}|${refreshEpoch}` });
 
   // ─── Perhitungan ───
   const rows: Row[] = React.useMemo(() => {

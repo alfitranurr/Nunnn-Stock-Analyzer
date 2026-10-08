@@ -280,9 +280,30 @@ export async function fetchDividendHistory(symbol: string, timeoutMs = DEFAULT_T
  * Pada Fluid Compute, satu instance melayani banyak request sehingga hasil
  * scan bisa dipakai bersama oleh semua pengunjung.
  */
+// Disimpan di globalThis: tiap route API dibundel terpisah sehingga modul ini bisa termuat
+// beberapa kali dalam satu proses server; registry harus dipakai bersama agar semua cache terjangkau.
+const registryHost = globalThis as typeof globalThis & { __nunnnCacheClearers?: Set<() => number> };
+const cacheClearers = (registryHost.__nunnnCacheClearers ??= new Set<() => number>());
+
+/**
+ * Kosongkan semua cache yang dibuat lewat `createTtlCache` di instance server ini.
+ * Mengembalikan jumlah entri yang dihapus. (Di Vercel tiap instance punya memori sendiri;
+ * instance lain ikut segar setelah TTL masing-masing habis.)
+ */
+export function clearAllServerCaches(): { caches: number; entries: number } {
+  let entries = 0;
+  for (const clear of cacheClearers) entries += clear();
+  return { caches: cacheClearers.size, entries };
+}
+
 export function createTtlCache<T>(ttlMs: number, maxEntries = 100) {
   const store = new Map<string, { at: number; value: T }>();
   const inflight = new Map<string, Promise<T>>();
+  cacheClearers.add(() => {
+    const n = store.size;
+    store.clear();
+    return n;
+  });
 
   return async function cached(key: string, load: () => Promise<T>): Promise<{ value: T; cachedAt: number }> {
     const hit = store.get(key);

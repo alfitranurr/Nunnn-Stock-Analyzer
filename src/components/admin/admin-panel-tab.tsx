@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Copy,
   Database,
+  DatabaseZap,
   HardDrive,
   KeyRound,
   RefreshCw,
@@ -27,6 +28,8 @@ import type { AppUser, SimUser } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
 import { getErrorMessage, isNetworkError } from '@/lib/utils';
+import { authFetch } from '@/lib/auth-fetch';
+import { bumpDataRefresh } from '@/lib/refresh-signal';
 
 interface AdminPanelTabProps {
   user: AppUser | null;
@@ -48,6 +51,22 @@ type StatusFilter = 'all' | 'pending' | 'approved';
 interface ProbeResult {
   status: 'ok' | 'missing' | 'error';
   detail: string | null;
+}
+
+interface UniverseSummary {
+  count: number;
+  source: 'tradingview' | 'static';
+  fetchedAt: string;
+  newSymbols: string[];
+  inactiveCount: number;
+  error: string | null;
+}
+
+interface RefreshResult {
+  refreshedAt: string;
+  durationMs: number;
+  cleared: { caches: number; entries: number };
+  universe: UniverseSummary;
 }
 
 interface SupabaseResult {
@@ -132,6 +151,9 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
   const [ping, setPing] = React.useState<{ ms: number | null; ok: boolean; at: number } | null>(null);
   const [checking, setChecking] = React.useState(false);
   const [localStats, setLocalStats] = React.useState({ avgDown: 0, compounding: 0, ipo: 0, holdings: 0, users: 0 });
+  const [universe, setUniverse] = React.useState<UniverseSummary | null>(null);
+  const [lastRefresh, setLastRefresh] = React.useState<RefreshResult | null>(null);
+  const [refreshingData, setRefreshingData] = React.useState(false);
 
   const showToast = React.useCallback((message: string) => {
     setToast(message);
@@ -256,8 +278,55 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
     });
   }, [user]);
 
+  const apiError = async (res: Response) => {
+    let message = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string; code?: string };
+      if (body.code === 'not_admin') message = L('Akun ini bukan admin di database.', 'This account is not an admin in the database.');
+      else if (body.error) message = body.error;
+    } catch {
+      // bukan JSON
+    }
+    return message;
+  };
+
+  const loadUniverseStatus = React.useCallback(async () => {
+    try {
+      const res = await authFetch('/api/admin/refresh');
+      if (!res.ok) return;
+      const json = (await res.json()) as { universe: UniverseSummary };
+      setUniverse(json.universe);
+    } catch {
+      // status hanya informasi tambahan
+    }
+  }, []);
+
+  /** Kosongkan semua cache server, muat ulang daftar emiten, lalu minta semua halaman mengambil data baru. */
+  const refreshAllData = async () => {
+    setRefreshingData(true);
+    setError(null);
+    try {
+      const res = await authFetch('/api/admin/refresh', { method: 'POST' });
+      if (!res.ok) {
+        const message = await apiError(res);
+        setError(L(`Refresh gagal: ${message}`, `Refresh failed: ${message}`));
+        return;
+      }
+      const json = (await res.json()) as RefreshResult;
+      setLastRefresh(json);
+      setUniverse(json.universe);
+      bumpDataRefresh();
+      showToast(L(`Data diperbarui: ${json.universe.count} emiten aktif.`, `Data refreshed: ${json.universe.count} active stocks.`));
+    } catch (err) {
+      reportError(err, 'Refresh data gagal.', 'Data refresh failed.');
+    } finally {
+      setRefreshingData(false);
+    }
+  };
+
   const runSystemCheck = React.useCallback(async () => {
     refreshLocalStats();
+    void loadUniverseStatus();
     if (!cloud) return;
     setChecking(true);
     const started = performance.now();
@@ -284,7 +353,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
     );
     setProbes(results);
     setChecking(false);
-  }, [cloud, refreshLocalStats]);
+  }, [cloud, refreshLocalStats, loadUniverseStatus]);
 
   React.useEffect(() => {
     if (!isActive || section !== 'system') return;
@@ -396,6 +465,16 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
         )}
         actions={
           <>
+            <button
+              type="button"
+              onClick={() => void refreshAllData()}
+              disabled={refreshingData}
+              title={L('Kosongkan cache server dan muat ulang semua data & daftar emiten', 'Clear server caches and reload all data & the stock list')}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-60 whitespace-nowrap"
+            >
+              <DatabaseZap className={`h-4 w-4 ${refreshingData ? 'animate-pulse' : ''}`} />
+              {refreshingData ? L('Memperbarui…', 'Refreshing…') : L('Refresh semua data', 'Refresh all data')}
+            </button>
             <Segmented
               ariaLabel={L('Bagian', 'Section')}
               value={section}
@@ -548,6 +627,59 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
         </>
       ) : (
         <>
+          <Card>
+            <CardTitle
+              icon={<DatabaseZap className="h-5 w-5 text-emerald-400" />}
+              title={L('Data pasar & daftar emiten', 'Market data & stock list')}
+              subtitle={L(
+                'Daftar emiten aktif diambil otomatis dari screener TradingView (cache 1 jam), sehingga IPO baru langsung ikut dipindai. Harga dari Yahoo Finance (tertunda) dengan cache 30–60 detik.',
+                'The active stock list is loaded automatically from the TradingView screener (1-hour cache), so new IPOs are scanned right away. Prices come from Yahoo Finance (delayed) with 30–60 second caches.'
+              )}
+              right={
+                <button
+                  type="button"
+                  onClick={() => void refreshAllData()}
+                  disabled={refreshingData}
+                  className="self-start shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingData ? 'animate-spin' : ''}`} /> {L('Refresh semua data', 'Refresh all data')}
+                </button>
+              }
+            />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <Stat
+                tone={universe?.source === 'tradingview' ? 'emerald' : universe ? 'amber' : 'slate'}
+                label={L('Emiten dipantau', 'Stocks tracked')}
+                value={universe ? universe.count : '—'}
+                sub={universe ? (universe.source === 'tradingview' ? L('daftar aktif (TradingView)', 'active list (TradingView)') : L('daftar bawaan (cadangan)', 'built-in list (fallback)')) : undefined}
+              />
+              <Stat tone="sky" label={L('Baru vs daftar bawaan', 'New vs built-in list')} value={universe ? universe.newSymbols.length : '—'} sub={L('kode yang belum ada di daftar bawaan', 'codes not in the built-in list')} />
+              <Stat label={L('Tidak aktif', 'Inactive')} value={universe ? universe.inactiveCount : '—'} sub={L('suspensi/delisting, tidak dipindai', 'suspended/delisted, not scanned')} />
+              <Stat
+                label={L('Daftar dimuat', 'List loaded')}
+                value={<span className="text-sm">{universe ? `${new Date(universe.fetchedAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-GB', { timeZone: 'Asia/Jakarta' })} WIB` : '—'}</span>}
+                sub={lastRefresh ? L(`refresh ${lastRefresh.durationMs} ms · ${lastRefresh.cleared.entries} cache dikosongkan`, `refresh ${lastRefresh.durationMs} ms · ${lastRefresh.cleared.entries} cache entries cleared`) : undefined}
+              />
+            </div>
+            {universe?.error && (
+              <p className="text-[11px] text-amber-300 mt-3">{L(`Sumber daftar emiten gagal (${universe.error}); memakai daftar bawaan.`, `Stock list source failed (${universe.error}); using the built-in list.`)}</p>
+            )}
+            {universe && universe.newSymbols.length > 0 && (
+              <div className="mt-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{L('Emiten baru yang kini ikut dipantau', 'Newly tracked stocks')}</span>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {universe.newSymbols.map((sym) => <Badge key={sym} tone="sky">{sym}</Badge>)}
+                </div>
+              </div>
+            )}
+            <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+              {L(
+                'Refresh mengosongkan cache di server yang menangani permintaan ini dan membuat halaman yang sedang terbuka (termasuk tab lain di browser ini) langsung mengambil data baru. Di Vercel, server lain ikut segar setelah cache-nya habis (harga ≤ 60 detik, daftar emiten ≤ 1 jam, dividen ≤ 6 jam). Data Yahoo gratis tetap tertunda; harga real-time penuh butuh feed data berlisensi BEI (lapisan provider sudah disiapkan).',
+                'Refresh clears the caches of the server handling this request and makes open pages (including other tabs in this browser) fetch new data immediately. On Vercel, other servers refresh when their caches expire (prices ≤ 60 s, stock list ≤ 1 h, dividends ≤ 6 h). Free Yahoo data stays delayed; true real-time prices need a licensed IDX data feed (the provider layer is ready).'
+              )}
+            </p>
+          </Card>
+
           <Card>
             <CardTitle
               icon={<Database className="h-5 w-5 text-emerald-400" />}

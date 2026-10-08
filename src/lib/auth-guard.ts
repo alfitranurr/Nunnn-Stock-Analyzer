@@ -9,6 +9,8 @@ export interface AuthedUser {
   email?: string;
   /** true di mode Demo/Lokal (Supabase tidak dikonfigurasi): tidak ada akun sungguhan. */
   isDemo?: boolean;
+  /** Kolom `user_approvals.is_admin` (hanya diketahui lewat jalur token Bearer). */
+  isAdmin?: boolean;
 }
 
 type GuardResult = { user: AuthedUser; error: null } | { user: null; error: NextResponse };
@@ -82,7 +84,7 @@ export async function requireUser(request: NextRequest): Promise<GuardResult> {
       return fail(403, 'Forbidden: account is pending administrator approval.', 'not_approved');
     }
 
-    return { user: { id: user.id, email: user.email }, error: null };
+    return { user: { id: user.id, email: user.email, isAdmin: row.is_admin === true }, error: null };
   } catch (err) {
     console.warn('[auth] Validasi sesi gagal:', getErrorMessage(err));
     if (isNetworkError(err)) {
@@ -90,4 +92,15 @@ export async function requireUser(request: NextRequest): Promise<GuardResult> {
     }
     return fail(500, 'Account check failed on the server.', 'auth_check_failed');
   }
+}
+
+/**
+ * Seperti `requireUser`, tetapi hanya untuk admin (`user_approvals.is_admin = true`).
+ * Mode Demo/Lokal diizinkan (tidak ada akun sungguhan; tetap kena rate limit per IP).
+ */
+export async function requireAdmin(request: NextRequest): Promise<GuardResult> {
+  const result = await requireUser(request);
+  if (result.error) return result;
+  if (result.user.isDemo || result.user.isAdmin) return result;
+  return fail(403, 'Forbidden: administrator access required.', 'not_admin');
 }

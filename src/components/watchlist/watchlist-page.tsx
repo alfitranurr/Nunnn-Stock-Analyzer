@@ -13,6 +13,7 @@ import { useIdxSessionState } from '@/components/home/home-dashboard';
 import { Badge, Card, Segmented, Stat, fmtInput, pct, pick, rp, sanitizeNumber, type Lang } from '@/components/shared/calc-ui';
 import { useLanguage } from '@/lib/language-context';
 import { usePolling } from '@/lib/use-polling';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { IDX_TICKERS } from '@/lib/tickers';
 import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/lib/format';
@@ -79,7 +80,9 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
     }
   };
 
-  usePolling(loadQuotes, { enabled: isActive && entries.length > 0, intervalMs: trading ? 60_000 : null, minGapMs: 30_000, key: symbolsKey });
+  // Admin menekan "Refresh semua data" → ambil ulang segera.
+  const refreshEpoch = useDataRefreshEpoch();
+  usePolling(loadQuotes, { enabled: isActive && entries.length > 0, intervalMs: trading ? 60_000 : null, minGapMs: 30_000, key: `${symbolsKey}|${refreshEpoch}` });
 
   const addSymbol = (raw: string) => {
     const symbol = raw.toUpperCase().replace(/\.JK$/, '');

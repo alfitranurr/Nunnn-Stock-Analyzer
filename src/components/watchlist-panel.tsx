@@ -7,6 +7,7 @@ import { useWatchlist, WATCHLIST_MAX, type WatchlistEntry } from '@/lib/watchlis
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { formatNumberLocale } from '@/lib/format';
 import { usePolling } from '@/lib/use-polling';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { Sparkline } from '@/components/home/sparkline';
 import { IDX_TICKERS } from '@/lib/tickers';
 
@@ -52,11 +53,13 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
     }
   }, [symbolsKey]);
 
+  // Admin menekan "Refresh semua data" → ambil ulang segera.
+  const refreshEpoch = useDataRefreshEpoch();
   usePolling(loadQuotes, {
     enabled: isActive && entries.length > 0,
     intervalMs: trading ? 60_000 : null,
     minGapMs: 30_000,
-    key: symbolsKey,
+    key: `${symbolsKey}|${refreshEpoch}`,
   });
 
   // Pencarian emiten untuk ditambahkan
