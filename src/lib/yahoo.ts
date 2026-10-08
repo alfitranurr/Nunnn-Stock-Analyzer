@@ -3,6 +3,8 @@
  * Dipakai oleh provider data BEI (lib/market-data/yahoo-provider.ts) dan route global-markets.
  */
 
+import { getRefreshGeneration } from '@/lib/refresh-generation';
+
 export const YAHOO_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -332,32 +334,39 @@ export async function fetchDividendHistory(symbol: string, timeoutMs = DEFAULT_T
  */
 // Disimpan di globalThis: tiap route API dibundel terpisah sehingga modul ini bisa termuat
 // beberapa kali dalam satu proses server; registry harus dipakai bersama agar semua cache terjangkau.
-const registryHost = globalThis as typeof globalThis & { __nunnnCacheClearers?: Set<() => number> };
+const registryHost = globalThis as typeof globalThis & { __nunnnCacheClearers?: Set<() => number>; __nunnnStaleBefore?: number };
 const cacheClearers = (registryHost.__nunnnCacheClearers ??= new Set<() => number>());
 
+/** Entri cache yang disimpan sebelum waktu ini dianggap kedaluwarsa (tetap disimpan sebagai cadangan). */
+const staleBefore = () => registryHost.__nunnnStaleBefore ?? 0;
+function markStaleBefore(ms: number) {
+  if (ms > staleBefore()) registryHost.__nunnnStaleBefore = ms;
+}
+
 /**
- * Kosongkan semua cache yang dibuat lewat `createTtlCache` di instance server ini.
- * Mengembalikan jumlah entri yang dihapus. (Di Vercel tiap instance punya memori sendiri;
- * instance lain ikut segar setelah TTL masing-masing habis.)
+ * Tandai semua cache `createTtlCache` di instance ini kedaluwarsa: request berikutnya wajib mengambil
+ * data baru, tetapi data lama tetap disimpan sebagai cadangan bila sumber sedang gagal.
+ * Instance lain ikut kedaluwarsa lewat generasi refresh bersama (lib/refresh-generation).
  */
 export function clearAllServerCaches(): { caches: number; entries: number } {
+  markStaleBefore(Date.now());
   let entries = 0;
-  for (const clear of cacheClearers) entries += clear();
+  for (const count of cacheClearers) entries += count();
   return { caches: cacheClearers.size, entries };
 }
 
 export function createTtlCache<T>(ttlMs: number, maxEntries = 100) {
   const store = new Map<string, { at: number; value: T }>();
   const inflight = new Map<string, Promise<T>>();
-  cacheClearers.add(() => {
-    const n = store.size;
-    store.clear();
-    return n;
-  });
+  cacheClearers.add(() => store.size);
 
   return async function cached(key: string, load: () => Promise<T>): Promise<{ value: T; cachedAt: number }> {
+    // Refresh Admin dari instance mana pun (dicek paling sering tiap 10 detik).
+    const generation = await getRefreshGeneration();
+    if (generation !== null) markStaleBefore(generation);
+
     const hit = store.get(key);
-    if (hit && Date.now() - hit.at < ttlMs) return { value: hit.value, cachedAt: hit.at };
+    if (hit && Date.now() - hit.at < ttlMs && hit.at >= staleBefore()) return { value: hit.value, cachedAt: hit.at };
 
     let pending = inflight.get(key);
     if (!pending) {

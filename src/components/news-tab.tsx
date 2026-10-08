@@ -25,6 +25,7 @@ import type { AppUser } from '@/lib/types';
 import type { NewsCategory, NewsItem } from '@/lib/news';
 import { useWatchlist } from '@/lib/watchlist-store';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { formatNumberLocale } from '@/lib/format';
 import { authFetch, classifyApiError, type ApiErrorKind } from '@/lib/auth-fetch';
 import { IDX_TICKERS } from '@/lib/tickers';
@@ -231,6 +232,18 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
     }, 0);
     return () => clearTimeout(timer);
   }, [isActive, loadFeed]);
+
+  // "Refresh semua data" (Admin): buang cache feed di browser lalu muat ulang (atau saat tab dibuka nanti).
+  const refreshEpoch = useDataRefreshEpoch();
+  const seenEpoch = React.useRef(refreshEpoch);
+  React.useEffect(() => {
+    if (seenEpoch.current === refreshEpoch) return;
+    cacheRef.current.clear();
+    if (!isActive) return;
+    seenEpoch.current = refreshEpoch;
+    const timer = setTimeout(() => loadFeed(true), 0);
+    return () => clearTimeout(timer);
+  }, [refreshEpoch, isActive, loadFeed]);
 
   // Waktu relatif diperbarui tiap menit selama tab terbuka.
   React.useEffect(() => {

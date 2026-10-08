@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Newspaper, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 
 interface NewsItem {
   title: string;
@@ -15,6 +16,7 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
   const [news, setNews] = React.useState<NewsItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
+  const refreshEpoch = useDataRefreshEpoch();
 
   const isId = language === 'id';
 
@@ -46,7 +48,7 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [refreshEpoch]);
 
   if (loading) {
     return (

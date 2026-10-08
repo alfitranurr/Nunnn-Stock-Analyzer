@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import type { AppUser } from '@/lib/types';
 import { loadPortfolio, type Holding } from '@/lib/portfolio-store';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
+import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { formatIDRCompact, formatNumberLocale } from '@/lib/format';
 
 interface PortfolioSnapshotProps {
@@ -25,6 +26,7 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
 
   const isId = language === 'id';
   const money = (v: number) => formatIDRCompact(v, language);
+  const refreshEpoch = useDataRefreshEpoch();
 
   // Sumber data sama dengan halaman Portofolio (lib/portfolio-store).
   const loadData = React.useCallback(async () => {
@@ -40,7 +42,7 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
       loadData();
     }, 0);
     return () => clearTimeout(timer);
-  }, [loadData, refreshKey]);
+  }, [loadData, refreshKey, refreshEpoch]);
 
   // Harga terkini semua saham dalam satu request.
   const tickersKey = holdings.map((h) => h.ticker.toUpperCase()).sort().join(',');
@@ -53,7 +55,7 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
     return () => {
       cancelled = true;
     };
-  }, [tickersKey]);
+  }, [tickersKey, refreshEpoch]);
 
   if (!user) return null;
 

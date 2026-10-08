@@ -66,6 +66,8 @@ interface RefreshResult {
   refreshedAt: string;
   durationMs: number;
   cleared: { caches: number; entries: number };
+  /** Generasi refresh bersama tercatat: semua instance server ikut memuat data baru (≤ 10 detik). */
+  allInstances?: boolean;
   universe: UniverseSummary;
 }
 
@@ -658,7 +660,14 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
               <Stat
                 label={L('Daftar dimuat', 'List loaded')}
                 value={<span className="text-sm">{universe ? `${new Date(universe.fetchedAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-GB', { timeZone: 'Asia/Jakarta' })} WIB` : '—'}</span>}
-                sub={lastRefresh ? L(`refresh ${lastRefresh.durationMs} ms · ${lastRefresh.cleared.entries} cache dikosongkan`, `refresh ${lastRefresh.durationMs} ms · ${lastRefresh.cleared.entries} cache entries cleared`) : undefined}
+                sub={
+                  lastRefresh
+                    ? L(
+                        `refresh ${lastRefresh.durationMs} ms · ${lastRefresh.cleared.entries} cache dikedaluwarsakan · ${lastRefresh.allInstances ? 'semua server' : 'server ini saja'}`,
+                        `refresh ${lastRefresh.durationMs} ms · ${lastRefresh.cleared.entries} cache entries expired · ${lastRefresh.allInstances ? 'all servers' : 'this server only'}`
+                      )
+                    : undefined
+                }
               />
             </div>
             {universe?.error && (
@@ -674,8 +683,8 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
             )}
             <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
               {L(
-                'Refresh mengosongkan cache di server yang menangani permintaan ini dan membuat halaman yang sedang terbuka (termasuk tab lain di browser ini) langsung mengambil data baru. Di Vercel, server lain ikut segar setelah cache-nya habis (harga ≤ 60 detik, daftar emiten ≤ 1 jam, dividen ≤ 6 jam). Data Yahoo gratis tetap tertunda; harga real-time penuh butuh feed data berlisensi BEI (lapisan provider sudah disiapkan).',
-                'Refresh clears the caches of the server handling this request and makes open pages (including other tabs in this browser) fetch new data immediately. On Vercel, other servers refresh when their caches expire (prices ≤ 60 s, stock list ≤ 1 h, dividends ≤ 6 h). Free Yahoo data stays delayed; true real-time prices need a licensed IDX data feed (the provider layer is ready).'
+                'Refresh membuat semua cache data (harga, scan pasar, pasar global, berita, dividen, fundamental, teknikal, daftar emiten) kedaluwarsa di SEMUA server — server lain mengetahuinya paling lambat ±10 detik lewat penanda refresh bersama — lalu halaman yang sedang terbuka di browser ini (termasuk tab lain) langsung mengambil data baru. Pengunjung lain mendapat data baru pada pembaruan berikutnya. Data lama disimpan sebagai cadangan bila sumber sedang gagal. Hasil AI tidak dibuang karena tetap valid untuk berita yang sama (hemat token). Data Yahoo gratis tetap tertunda; harga real-time penuh butuh feed data berlisensi BEI.',
+                'Refresh expires every data cache (prices, market scan, global markets, news, dividends, fundamentals, technicals, stock list) on ALL servers — others learn about it within ~10 s via a shared refresh marker — then pages open in this browser (including other tabs) fetch new data immediately. Other visitors get new data on their next update. Old data is kept as a fallback if a source is failing. AI results are kept since they stay valid for the same news (saves tokens). Free Yahoo data stays delayed; true real-time prices need a licensed IDX data feed.'
               )}
             </p>
           </Card>
