@@ -37,12 +37,14 @@ export function validateIdxQuote(raw: StockQuote): ValidatedQuote {
     return { quote, issue: 'off-tick', detail: `harga ${fmt(raw.price)} bukan kelipatan fraksi BEI` };
   }
 
-  const { upper, lower, pct } = getAutoRejectionBounds(previousClose);
+  // Batas ARB bergantung tanggal transaksi (lihat getAutoRejectionDownPct).
+  const tradedAt = raw.marketTime ? raw.marketTime * 1000 : Date.now();
+  const { upper, lower, upPct, downPct } = getAutoRejectionBounds(previousClose, tradedAt);
   if (raw.price > upper || raw.price < lower) {
     return {
       quote,
       issue: 'exceeds-limit',
-      detail: `${fmt(quote.changePercent)}% dari acuan ${fmt(previousClose)} melewati batas ±${pct}%`,
+      detail: `${fmt(quote.changePercent)}% dari acuan ${fmt(previousClose)} melewati batas +${upPct}% / −${downPct}%`,
     };
   }
 

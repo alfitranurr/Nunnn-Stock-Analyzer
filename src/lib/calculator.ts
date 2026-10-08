@@ -78,6 +78,13 @@ export function roundDownToIdxTick(price: number): number {
   return Math.floor(price / tick) * tick;
 }
 
+/** Bulatkan ke atas ke harga yang valid menurut fraksi BEI (mis. 6.049,7 → 6.050). */
+export function roundUpToIdxTick(price: number): number {
+  if (price <= 0) return 0;
+  const down = roundDownToIdxTick(price);
+  return down >= price - 1e-9 ? down : down + getIdxTickSize(down);
+}
+
 /** Bulatkan ke fraksi harga BEI terdekat (mis. 672,87 → 675). */
 export function roundToNearestIdxTick(price: number): number {
   if (price <= 0) return 0;
@@ -86,8 +93,8 @@ export function roundToNearestIdxTick(price: number): number {
 }
 
 /**
- * Batas auto rejection BEI (%) berdasarkan harga acuan (penutupan sebelumnya):
- * ≤ Rp200 → 35%, ≤ Rp5.000 → 25%, di atasnya → 20%. Diasumsikan simetris untuk ARA dan ARB.
+ * Batas auto rejection ATAS (ARA) BEI (%) berdasarkan harga acuan (penutupan sebelumnya):
+ * ≤ Rp200 → 35%, ≤ Rp5.000 → 25%, di atasnya → 20%. Juga berlaku di hari pertama pencatatan saham IPO.
  */
 export function getAutoRejectionPct(referencePrice: number): number {
   if (referencePrice <= 200) return 35;
@@ -95,24 +102,45 @@ export function getAutoRejectionPct(referencePrice: number): number {
   return 20;
 }
 
+// Kep-00003/BEI/04-2025: ARB 15% untuk semua rentang harga sejak 8 Apr 2025.
+// Kep-00136/BEI/09-2026: ARB kembali simetris dengan ARA mulai 1 Jan 2027 (00:00 WIB).
+const ARB_FLAT_START_MS = Date.UTC(2025, 3, 7, 17);
+const ARB_SYMMETRIC_FROM_MS = Date.UTC(2026, 11, 31, 17);
+const ARB_FLAT_PCT = 15;
+
+/** Batas auto rejection BAWAH (ARB) BEI (%) yang berlaku pada waktu `at`. */
+export function getAutoRejectionDownPct(referencePrice: number, at: number = Date.now()): number {
+  if (at >= ARB_FLAT_START_MS && at < ARB_SYMMETRIC_FROM_MS) return ARB_FLAT_PCT;
+  return getAutoRejectionPct(referencePrice);
+}
+
 /**
  * Harga tertinggi (ARA) & terendah (ARB) yang dimungkinkan dari harga acuan.
- * Perubahan minimal satu fraksi selalu diizinkan (penting untuk saham berharga sangat rendah).
+ * - Harga acuan Rp1–Rp10 (sejak harga minimum Rp1, 28 Sep 2026): batas tetap ±Rp1.
+ * - Selain itu persentase ARA/ARB di atas, dibulatkan ke fraksi BEI; perubahan minimal satu fraksi selalu diizinkan.
+ * `pct` = persentase ARA (dipertahankan untuk kompatibilitas).
  */
-export function getAutoRejectionBounds(referencePrice: number): { upper: number; lower: number; pct: number } {
-  const pct = getAutoRejectionPct(referencePrice);
+export function getAutoRejectionBounds(
+  referencePrice: number,
+  at: number = Date.now()
+): { upper: number; lower: number; pct: number; upPct: number; downPct: number } {
+  const upPct = getAutoRejectionPct(referencePrice);
+  const downPct = getAutoRejectionDownPct(referencePrice, at);
+  if (referencePrice <= 10) {
+    return { upper: referencePrice + 1, lower: Math.max(1, referencePrice - 1), pct: upPct, upPct, downPct };
+  }
   const tick = getIdxTickSize(referencePrice);
-  const upper = Math.max(roundDownToIdxTick(referencePrice * (1 + pct / 100)), referencePrice + tick);
-  const lowerRaw = referencePrice * (1 - pct / 100);
+  const upper = Math.max(roundDownToIdxTick(referencePrice * (1 + upPct / 100)), referencePrice + tick);
+  const lowerRaw = referencePrice * (1 - downPct / 100);
   const lowerTick = getIdxTickSize(lowerRaw);
   const lower = Math.max(1, Math.min(Math.ceil(lowerRaw / lowerTick) * lowerTick, referencePrice - tick));
-  return { upper, lower, pct };
+  return { upper, lower, pct: upPct, upPct, downPct };
 }
 
 /** 'ARA' / 'ARB' bila harga sudah menyentuh batas auto rejection, selain itu null. */
-export function getAutoRejectionStatus(referencePrice: number, price: number): 'ARA' | 'ARB' | null {
+export function getAutoRejectionStatus(referencePrice: number, price: number, at: number = Date.now()): 'ARA' | 'ARB' | null {
   if (referencePrice <= 0 || price <= 0) return null;
-  const { upper, lower } = getAutoRejectionBounds(referencePrice);
+  const { upper, lower } = getAutoRejectionBounds(referencePrice, at);
   if (price > referencePrice && price >= upper) return 'ARA';
   if (price < referencePrice && price <= lower) return 'ARB';
   return null;

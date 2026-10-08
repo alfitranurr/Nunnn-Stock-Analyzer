@@ -66,7 +66,7 @@ async function scanMarket(): Promise<MarketScan> {
       changePercent: quote.changePercent,
       volume: quote.volume,
       value: quote.price * quote.volume,
-      limit: getAutoRejectionStatus(quote.previousClose, quote.price),
+      limit: getAutoRejectionStatus(quote.previousClose, quote.price, quote.marketTime ? quote.marketTime * 1000 : Date.now()),
     });
   }
 

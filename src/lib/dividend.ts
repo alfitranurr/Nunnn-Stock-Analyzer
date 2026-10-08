@@ -9,7 +9,7 @@
  * - payDate : PERKIRAAN tanggal dana masuk RDN. Data BEI 2022–2024: 9–24 hari setelah ex-date.
  */
 
-import { getIdxTickSize, roundDownToIdxTick, roundToNearestIdxTick } from '@/lib/calculator';
+import { roundToNearestIdxTick, roundUpToIdxTick } from '@/lib/calculator';
 
 export interface DividendEvent {
   exDate: string;
@@ -506,13 +506,6 @@ export interface ExDateSimResult {
   /** Harga jual minimal (sesuai fraksi BEI) agar impas setelah fee & pajak. */
   breakEvenPrice: number;
   dividendYieldPct: number;
-}
-
-/** Bulatkan ke atas ke harga yang valid menurut fraksi BEI. */
-function roundUpToIdxTick(price: number): number {
-  if (price <= 0) return 0;
-  const down = roundDownToIdxTick(price);
-  return down >= price - 1e-9 ? down : down + getIdxTickSize(down);
 }
 
 export function simulateExDate(input: ExDateSimInput): ExDateSimResult {
