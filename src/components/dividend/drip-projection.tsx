@@ -6,7 +6,7 @@ import { StepperInput } from '@/components/stepper-input';
 import { useLanguage } from '@/lib/language-context';
 import { formatIDRCompact, parseFormattedNumber } from '@/lib/format';
 import { daysBetween, projectDrip, type ScheduledPayment } from '@/lib/dividend';
-import { Card, CardTitle, Field, Stat, clamp, fmtInput, pct, pick, rp, sanitizeInteger, stepDecimal, type Lang } from './ui';
+import { Card, CardTitle, Field, Stat, clamp, fmtInput, pct, pick, rp, sanitizeInteger, stepDecimal, type Lang } from '@/components/shared/calc-ui';
 
 interface DripProjectionProps {
   language: Lang;

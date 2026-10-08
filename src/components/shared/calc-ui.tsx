@@ -52,6 +52,14 @@ export function stepMoney(s: string, dir: 1 | -1, language: Lang): string {
   return fmtInput(Math.max(0, Math.round((value + dir * step) / step) * step), language, 0);
 }
 
+/** Langkah mengikuti besarnya angka bulat: 4.000 → ±100, 250.000 → ±10.000 (minimal ±1). */
+export function stepMagnitude(s: string, dir: 1 | -1, language: Lang, min = 0): string {
+  const value = Math.round(parseFormattedNumber(s));
+  const ref = dir > 0 ? value : Math.max(0, value - 1);
+  const step = ref < 10 ? 1 : Math.pow(10, Math.floor(Math.log10(ref)) - 1);
+  return fmtInput(Math.max(min, Math.round((value + dir * step) / step) * step), language, 0);
+}
+
 export function stepDecimal(s: string, dir: 1 | -1, step: number, min: number, max: number, language: Lang): string {
   const value = parseFormattedNumber(s);
   return fmtInput(clamp(Math.round((value + dir * step) / step) * step, min, max), language, 2);

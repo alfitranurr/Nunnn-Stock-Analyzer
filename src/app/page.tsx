@@ -19,7 +19,7 @@ import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator'
 import { CompoundingTab } from '@/components/compounding-tab';
 import { PercentageTab } from '@/components/percentage-tab';
 import { DividendTab } from '@/components/dividend/dividend-tab';
-import { IpoTab } from '@/components/ipo-tab';
+import { IpoTab } from '@/components/ipo/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
@@ -808,10 +808,7 @@ export default function Dashboard() {
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6 md:space-y-8"
             >
-              <IpoTab
-                user={user}
-                onSignInClick={() => setIsAuthModalOpen(true)}
-              />
+              <IpoTab user={user} />
             </motion.div>
           </div>
 

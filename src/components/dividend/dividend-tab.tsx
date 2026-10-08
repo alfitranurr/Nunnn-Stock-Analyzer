@@ -57,7 +57,7 @@ import {
   sanitizeNumber,
   stepDecimal,
   stepMoney,
-} from './ui';
+} from '@/components/shared/calc-ui';
 
 interface DividendTabProps {
   isActive: boolean;

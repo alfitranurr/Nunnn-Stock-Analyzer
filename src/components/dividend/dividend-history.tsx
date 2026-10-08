@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { BarChart3, ChevronDown, History } from 'lucide-react';
 import type { DividendProfile } from '@/lib/dividend';
-import { Badge, Card, CardTitle, Stat, formatDate, pct, pick, rpShare, type Lang } from './ui';
+import { Badge, Card, CardTitle, Stat, formatDate, pct, pick, rpShare, type Lang } from '@/components/shared/calc-ui';
 
 const VISIBLE_YEARS = 12;
 const MOBILE_YEARS = 6;

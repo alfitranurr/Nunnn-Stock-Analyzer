@@ -7,7 +7,7 @@ import { useLanguage } from '@/lib/language-context';
 import { parseFormattedNumber } from '@/lib/format';
 import { stepIdxPrice } from '@/lib/calculator';
 import { DEFAULT_SELL_FEE_PCT, simulateExDate, type ScheduledPayment } from '@/lib/dividend';
-import { Card, CardTitle, Field, clamp, fmtInput, formatDate, pct, pick, rp, rpShare, sanitizeInteger, sanitizeNumber, stepDecimal, type Lang } from './ui';
+import { Card, CardTitle, Field, clamp, fmtInput, formatDate, pct, pick, rp, rpShare, sanitizeInteger, sanitizeNumber, stepDecimal, type Lang } from '@/components/shared/calc-ui';
 
 interface ExDateSimulatorProps {
   language: Lang;
