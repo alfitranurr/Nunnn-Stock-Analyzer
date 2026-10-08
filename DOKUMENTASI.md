@@ -586,7 +586,12 @@ Dibangun ulang di `3b89457`, dua bagian:
 - Error tetap tampil sampai ditutup; keberhasilan memakai toast.
 
 **Sistem:**
-- **Refresh semua data** (tombol di header Admin dan di kartu "Data pasar & daftar emiten", sejak `c52efc9`): memanggil `POST /api/admin/refresh` yang mengosongkan semua cache server (`clearAllServerCaches`: harga, scan pasar, pasar global, berita, dividen, daftar emiten) dan memuat ulang daftar emiten aktif, lalu mengirim sinyal [refresh-signal](src/lib/refresh-signal.ts) agar Beranda, Watchlist, Portofolio, dan Dividen yang terbuka (juga di tab lain) langsung mengambil data baru. Kartu menampilkan jumlah emiten dipantau, kode baru vs daftar bawaan, kode tidak aktif, jam daftar dimuat, dan hasil refresh terakhir. Catatan: di Vercel tiap instance punya cache sendiri; instance lain ikut segar setelah TTL (harga ≤ 60 dtk, daftar emiten ≤ 1 jam, dividen ≤ 6 jam).
+- **Refresh semua data** (tombol di header Admin dan di kartu "Data pasar & daftar emiten", sejak `c52efc9`, diperbaiki `a31f09b`): memanggil `POST /api/admin/refresh`, yang:
+  1. Mencatat **generasi refresh bersama** ([refresh-generation.ts](src/lib/refresh-generation.ts)): `revalidateTag(..., { expire: 0 })` pada nilai `unstable_cache`. Di Vercel cache data ini dipakai bersama semua instance, jadi **instance lain ikut kedaluwarsa paling lambat ±10 detik** (sebelum `a31f09b` hanya instance yang menerima request yang dikosongkan; dividen/fundamental di instance lain bisa basi sampai 6 jam).
+  2. Menandai semua cache server kedaluwarsa (`clearAllServerCaches`: harga, scan pasar, pasar global, berita, dividen, fundamental, teknikal, daftar emiten). Data lama **tidak dibuang**, hanya dipaksa diambil ulang, dan tetap disajikan sebagai cadangan bila sumber sedang gagal.
+  3. Memuat ulang daftar emiten aktif, lalu mengirim sinyal [refresh-signal](src/lib/refresh-signal.ts). Beranda (pasar, berita, snapshot portofolio, watchlist), Berita (cache feed di browser ikut dibuang), Watchlist, Portofolio, Dividen, dan Analisis (teknikal & fundamental) yang terbuka, juga di tab lain browser ini, langsung mengambil data baru. Pengunjung lain mendapat data baru pada pembaruan berikutnya.
+  - Hasil AI (rangkuman berita, sentimen Analisis) sengaja tidak dibuang: kuncinya artikel/kumpulan berita yang sama sehingga tetap valid, dan berita baru otomatis dianalisis ulang. Ini menghemat token.
+  - Kartu menampilkan jumlah emiten dipantau, kode baru vs daftar bawaan, kode tidak aktif, jam daftar dimuat, dan hasil refresh terakhir (termasuk "semua server" vs "server ini saja").
 - Koneksi: mode data (Supabase / demo), **ping Supabase** dengan waktu respons, akun yang login.
 - **Skema database** (mode cloud): pemeriksaan baca-saja per migrasi (tabel/kolom/fungsi yang dibuatnya) dengan status OK / Belum ada / Error dan nama file migrasi. Pada 8 Okt 2026 pemeriksaan ini sempat mendeteksi database produksi tertinggal migrasi (kolom `user_approvals.is_admin`, tabel `user_watchlists`, kolom baru `ipo_plans`); sudah diperbaiki dengan [000009](supabase/migrations/20261008000009_repair_production_schema.sql) dan [000010](supabase/migrations/20261008000010_harden_claim_first_admin.sql). Bila ada yang belum, panel menyarankan menjalankan file 000009.
 - Jumlah data di browser ini (Avg Down, Compounding, E-IPO, portofolio akun ini, pengguna demo).
@@ -867,7 +872,7 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | `/api/analysis/news` | GET `?symbol=` `[&ai=1]` | proxy + `requireUser` | IP; kuota AI hanya bila `ai=1` dan belum ada hasil AI tersimpan | validator | Google News RSS per ticker (cache 10 mnt, maks 8 berita), [lib/llm.ts](src/lib/llm.ts) Gemini → Groq → OpenAI (batas 20 dtk). Cache sentimen 30 mnt (AI) / 5 mnt (kata kunci) | **502** feed gagal; tanpa berita → `method: none`; AI gagal/kuota habis → sentimen kata kunci + `aiState` |
 | `/api/dividend` | GET `?symbol=` | — | IP | validator, `.JK` dibuang | Yahoo chart `range=max&interval=1mo&events=div` (riwayat ex date + rata-rata harga per tahun) lewat [dividend-source.ts](src/lib/dividend-source.ts). Cache 6 jam per ticker | **404** ticker tidak dikenal, **502** sumber gagal (data lama tetap disajikan bila ada). Belum pernah bagi dividen → `events: []` |
 | `/api/dividend/summary` | GET `?symbols=A,B` (maks 20) | — | IP | validator | Cache yang sama dengan `/api/dividend` | Ticker yang gagal dilewati |
-| `/api/admin/refresh` | GET (status) / POST (refresh) | proxy + `requireAdmin` (`is_admin`), cek same-origin (POST) | IP | — | POST: kosongkan semua cache server lalu muat ulang daftar emiten aktif (TradingView) | Daftar bawaan bila TradingView gagal |
+| `/api/admin/refresh` | GET (status) / POST (refresh) | proxy + `requireAdmin` (`is_admin`), cek same-origin (POST) | IP | — | POST: catat generasi refresh bersama (semua instance), tandai semua cache server kedaluwarsa, muat ulang daftar emiten aktif (TradingView). Respons: `cleared`, `allInstances`, `generation` | Daftar bawaan bila TradingView gagal; `allInstances: false` bila cache bersama tidak tersedia |
 | `/api/keepalive` | GET | **Tidak ada** (tanpa `CRON_SECRET`) | — | — | Supabase `select id from user_approvals limit 1` | 500 generik |
 
 **Proxy** ([proxy.ts](src/proxy.ts)):
@@ -925,7 +930,7 @@ Data bermasalah dikeluarkan dari breadth dan movers (jumlahnya dikirim di `dataQ
 
 **Sesi bursa** ([market-hours.ts:27](src/lib/market-hours.ts#L27), WIB): Senin–Kamis pra-pembukaan 08:45, sesi 1 09:00–12:00, sesi 2 13:30–15:50, pra-penutupan 15:50–16:00; Jumat sesi 1 09:00–11:30, sesi 2 14:00–15:50. Hari libur tidak dijadwalkan; bila sampai 09:30 IHSG belum bertransaksi hari itu, status menjadi "Libur Bursa" (`getEffectiveIdxSession`).
 
-**Cache server** (`createTtlCache`, [yahoo.ts:213](src/lib/yahoo.ts#L213)): in-memory per instance, dengan deduplikasi request yang sedang berjalan, dan menyajikan data lama bila pengambilan baru gagal.
+**Cache server** (`createTtlCache`, [yahoo.ts](src/lib/yahoo.ts)): in-memory per instance, dengan deduplikasi request yang sedang berjalan, dan menyajikan data lama bila pengambilan baru gagal. Setiap akses memeriksa generasi refresh bersama (paling sering tiap 10 detik per instance); entri yang lebih tua dari refresh Admin terakhir dianggap kedaluwarsa tetapi tetap disimpan sebagai cadangan.
 
 ---
 
@@ -1089,6 +1094,12 @@ Belum ada `.env.example`.
 | Portofolio | Nilai portofolio count-up; bar alokasi tumbuh; **Wawasan portofolio**: konsentrasi (>40% diberi peringatan), penopang dan penekan hari ini, saham rugi ≥15% (saran simulasi Avg Down), porsi kas |
 | Watchlist | Harga dan perubahan berkedip saat diperbarui |
 | Admin | Angka `Stat` berkedip saat berubah |
+
+**Splash pemuatan awal** ([app-splash.tsx](src/components/app-splash.tsx), sejak `6978da7`):
+- Dirender di server dari [layout.tsx](src/app/layout.tsx), jadi langsung tampil saat web dibuka atau di-reload, sebelum JavaScript termuat. Pindah tab di dalam aplikasi tidak memunculkannya lagi.
+- Animasi: tiga candle naik bergantian, garis tren tergambar dengan titik berdenyut, wordmark NUNNN STOCK, tagline, dan progress bar (keyframes `splash*` di [globals.css](src/app/globals.css)).
+- Ditutup saat halaman memanggil `signalAppReady()` setelah sesi login selesai diperiksa, dan urutan logo (±1,3 detik, diukur dari jam animasinya sendiri) sudah tampil utuh. Pengaman: tutup paksa setelah 6 detik, dan CSS menutup sendiri setelah 10 detik bila JavaScript gagal.
+- Ikut aturan "kurangi gerakan" sistem operasi.
 
 **Helper BEI baru** di [calculator.ts](src/lib/calculator.ts): `ticksBetween(from, to)` (jumlah fraksi, mengikuti perubahan fraksi antar-rentang harga), `minAraDays(from, to)` dan `minArbDays(from, to)` (minimal hari ARA/ARB beruntun di papan reguler, memakai `getAutoRejectionBounds`).
 
@@ -1322,6 +1333,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `cb7faed` | 2026-10-08 | — | Analisis langsung dimuat (termasuk AI) setiap halaman dibuka dengan BBCA sebagai default, dan berita/AI di-refresh otomatis tiap 10 menit; tidak ada batas ARA/ARB di ringkasan harga |
 | `ddd4d02` | 2026-10-08 | — | Tampilan statis: tidak ada animasi bersama; kelas `animate-fadeIn`/`animate-scaleIn` dipakai tapi tidak pernah didefinisikan; preferensi "kurangi gerakan" tidak dihormati |
 | `2d1a979` | 2026-10-08 | — | Isi halaman statis: tips acak tanpa melihat kondisi pasar; kalkulator tidak memberi konteks fraksi/ARA/ARB; tidak ada wawasan portofolio maupun rangkuman feed berita |
+| `a31f09b` | 2026-10-08 | — | Refresh Admin hanya mengosongkan cache di satu instance server (instance lain basi sampai TTL, hingga 6 jam); cache dihapus total sehingga tidak ada cadangan bila sumber gagal tepat setelah refresh; feed Berita (cache browser), strip berita & snapshot portofolio Beranda tidak ikut dimuat ulang |
+| `6978da7` | 2026-10-08 | — | Tidak ada animasi pemuatan awal; halaman tampil bertahap tanpa penanda saat web dibuka/di-reload |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
