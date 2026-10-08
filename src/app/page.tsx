@@ -11,7 +11,7 @@ import { connectWatchlistToUser } from '@/lib/watchlist-store';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio/portfolio-tab';
-import { AnalysisTab } from '@/components/analysis-tab';
+import { AnalysisTab } from '@/components/analysis/analysis-tab';
 import { NewsTab } from '@/components/news-tab';
 import { AdminPanelTab } from '@/components/admin/admin-panel-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
@@ -812,6 +812,7 @@ export default function Dashboard() {
             >
               <AnalysisTab
                 user={user}
+                isActive={currentTab === 'analysis'}
                 onSignInClick={() => setIsAuthModalOpen(true)}
                 initialTicker={selectedAnalysisTicker}
               />

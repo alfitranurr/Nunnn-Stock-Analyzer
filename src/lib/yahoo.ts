@@ -205,6 +205,56 @@ export async function fetchChartQuote(
   }
 }
 
+export interface OhlcSeries {
+  open: number[];
+  high: number[];
+  low: number[];
+  close: number[];
+  volume: number[];
+  /** Epoch detik awal tiap bar. */
+  time: number[];
+  /** Offset zona waktu bursa (detik), untuk menentukan tanggal bar. */
+  gmtoffset: number;
+  regularMarketPrice: number | null;
+  regularMarketTime: number | null;
+  name: string;
+}
+
+/**
+ * Bar OHLCV dari Chart API untuk interval apa pun (1d, 1wk, 60m, ...). Bar yang tidak lengkap
+ * (ada nilai null) dibuang. Mengembalikan null bila simbol tidak dikenal; melempar error bila gagal.
+ */
+export async function fetchOhlc(symbol: string, range: string, interval: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<OhlcSeries | null> {
+  const res = await fetch(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`,
+    { headers: { 'User-Agent': YAHOO_UA }, cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) }
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Yahoo chart ${interval} ${res.status}`);
+  const data: { chart?: { result?: Array<YahooSeries & { indicators?: { quote?: Array<Record<string, Array<number | null>>> } }> } } = await res.json();
+  const series = data.chart?.result?.[0];
+  if (!series?.meta) return null;
+  const q = series.indicators?.quote?.[0] ?? {};
+  const out: OhlcSeries = {
+    open: [], high: [], low: [], close: [], volume: [], time: [],
+    gmtoffset: series.meta.gmtoffset ?? 0,
+    regularMarketPrice: series.meta.regularMarketPrice ?? null,
+    regularMarketTime: series.meta.regularMarketTime ?? null,
+    name: series.meta.longName || series.meta.shortName || '',
+  };
+  (series.timestamp ?? []).forEach((t, i) => {
+    const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i];
+    if (typeof o !== 'number' || typeof h !== 'number' || typeof l !== 'number' || typeof c !== 'number' || !(c > 0)) return;
+    out.open.push(o);
+    out.high.push(h);
+    out.low.push(l);
+    out.close.push(c);
+    out.volume.push(typeof q.volume?.[i] === 'number' ? (q.volume[i] as number) : 0);
+    out.time.push(t);
+  });
+  return out;
+}
+
 export interface YahooDividendHistory {
   name: string;
   /** Pembagian dividen per lembar (sudah disesuaikan stock split), urut tanggal ex-date naik. */

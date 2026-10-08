@@ -1,464 +1,176 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/utils';
 import { requireUser } from '@/lib/auth-guard';
-import { applyRateLimit } from '@/lib/rate-limit';
+import { applyAiRateLimit, applyRateLimit } from '@/lib/rate-limit';
 import { validateTickerSymbol } from '@/lib/validators';
+import { createTtlCache } from '@/lib/yahoo';
+import { fetchTickerNews } from '@/lib/news-feed';
+import { isTrustedDomain, type NewsItem } from '@/lib/news';
+import { generateJson, hasLlmKey } from '@/lib/llm';
+import { IDX_TICKERS } from '@/lib/tickers';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-interface NewsItem {
-  title: string;
-  link: string;
-  pubDate: string;
-  source: string;
+type Sentiment = 'Bullish' | 'Bearish' | 'Netral';
+type Confidence = 'high' | 'medium' | 'low';
+
+interface StockSentiment {
+  sentiment: Sentiment;
+  confidence: Confidence;
+  summary: string;
+  keyPoints: string[];
+  /** 'ai' = model bahasa, 'keyword' = hitungan kata, 'none' = tidak ada berita. */
+  method: 'ai' | 'keyword' | 'none';
+  model?: string;
+  generatedAt: string;
 }
 
-function cleanXmlString(str: string) {
-  return str
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
-}
+const MAX_NEWS = 8;
+const AI_TTL_MS = 30 * 60_000;
+const TIME_BUDGET_MS = 20_000;
 
-function parseRss(xmlText: string) {
-  const items: NewsItem[] = [];
-  let match;
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+const feedCache = createTtlCache<NewsItem[]>(10 * 60_000, 300);
+/** Analisis per (ticker + daftar berita): berita sama → tidak memanggil AI lagi (hemat kuota saat LIVE). */
+const analysisCache = new Map<string, { expires: number; value: StockSentiment }>();
 
-  while ((match = itemRegex.exec(xmlText)) !== null) {
-    const itemContent = match[1];
-    
-    const titleMatch = itemContent.match(/<title>([\s\S]*?)<\/title>/);
-    const linkMatch = itemContent.match(/<link>([\s\S]*?)<\/link>/);
-    const pubDateMatch = itemContent.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
-    const sourceMatch = itemContent.match(/<source[^>]*>([\s\S]*?)<\/source>/);
+const POSITIVE = ['naik', 'menguat', 'melonjak', 'melesat', 'laba', 'untung', 'tumbuh', 'positif', 'akuisisi', 'dividen', 'rekor', 'ekspansi', 'buyback', 'kontrak', 'surplus', 'rebound', 'bullish', 'upgrade', 'diborong', 'borong', 'ara'];
+const NEGATIVE = ['turun', 'melemah', 'anjlok', 'merosot', 'ambles', 'ambruk', 'tertekan', 'terseret', 'rugi', 'defisit', 'negatif', 'gugatan', 'suspensi', 'gagal', 'koreksi', 'bearish', 'downgrade', 'pailit', 'phk', 'dilepas', 'dijual', 'arb'];
+// Frasa dinilai lebih dulu (bobot 2) lalu dihapus dari judul, agar "aliran keluar dana asing naik"
+// tidak terhitung positif karena kata "naik".
+const POSITIVE_PHRASES = ['net buy', 'beli bersih', 'asing borong', 'dana asing masuk', 'aliran masuk', 'laba bersih naik', 'laba naik', 'target harga naik'];
+const NEGATIVE_PHRASES = ['net sell', 'jual bersih', 'asing jual', 'dana asing keluar', 'aliran keluar', 'laba turun', 'laba bersih turun', 'target harga turun', 'gagal bayar'];
 
-    const title = titleMatch ? cleanXmlString(titleMatch[1]) : '';
-    const link = linkMatch ? cleanXmlString(linkMatch[1]) : '';
-    const pubDate = pubDateMatch ? cleanXmlString(pubDateMatch[1]) : '';
-    const source = sourceMatch ? cleanXmlString(sourceMatch[1]) : '';
-
-    if (title && link) {
-      items.push({
-        title,
-        link,
-        pubDate,
-        source
-      });
+/** Skor satu judul: + / − / 0. Kata utuh (bukan substring: "Rupiah" bukan "up", "jatuh tempo" bukan negatif). */
+function headlineScore(title: string): number {
+  let text = ` ${title.toLowerCase().replace(/jatuh tempo/g, ' ')} `;
+  let score = 0;
+  for (const [phrases, sign] of [[POSITIVE_PHRASES, 2], [NEGATIVE_PHRASES, -2]] as const) {
+    for (const p of phrases) {
+      if (text.includes(p)) {
+        score += sign;
+        text = text.split(p).join(' ');
+      }
     }
   }
-
-  return items;
+  const words = new Set(text.split(/[^a-z0-9]+/));
+  score += POSITIVE.filter((w) => words.has(w)).length - NEGATIVE.filter((w) => words.has(w)).length;
+  return score;
 }
 
-// Local Keyword-based Sentiment Analysis
-function getLocalSentimentAnalysis(symbol: string, news: NewsItem[]) {
-  if (news.length === 0) {
-    return {
-      sentiment: 'Netral',
-      score: 0,
-      summary: `Belum ada berita terbaru yang ditemukan untuk emiten ${symbol}. Mohon periksa kembali ketersediaan berita di internet.`
-    };
+/** Perkiraan sentimen dari judul: dihitung per berita, label hanya berubah bila selisihnya jelas. */
+function keywordSentiment(news: NewsItem[]): Omit<StockSentiment, 'generatedAt'> {
+  let pos = 0;
+  let neg = 0;
+  for (const item of news) {
+    const s = headlineScore(item.title);
+    if (s > 0) pos++;
+    else if (s < 0) neg++;
   }
-
-  const posWords = [
-    'tumbuh', 'untung', 'naik', 'cuan', 'rekor', 'ekspansi', 'akuisisi', 'dividen',
-    'positif', 'laba', 'bullish', 'growth', 'up', 'positive', 'buy', 'gain', 'meningkat',
-    'melonjak', 'optimis', 'tinggi', 'bagus', 'terdongkrak', 'moncer', 'melejit'
-  ];
-  
-  const negWords = [
-    'rugi', 'turun', 'anjlok', 'lemah', 'beban', 'utang', 'negatif', 'sengketa',
-    'bearish', 'drop', 'fall', 'loss', 'debt', 'sell', 'decline', 'menurun', 'merosot',
-    'tertekan', 'lesu', 'gugatan', 'krisis', 'pangkas', 'ambruk', 'jatuh'
-  ];
-
-  let score = 0;
-  let posCount = 0;
-  let negCount = 0;
-
-  news.forEach(item => {
-    const text = item.title.toLowerCase();
-    posWords.forEach(w => {
-      if (text.includes(w)) {
-        score++;
-        posCount++;
-      }
-    });
-    negWords.forEach(w => {
-      if (text.includes(w)) {
-        score--;
-        negCount++;
-      }
-    });
-  });
-
-  let sentiment = 'Netral';
-  let sentimentDesc = 'cenderung seimbang (Netral)';
-  if (score > 1) {
-    sentiment = 'Bullish';
-    sentimentDesc = 'cenderung Positif (Bullish)';
-  } else if (score < -1) {
-    sentiment = 'Bearish';
-    sentimentDesc = 'cenderung Negatif (Bearish)';
-  }
-
-  // Construct bullet-point style analysis summary
-  const points = [
-    `Berdasarkan rujukan ${news.length} artikel berita terkini, sentimen pasar untuk emiten ${symbol} saat ini **${sentimentDesc}** (skor sentimen: ${score > 0 ? '+' : ''}${score}).`,
-    posCount > negCount 
-      ? `Katalis positif dominan terkait prospek bisnis, peningkatan operasional, atau reaksi positif pasar.` 
-      : negCount > posCount 
-      ? `Harap perhatikan adanya tekanan jual karena sentimen pasar yang lesu atau berita tantangan internal/eksternal.`
-      : `Minim katalis penggerak harga signifikan. Sentimen pasar seimbang dan menanti laporan keuangan baru.`,
-    `Berita Utama teratas: "${news[0]?.title.substring(0, 75)}..." oleh ${news[0]?.source || 'Portal Berita'}.`
-  ];
-
+  const sentiment: Sentiment = pos - neg >= 2 && pos >= neg * 1.5 ? 'Bullish' : neg - pos >= 2 && neg >= pos * 1.5 ? 'Bearish' : 'Netral';
   return {
     sentiment,
-    score,
-    summary: points.join('\n\n')
+    confidence: 'low',
+    summary: `Perkiraan dari kata kunci judul ${news.length} berita terbaru: ${pos} bernada positif, ${neg} negatif, ${news.length - pos - neg} netral. Bukan analisis isi berita.`,
+    keyPoints: [],
+    method: 'keyword',
   };
 }
 
-// Call Gemini API for summary
-async function getGeminiSummary(symbol: string, news: NewsItem[], apiKey: string) {
-  const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
-${news.map((n, i) => `${i+1}. [${n.source}] ${n.title}`).join('\n')}
+const SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    sentiment: { type: 'STRING', enum: ['Bullish', 'Bearish', 'Netral'] },
+    confidence: { type: 'STRING', enum: ['high', 'medium', 'low'] },
+    summary: { type: 'STRING' },
+    keyPoints: { type: 'ARRAY', items: { type: 'STRING' } },
+  },
+  required: ['sentiment', 'confidence', 'summary', 'keyPoints'],
+};
 
-Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output Anda HARUS mengandung format berikut:
-1. Ringkasan singkat sentimen keseluruhan (Bullish, Bearish, atau Netral).
-2. Tiga poin analisis/sentimen utama yang sedang hangat (dalam bentuk bullet-points).
-3. Himbauan risiko atau rekomendasi singkat bagi investor.
-Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
+function buildPrompt(ticker: string, name: string, news: NewsItem[]): string {
+  const list = news.map((n, i) => `${i + 1}. [${n.pubDate.slice(0, 10)}] ${n.title} (${n.source})`).join('\n');
+  return `Anda analis pasar modal Indonesia. Nilai sentimen berita terhadap saham ${ticker} (${name}) HANYA berdasarkan judul berita berikut (7 hari terakhir):
+${list}
 
-  const models = [
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-3.1-flash-lite',
-    'gemini-flash-lite-latest',
-    'gemini-3-flash-preview'
-  ];
-
-  let lastError = null;
-  for (const model of models) {
-    try {
-      console.log(`Attempting Gemini ticker sentiment analysis using model: ${model}`);
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }]
-          })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Response status ${response.status}`);
-      }
-
-      const data = await response.json();
-      const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!textResult) {
-        throw new Error('Empty response content');
-      }
-
-      // Determine sentiment from text
-      let sentiment = 'Netral';
-      const textLower = textResult.toLowerCase();
-      if (textLower.includes('bullish') || textLower.includes('positif')) {
-        sentiment = 'Bullish';
-      } else if (textLower.includes('bearish') || textLower.includes('negatif')) {
-        sentiment = 'Bearish';
-      }
-
-      console.log(`Successfully generated ticker sentiment using model: ${model}`);
-      return {
-        sentiment,
-        summary: textResult,
-        isAI: true,
-        modelUsed: model
-      };
-    } catch (err: unknown) {
-      console.warn(`Failed to get Gemini summary for model ${model}:`, getErrorMessage(err));
-      lastError = err;
-    }
-  }
-  console.error('All Gemini models failed in getGeminiSummary, last error:', lastError ? getErrorMessage(lastError) : 'none');
-  return null;
+Aturan:
+- sentiment = Bullish, Bearish, atau Netral untuk harga saham ${ticker} dalam jangka pendek. Bila berita campuran atau tidak spesifik ke emiten, pilih Netral.
+- confidence = high hanya bila beberapa berita konsisten dan jelas berdampak ke emiten; low bila hanya sedikit/tidak langsung.
+- summary = 2–3 kalimat bahasa Indonesia, faktual, tanpa saran beli/jual dan tanpa angka yang tidak ada di judul.
+- keyPoints = maksimal 3 poin pendek tentang apa yang mendorong sentimen.
+Jawab dalam JSON sesuai skema.`;
 }
 
-// Call Groq API for summary
-async function getGroqSummary(symbol: string, news: NewsItem[], apiKey: string) {
-  const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
-${news.map((n, i) => `${i+1}. [${n.source}] ${n.title}`).join('\n')}
-
-Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output Anda HARUS mengandung format berikut:
-1. Ringkasan singkat sentimen keseluruhan (Bullish, Bearish, atau Netral).
-2. Tiga poin analisis/sentimen utama yang sedang hangat (dalam bentuk bullet-points).
-3. Himbauan risiko atau rekomendasi singkat bagi investor.
-Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
-
-  try {
-    console.log('Attempting Groq ticker sentiment analysis using model: llama-3.3-70b-versatile');
-    const response = await fetch(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7
-        })
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Groq API responded with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const textResult = data.choices?.[0]?.message?.content;
-
-    let sentiment = 'Netral';
-    const textLower = (textResult || '').toLowerCase();
-    if (textLower.includes('bullish') || textLower.includes('positif')) {
-      sentiment = 'Bullish';
-    } else if (textLower.includes('bearish') || textLower.includes('negatif')) {
-      sentiment = 'Bearish';
-    }
-
-    console.log('Successfully generated ticker sentiment using Groq model: llama-3.3-70b-versatile');
-    return {
-      sentiment,
-      summary: textResult || '',
-      isAI: true,
-      modelUsed: 'llama-3.3-70b-versatile'
-    };
-  } catch (err: unknown) {
-    console.error('Failed to get Groq summary, checking OpenAI:', getErrorMessage(err));
-    return null;
-  }
+function normalize(raw: unknown): Omit<StockSentiment, 'method' | 'generatedAt' | 'model'> | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const sentiment = (['Bullish', 'Bearish', 'Netral'] as Sentiment[]).find((s) => s === r.sentiment);
+  const confidence = (['high', 'medium', 'low'] as Confidence[]).find((c) => c === r.confidence) ?? 'low';
+  const summary = typeof r.summary === 'string' ? r.summary.trim().slice(0, 600) : '';
+  if (!sentiment || summary.length < 20) return null;
+  const keyPoints = Array.isArray(r.keyPoints) ? r.keyPoints.filter((p): p is string => typeof p === 'string' && p.trim().length > 0).map((p) => p.trim().slice(0, 200)).slice(0, 3) : [];
+  return { sentiment, confidence, summary, keyPoints };
 }
 
-// Call OpenAI API for summary
-async function getOpenAISummary(symbol: string, news: NewsItem[], apiKey: string) {
-  const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
-${news.map((n, i) => `${i+1}. [${n.source}] ${n.title}`).join('\n')}
-
-Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output Anda HARUS mengandung format berikut:
-1. Ringkasan singkat sentimen keseluruhan (Bullish, Bearish, atau Netral).
-2. Tiga poin analisis/sentimen utama yang sedang hangat (dalam bentuk bullet-points).
-3. Himbauan risiko atau rekomendasi singkat bagi investor.`;
-
-  try {
-    const response = await fetch(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7
-        })
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API responded with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const textResult = data.choices?.[0]?.message?.content;
-
-    let sentiment = 'Netral';
-    const textLower = (textResult || '').toLowerCase();
-    if (textLower.includes('bullish') || textLower.includes('positif')) {
-      sentiment = 'Bullish';
-    } else if (textLower.includes('bearish') || textLower.includes('negatif')) {
-      sentiment = 'Bearish';
-    }
-
-    return {
-      sentiment,
-      summary: textResult || '',
-      isAI: true
-    };
-  } catch (err: unknown) {
-    console.error('Failed to get OpenAI summary, falling back to local analysis:', getErrorMessage(err));
-    return null;
-  }
-}
-
-function generateFallbackNews(symbol: string): NewsItem[] {
-  const currentDate = new Date().toLocaleDateString('id-ID', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
-
-  return [
-    {
-      title: `Analisis Pergerakan Saham ${symbol}: Konsolidasi Sehat di Area Support Terdekat`,
-      link: 'https://finance.yahoo.com/quote/' + symbol + '.JK',
-      pubDate: currentDate + ' 08:30:00 GMT+7',
-      source: 'Market Inside IDX'
-    },
-    {
-      title: `Menilik Prospek Bisnis dan Sentimen Industri Sektor Emiten ${symbol} Hari Ini`,
-      link: 'https://finance.yahoo.com/quote/' + symbol + '.JK',
-      pubDate: currentDate + ' 09:15:00 GMT+7',
-      source: 'Fintech News Indonesia'
-    },
-    {
-      title: `Volume Transaksi Emiten ${symbol} Terpantau Stabil, Analis Amati Peluang Akumulasi`,
-      link: 'https://finance.yahoo.com/quote/' + symbol + '.JK',
-      pubDate: currentDate + ' 10:45:00 GMT+7',
-      source: 'Analisis Saham Indonesia'
-    }
-  ];
-}
-
+/**
+ * GET /api/analysis/news?symbol=BBCA
+ * Berita 7 hari terakhir yang benar-benar menyebut emiten (kode atau nama), plus sentimen.
+ * Tidak ada judul buatan: bila tidak ada berita relevan, daftar kosong dan sentimen "Netral (tanpa berita)".
+ */
 export async function GET(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
-
-  const limited = await applyRateLimit(request, user?.id);
+  const limited = await applyRateLimit(request);
   if (limited) return limited;
 
-  const { searchParams } = new URL(request.url);
-  const symbol = validateTickerSymbol(searchParams.get('symbol'));
+  const ticker = validateTickerSymbol(request.nextUrl.searchParams.get('symbol'))?.replace(/\.JK$/, '');
+  if (!ticker) return NextResponse.json({ error: 'Invalid or missing symbol parameter', code: 'invalid_symbol' }, { status: 400 });
+  const name = IDX_TICKERS[ticker] || ticker;
 
-  if (!symbol) {
-    return NextResponse.json({ error: 'Invalid or missing symbol parameter' }, { status: 400 });
-  }
-
-  // Raw symbol without .JK extension for news search
-  const rawSymbol = symbol.split('.')[0];
-
+  let news: NewsItem[];
   try {
-    // Search Google News RSS feed for the stock news
-    const query = encodeURIComponent(`${rawSymbol} saham when:7d`);
-    const feedUrl = `https://news.google.com/rss/search?q=${query}&hl=id&gl=ID&ceid=ID:id`;
-
-    let newsItems: NewsItem[] = [];
-
-    try {
-      const response = await fetch(feedUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        },
-        cache: 'no-store'
-      });
-
-      if (response.ok) {
-        const xmlText = await response.text();
-        newsItems = parseRss(xmlText);
-      }
-    } catch (e: unknown) {
-      console.warn('Failed to fetch news from Google News RSS:', getErrorMessage(e));
-    }
-
-    // Secondary fallback: Try Yahoo Finance RSS
-    if (newsItems.length === 0) {
-      try {
-        const yahooFeedUrl = `https://finance.yahoo.com/rss/headline?s=${rawSymbol}.JK`;
-        const yResponse = await fetch(yahooFeedUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          },
-          cache: 'no-store'
-        });
-        if (yResponse.ok) {
-          const xmlText = await yResponse.text();
-          newsItems = parseRss(xmlText);
-        }
-      } catch (yErr: unknown) {
-        console.warn('Failed to fetch news from Yahoo Finance RSS:', getErrorMessage(yErr));
-      }
-    }
-
-    // Sort by publication date descending (newest first)
-    if (newsItems.length > 0) {
-      newsItems.sort((a, b) => {
-        const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-        const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-        return dateB - dateA;
-      });
-      newsItems = newsItems.slice(0, 10);
-    }
-
-    // Tertiary fallback: If still empty, use generated fallback headlines
-    if (newsItems.length === 0) {
-      newsItems = generateFallbackNews(rawSymbol);
-    }
-
-    // Check for API Keys to generate AI narrative summary
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const groqKey = process.env.GROQ_API_KEY;
-    const openAIKey = process.env.OPENAI_API_KEY;
-
-    let analysisResult = null;
-
-    if (newsItems.length > 0) {
-      if (geminiKey) {
-        analysisResult = await getGeminiSummary(rawSymbol, newsItems, geminiKey);
-      }
-      
-      if (!analysisResult && groqKey) {
-        analysisResult = await getGroqSummary(rawSymbol, newsItems, groqKey);
-      }
-      
-      if (!analysisResult && openAIKey) {
-        analysisResult = await getOpenAISummary(rawSymbol, newsItems, openAIKey);
-      }
-    }
-
-    // Fallback to local keyword analysis if no AI key configured or if call failed
-    if (!analysisResult) {
-      const localResult = getLocalSentimentAnalysis(rawSymbol, newsItems);
-      analysisResult = {
-        sentiment: localResult.sentiment,
-        summary: localResult.summary,
-        isAI: false
-      };
-    }
-
-    return NextResponse.json({
-      symbol: rawSymbol,
-      news: newsItems,
-      analysis: analysisResult
+    const { value } = await feedCache(ticker, async () => {
+      const items = await fetchTickerNews([ticker]);
+      // Media kredibel didahulukan, lalu terbaru.
+      return [...items.filter((n) => isTrustedDomain(n.sourceDomain)), ...items.filter((n) => !isTrustedDomain(n.sourceDomain))].slice(0, MAX_NEWS);
     });
-  } catch (error: unknown) {
-    console.error(`Error fetching news for ${rawSymbol}:`, getErrorMessage(error));
+    news = value;
+  } catch (error) {
+    console.error(`[analysis-news] ${ticker}:`, getErrorMessage(error));
+    return NextResponse.json({ error: 'News source unavailable', code: 'source_failed' }, { status: 502 });
+  }
+
+  const now = new Date().toISOString();
+  if (news.length === 0) {
     return NextResponse.json({
-      symbol: rawSymbol,
+      symbol: ticker,
       news: [],
-      analysis: {
-        sentiment: 'Netral',
-        summary: `Gagal memuat berita: ${getErrorMessage(error)}. Sentimen diestimasi Netral.`,
-        isAI: false
-      }
+      analysis: { sentiment: 'Netral', confidence: 'low', summary: 'Tidak ada berita yang menyebut emiten ini dalam 7 hari terakhir.', keyPoints: [], method: 'none', generatedAt: now } satisfies StockSentiment,
     });
   }
+
+  const key = `${ticker}:${news.map((n) => n.id).join('|')}`;
+  const hit = analysisCache.get(key);
+  if (hit && hit.expires > Date.now()) return NextResponse.json({ symbol: ticker, news, analysis: hit.value });
+
+  let analysis: StockSentiment | null = null;
+  if (hasLlmKey() && user) {
+    // Kuota AI hanya terpakai saat benar-benar memanggil AI (bukan dari cache).
+    const aiLimited = await applyAiRateLimit(user.id);
+    if (!aiLimited) {
+      const result = await generateJson({
+        prompt: buildPrompt(ticker, name, news),
+        geminiSchema: SCHEMA,
+        deadline: Date.now() + TIME_BUDGET_MS,
+        tag: 'analysis-news',
+        normalize,
+      });
+      if (result) analysis = { ...result.value, method: 'ai', model: `${result.provider} ${result.model}`, generatedAt: now };
+    }
+  }
+  if (!analysis) analysis = { ...keywordSentiment(news), generatedAt: now };
+
+  analysisCache.set(key, { expires: Date.now() + (analysis.method === 'ai' ? AI_TTL_MS : 5 * 60_000), value: analysis });
+  if (analysisCache.size > 500) analysisCache.delete(analysisCache.keys().next().value as string);
+  return NextResponse.json({ symbol: ticker, news, analysis });
 }
