@@ -55,9 +55,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
     { id: 'ipo', label: t('sidebar.ipo'), icon: Rocket, active: true },
     { id: 'analysis', label: t('sidebar.analysis'), icon: ChartCandlestick, active: true, isLocked: !user },
     { id: 'portfolio', label: t('sidebar.portfolio'), icon: Briefcase, active: true, isLocked: !user },
-    ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true }] : []),
     { id: 'history', label: t('sidebar.history'), icon: History, active: false, labelBadge: t('common.soon') },
     { id: 'watchlist', label: t('sidebar.watchlist'), icon: Star, active: true },
+    // Admin selalu paling bawah.
+    ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true }] : []),
   ];
 
   const sidebarVariants = {
