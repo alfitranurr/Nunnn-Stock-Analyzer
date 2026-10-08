@@ -28,6 +28,7 @@ import { TrendingNewsStrip } from '@/components/trending-news-strip';
 import { EducationalTipCard } from '@/components/educational-tip-card';
 import { WatchlistPanel } from '@/components/watchlist-panel';
 import { MarketStatusBar } from './market-status-bar';
+import { ListingCoverage } from './listing-coverage';
 import { MarketOverview } from './market-overview';
 import { MarketMovers } from './market-movers';
 import { GlobalMarkets } from './global-markets';
@@ -154,6 +155,8 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
       </div>
 
       <MarketOverview language={language} data={data} loading={loading} error={error} />
+
+      <ListingCoverage language={language} isActive={isActive} />
 
       <GlobalMarkets language={language} isActive={isActive} />
 

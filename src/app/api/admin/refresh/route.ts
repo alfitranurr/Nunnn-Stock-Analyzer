@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { applyRateLimit } from '@/lib/rate-limit';
 import { clearAllServerCaches } from '@/lib/yahoo';
 import { markDataRefreshed } from '@/lib/refresh-generation';
+import { getListingCoverage } from '@/lib/listing-coverage';
 import { getIdxUniverse, type IdxUniverse } from '@/lib/idx-universe';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,8 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
   const { error } = await requireAdmin(request);
   if (error) return error;
-  return NextResponse.json({ universe: summarize(await getIdxUniverse()) });
+  const [universe, coverage] = await Promise.all([getIdxUniverse(), getListingCoverage().catch(() => null)]);
+  return NextResponse.json({ universe: summarize(universe), coverage });
 }
 
 /**
@@ -49,7 +51,10 @@ export async function POST(request: NextRequest) {
   const generation = await markDataRefreshed();
   const cleared = clearAllServerCaches();
   const universe = await getIdxUniverse();
+  // Cakupan emiten (aktif + suspensi vs resmi BEI) ikut dihitung ulang.
+  const coverage = await getListingCoverage().catch(() => null);
   return NextResponse.json({
+    coverage,
     refreshedAt: new Date().toISOString(),
     durationMs: Date.now() - started,
     cleared,

@@ -23,6 +23,8 @@ import {
 import { ConfirmModal } from '@/components/confirm-modal';
 import { PageHeader } from '@/components/shared/page-header';
 import { Badge, Card, CardTitle, Segmented, Stat, pick } from '@/components/shared/calc-ui';
+import { Pencil as PencilIcon, Building2 as BuildingIcon } from 'lucide-react';
+import type { ListingCoverage } from '@/lib/listing-coverage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
@@ -69,6 +71,7 @@ interface RefreshResult {
   /** Generasi refresh bersama tercatat: semua instance server ikut memuat data baru (≤ 10 detik). */
   allInstances?: boolean;
   universe: UniverseSummary;
+  coverage?: ListingCoverage | null;
 }
 
 interface SupabaseResult {
@@ -154,6 +157,9 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
   const [checking, setChecking] = React.useState(false);
   const [localStats, setLocalStats] = React.useState({ avgDown: 0, compounding: 0, ipo: 0, holdings: 0, users: 0 });
   const [universe, setUniverse] = React.useState<UniverseSummary | null>(null);
+  const [coverage, setCoverage] = React.useState<ListingCoverage | null>(null);
+  const [officialForm, setOfficialForm] = React.useState<{ count: string; asOf: string; source: string } | null>(null);
+  const [savingOfficial, setSavingOfficial] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState<RefreshResult | null>(null);
   const [refreshingData, setRefreshingData] = React.useState(false);
 
@@ -296,12 +302,51 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
     try {
       const res = await authFetch('/api/admin/refresh');
       if (!res.ok) return;
-      const json = (await res.json()) as { universe: UniverseSummary };
+      const json = (await res.json()) as { universe: UniverseSummary; coverage?: ListingCoverage | null };
       setUniverse(json.universe);
+      if (json.coverage) setCoverage(json.coverage);
     } catch {
       // status hanya informasi tambahan
     }
   }, []);
+
+  /** Simpan jumlah emiten resmi BEI (tabel app_settings, migrasi 000011). */
+  const saveOfficial = async () => {
+    if (!officialForm) return;
+    setSavingOfficial(true);
+    setError(null);
+    try {
+      const res = await authFetch('/api/admin/listed-official', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: Number(officialForm.count.replace(/[^0-9]/g, '')), asOf: officialForm.asOf, source: officialForm.source }),
+      });
+      if (!res.ok) {
+        let code = '';
+        try {
+          code = ((await res.clone().json()) as { code?: string }).code ?? '';
+        } catch {
+          // bukan JSON
+        }
+        const message =
+          code === 'migration_missing'
+            ? L('Jalankan dulu migrasi supabase/migrations/20261008000011_app_settings.sql di Supabase SQL Editor.', 'Run supabase/migrations/20261008000011_app_settings.sql in the Supabase SQL Editor first.')
+            : code === 'no_database'
+              ? L('Butuh Supabase: di mode demo angka resmi memakai nilai bawaan.', 'Requires Supabase: demo mode uses the built-in value.')
+              : await apiError(res);
+        setError(L(`Gagal menyimpan jumlah resmi: ${message}`, `Failed to save the official count: ${message}`));
+        return;
+      }
+      setOfficialForm(null);
+      await loadUniverseStatus();
+      bumpDataRefresh();
+      showToast(L('Jumlah emiten resmi BEI disimpan.', 'Official IDX listing count saved.'));
+    } catch (err) {
+      reportError(err, 'Gagal menyimpan jumlah resmi.', 'Failed to save the official count.');
+    } finally {
+      setSavingOfficial(false);
+    }
+  };
 
   /** Kosongkan semua cache server, muat ulang daftar emiten, lalu minta semua halaman mengambil data baru. */
   const refreshAllData = async () => {
@@ -317,8 +362,13 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
       const json = (await res.json()) as RefreshResult;
       setLastRefresh(json);
       setUniverse(json.universe);
+      if (json.coverage) setCoverage(json.coverage);
       bumpDataRefresh();
-      showToast(L(`Data diperbarui: ${json.universe.count} emiten aktif.`, `Data refreshed: ${json.universe.count} active stocks.`));
+      showToast(
+        json.coverage
+          ? L(`Data diperbarui: ${json.coverage.tracked} emiten terpantau (${json.coverage.active} aktif + ${json.coverage.suspended.length} suspensi) dari ${json.coverage.official.count} tercatat di BEI.`, `Data refreshed: ${json.coverage.tracked} stocks tracked (${json.coverage.active} active + ${json.coverage.suspended.length} suspended) of ${json.coverage.official.count} listed on IDX.`)
+          : L(`Data diperbarui: ${json.universe.count} emiten aktif.`, `Data refreshed: ${json.universe.count} active stocks.`)
+      );
     } catch (err) {
       reportError(err, 'Refresh data gagal.', 'Data refresh failed.');
     } finally {
@@ -656,7 +706,11 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                 sub={universe ? (universe.source === 'tradingview' ? L('daftar aktif (TradingView)', 'active list (TradingView)') : L('daftar bawaan (cadangan)', 'built-in list (fallback)')) : undefined}
               />
               <Stat tone="sky" label={L('Baru vs daftar bawaan', 'New vs built-in list')} value={universe ? universe.newSymbols.length : '—'} sub={L('kode yang belum ada di daftar bawaan', 'codes not in the built-in list')} />
-              <Stat label={L('Tidak aktif', 'Inactive')} value={universe ? universe.inactiveCount : '—'} sub={L('suspensi/delisting, tidak dipindai', 'suspended/delisted, not scanned')} />
+              <Stat
+                label={L('Di luar TradingView', 'Not on TradingView')}
+                value={universe ? universe.inactiveCount : '—'}
+                sub={coverage ? L(`${coverage.suspended.length} suspensi + ${coverage.noData.length} tanpa data · tidak dipindai`, `${coverage.suspended.length} suspended + ${coverage.noData.length} without data · not scanned`) : L('suspensi/delisting, tidak dipindai', 'suspended/delisted, not scanned')}
+              />
               <Stat
                 label={L('Daftar dimuat', 'List loaded')}
                 value={<span className="text-sm">{universe ? `${new Date(universe.fetchedAt).toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-GB', { timeZone: 'Asia/Jakarta' })} WIB` : '—'}</span>}
@@ -670,6 +724,82 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                 }
               />
             </div>
+            {/* Cakupan emiten vs jumlah resmi BEI */}
+            {coverage && (
+              <div className="mt-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <BuildingIcon className="h-3.5 w-3.5 text-emerald-400" /> {L('Cakupan emiten BEI', 'IDX listing coverage')}
+                  </span>
+                  {!officialForm && (
+                    <button
+                      type="button"
+                      onClick={() => setOfficialForm({ count: String(coverage.official.count), asOf: new Date().toISOString().slice(0, 10), source: coverage.official.origin === 'admin' ? coverage.official.source : '' })}
+                      className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <PencilIcon className="h-3 w-3" /> {L('Ubah jumlah resmi', 'Edit official count')}
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <Stat tone="emerald" label={L('Terpantau di web ini', 'Tracked here')} value={coverage.tracked} sub={L(`${coverage.active} aktif + ${coverage.suspended.length} suspensi`, `${coverage.active} active + ${coverage.suspended.length} suspended`)} />
+                  <Stat tone="amber" label={L('Suspensi terdeteksi', 'Suspended detected')} value={coverage.suspended.length} sub={L('tidak ada di TradingView, masih ada data di Yahoo', 'not on TradingView, still on Yahoo')} />
+                  <Stat label={L('Kode lama tanpa data', 'Old codes without data')} value={coverage.noData.length} sub={L('delisting / suspensi sangat lama', 'delisted / long suspended')} />
+                  <Stat
+                    tone="sky"
+                    label={L('Tercatat di BEI (resmi)', 'Listed on IDX (official)')}
+                    value={coverage.official.count}
+                    sub={`${new Date(`${coverage.official.asOf}T00:00:00Z`).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })} · ${coverage.official.origin === 'admin' ? L('diisi admin', 'set by admin') : L('nilai bawaan', 'default')} · ${coverage.coveragePct.toFixed(1)}%`}
+                  />
+                </div>
+
+                {officialForm && (
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-[8rem_10rem_minmax(0,1fr)_auto] gap-2 items-end">
+                    <label className="text-[10px] font-bold text-slate-400 flex flex-col gap-1">
+                      {L('Jumlah emiten', 'Listed count')}
+                      <input inputMode="numeric" value={officialForm.count} onChange={(e) => setOfficialForm({ ...officialForm, count: e.target.value.replace(/[^0-9]/g, '') })} className="px-3 py-2 rounded-xl bg-input-bg border border-border-color text-sm text-white font-bold" />
+                    </label>
+                    <label className="text-[10px] font-bold text-slate-400 flex flex-col gap-1">
+                      {L('Per tanggal', 'As of')}
+                      <input type="date" value={officialForm.asOf} onChange={(e) => setOfficialForm({ ...officialForm, asOf: e.target.value })} className="px-3 py-2 rounded-xl bg-input-bg border border-border-color text-sm text-white" />
+                    </label>
+                    <label className="text-[10px] font-bold text-slate-400 flex flex-col gap-1">
+                      {L('Sumber', 'Source')}
+                      <input value={officialForm.source} maxLength={120} placeholder={L('mis. idx.co.id / ANTARA News', 'e.g. idx.co.id / ANTARA News')} onChange={(e) => setOfficialForm({ ...officialForm, source: e.target.value })} className="px-3 py-2 rounded-xl bg-input-bg border border-border-color text-sm text-white" />
+                    </label>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setOfficialForm(null)} className="px-3 py-2 rounded-xl border border-white/10 text-xs font-bold text-slate-300 cursor-pointer">{L('Batal', 'Cancel')}</button>
+                      <button type="button" onClick={() => void saveOfficial()} disabled={savingOfficial || !officialForm.count || !officialForm.asOf} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-50">
+                        {savingOfficial ? L('Menyimpan…', 'Saving…') : L('Simpan', 'Save')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {coverage.suspended.length > 0 && (
+                  <details className="mt-3 group">
+                    <summary className="text-[11px] font-bold text-slate-400 cursor-pointer hover:text-white">
+                      {L(`Lihat ${coverage.suspended.length} emiten suspensi / tidak bertransaksi`, `Show ${coverage.suspended.length} suspended / non-trading stocks`)}
+                    </summary>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {coverage.suspended.map((s) => (
+                        <span key={s.symbol} title={s.name} className="px-2 py-0.5 rounded-md border border-amber-500/25 bg-amber-500/10 text-[10px] font-bold text-amber-300">
+                          {s.symbol}
+                          {s.lastTrade && <span className="text-amber-200/60 font-semibold"> · {s.lastTrade}</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </details>
+                )}
+                <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                  {L(
+                    'Situs BEI (idx.co.id) memblokir akses otomatis, jadi daftar resmi tidak bisa diambil langsung. Emiten aktif diambil dari TradingView, suspensi dideteksi dari kode lama yang masih punya data harga di Yahoo (dengan tanggal transaksi terakhir). Jumlah resmi diisi admin dan ikut tampil di Beranda.',
+                    "IDX's site (idx.co.id) blocks automated access, so the official list can't be fetched directly. Active stocks come from TradingView; suspensions are detected from old codes that still have Yahoo prices (with last trade date). The official count is set by admin and shown on Home."
+                  )}
+                </p>
+              </div>
+            )}
+
             {universe?.error && (
               <p className="text-[11px] text-amber-300 mt-3">{L(`Sumber daftar emiten gagal (${universe.error}); memakai daftar bawaan.`, `Stock list source failed (${universe.error}); using the built-in list.`)}</p>
             )}
