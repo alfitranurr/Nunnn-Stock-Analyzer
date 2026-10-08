@@ -1058,6 +1058,40 @@ Belum ada `.env.example`.
 - **Komponen layout bersama** (sejak `4b0603f`): [`PageHeader`](src/components/shared/page-header.tsx) dipakai semua halaman kecuali Beranda (ukuran judul, jarak, badge kategori, dan slot aksi seragam); [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) (Card, CardTitle, Field, Segmented, Stat, Badge) dipakai Dividen, E-IPO, Portofolio, dan Admin.
 - **Viewport:** `maximumScale: 1, userScalable: false` ([layout.tsx:13-18](src/app/layout.tsx#L13-L18)), sehingga pengguna tidak bisa zoom (masalah aksesibilitas).
 
+### 10.3 Animasi & konten dinamis (sejak `ddd4d02`, `2d1a979`)
+
+**Lapisan animasi bersama** ([shared/motion.tsx](src/components/shared/motion.tsx), framer-motion):
+
+| Komponen | Kegunaan |
+|---|---|
+| `AnimatedNumber` | Angka berjalan (count-up) dari nilai lama ke baru. Teks diperbarui langsung di DOM, tanpa render ulang tiap frame. `fromZero` untuk angka hasil utama |
+| `Reveal`, `Stagger` / `StaggerItem` | Muncul halus (fade + naik) saat masuk layar, sekali saja; daftar muncul berurutan |
+| `GrowBar` | Batang progres yang tumbuh ke nilainya dan bergeser halus saat nilai berubah |
+| `Flash` | Kilatan singkat setiap kali nilai berubah (harga live, hasil kalkulator) |
+
+- `Card` di [calc-ui](src/components/shared/calc-ui.tsx) muncul saat pertama terlihat. Nilai `Stat` yang berupa teks/angka otomatis memakai `Flash`.
+- `PageHeader` memunculkan eyebrow, judul, dan deskripsi berurutan; cahaya latarnya melayang pelan (`animate-float`).
+- [globals.css](src/app/globals.css) mendefinisikan `animate-fadeIn`, `animate-scaleIn`, `animate-float`, `animate-shimmer`, dan `.skeleton-shimmer`. Kelas `animate-fadeIn`/`animate-scaleIn` sebelumnya dipakai tetapi tidak pernah didefinisikan.
+- **Aksesibilitas:** `MotionConfig reducedMotion="user"` di [page.tsx](src/app/page.tsx) dan `@media (prefers-reduced-motion: reduce)` mematikan animasi bila pengguna memilih "kurangi gerakan" di sistem operasinya.
+
+**Konten yang dihitung dari input dan data live, per halaman:**
+
+| Halaman | Isi dinamis |
+|---|---|
+| Beranda | IHSG count-up; bar breadth tumbuh; sparkline "tergambar" dari kiri (clip, aman untuk `non-scaling-stroke`); **tips dipilih sesuai kondisi pasar** ([educational-tip-card.tsx](src/components/educational-tip-card.tsx)): ≥15 ARA → bahaya mengejar ARA; IHSG ≤ −1% atau turun > 2× naik → average down / manajemen risiko; IHSG ≥ +1% → disiplin ambil untung. Alasannya ditampilkan, dan ada tombol tips sebelumnya/berikutnya |
+| Berita | Bar **Paling diberitakan** (emiten yang disebut ≥2 berita, klik untuk memfilter, dengan % harga live), jumlah berita dan media, rekap sentimen berita yang sudah dianalisis AI; artikel muncul saat di-scroll |
+| Avg Down | Perubahan hari ini dan batas **ARB–ARA hari ini** di bawah harga sekarang (dari `/api/ticker`); peringatan bila harga tahap di luar batas hari ini; ringkasan count-up; panel **Wawasan**: jarak BEP dalam fraksi dan minimal hari ARA, BEP terpangkas berapa fraksi, porsi modal baru, uji turun 10% |
+| Compounding | Kartu ringkasan count-up; garis grafik tergambar; **Wawasan**: waktu berlipat 2 (bersih fee/pajak), porsi profit/bunga, fee vs profit kotor, setara % per tahun, erosi inflasi, hasil per bulan dari saldo akhir |
+| Persentase | Hasil berkedip saat berubah; kotak **Bila ini harga saham BEI**: jumlah fraksi, minimal hari ARA/ARB, harga valid terdekat, dan cek batas harian |
+| Dividen | Dividen bersih count-up; batang kalender tumbuh; modal yang dibutuhkan untuk Rp1 juta/bulan bersih pada yield saat ini |
+| E-IPO | Perkiraan jatah lot count-up |
+| Analisis | Skor konsensus count-up; bar komponen tumbuh; chip Terakhir/Populer menampilkan % harga live (polling 60 detik saat bursa buka); kartu fitur muncul berurutan |
+| Portofolio | Nilai portofolio count-up; bar alokasi tumbuh; **Wawasan portofolio**: konsentrasi (>40% diberi peringatan), penopang dan penekan hari ini, saham rugi ≥15% (saran simulasi Avg Down), porsi kas |
+| Watchlist | Harga dan perubahan berkedip saat diperbarui |
+| Admin | Angka `Stat` berkedip saat berubah |
+
+**Helper BEI baru** di [calculator.ts](src/lib/calculator.ts): `ticksBetween(from, to)` (jumlah fraksi, mengikuti perubahan fraksi antar-rentang harga), `minAraDays(from, to)` dan `minArbDays(from, to)` (minimal hari ARA/ARB beruntun di papan reguler, memakai `getAutoRejectionBounds`).
+
 ---
 
 ## 11. Keamanan, CI/CD & Tooling
@@ -1286,6 +1320,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `802aed7` | 2026-10-08 | H-01 (analisis), M-03–M-08, M-13, L-03 | Analisis: fundamental palsu dari hash kode saham, broker & asing rekaan, harga cadangan Rp5.000, berita buatan; Yahoo v7/v10 menolak tanpa crumb (401) sehingga fundamental selalu jatuh ke data palsu; S/R hanya 7 titik tanpa label, dari candle yang belum selesai; skor teknikal 0/STRONG SELL hanya dari 6 sinyal kecil; sentimen kata kunci menganggap "aliran keluar dana asing naik" positif |
 | `7487a56` | 2026-10-08 | — | Menu "Riwayat Rencana" berbadge "Segera" yang tidak pernah aktif masih tampil di sidebar |
 | `cb7faed` | 2026-10-08 | — | Analisis langsung dimuat (termasuk AI) setiap halaman dibuka dengan BBCA sebagai default, dan berita/AI di-refresh otomatis tiap 10 menit; tidak ada batas ARA/ARB di ringkasan harga |
+| `ddd4d02` | 2026-10-08 | — | Tampilan statis: tidak ada animasi bersama; kelas `animate-fadeIn`/`animate-scaleIn` dipakai tapi tidak pernah didefinisikan; preferensi "kurangi gerakan" tidak dihormati |
+| `2d1a979` | 2026-10-08 | — | Isi halaman statis: tips acak tanpa melihat kondisi pasar; kalkulator tidak memberi konteks fraksi/ARA/ARB; tidak ada wawasan portofolio maupun rangkuman feed berita |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
