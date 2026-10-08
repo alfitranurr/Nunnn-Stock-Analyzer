@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `4b0603f` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
+> Kondisi kode: commit `30f9770` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -44,7 +44,7 @@
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 138 file ter-track git, sekitar 24,3k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
+| Ukuran | 140 file ter-track git, sekitar 24,8k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
@@ -185,7 +185,7 @@ Sumber: [package.json](package.json)
     ├── components/            19 komponen + folder home/, dividend/, ipo/, portfolio/, admin/, shared/ (lihat §5)
     │   analysis-tab (2359) · compounding-tab (1707) · calculator-form (896) · percentage-tab (763)
     │   news-tab (762) · results-display (423) · sidebar (387) · history-table (352)
-    │   auth-modal (320) · watchlist-panel (296) · client-bootstrap (294) · portfolio-snapshot (199)
+    │   auth-modal (320) · watchlist-panel (295) · client-bootstrap (294) · portfolio-snapshot (199)
     │   quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
     │   educational-tip-card (117) · trending-news-strip (106) · company-logo (34) · theme-provider (11)
     │   home/  home-dashboard (232) · market-overview (187) · market-movers (161)
@@ -194,7 +194,8 @@ Sumber: [package.json](package.json)
     │              dividend-history (179)
     │   ipo/       ipo-tab (799) · listing-simulator (202) · ipo-rules (100)
     │   portfolio/ portfolio-tab (569) · holding-modal (252)
-    │   admin/     admin-panel-tab (698)
+    │   admin/     admin-panel-tab (714)
+    │   watchlist/ watchlist-page (477)
     │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
     │              page-header (39)  header standar semua halaman
     └── lib/
@@ -216,7 +217,7 @@ Ringkasan akses tiap menu:
 | # | Menu (ID) | Komponen utama | Akses | Simpan data |
 |---|---|---|---|---|
 | 0 | Beranda | `home/home-dashboard.tsx` + widget | Publik (sapaan & ringkasan portofolio hanya untuk yang login) | — |
-| 0b | Watchlist | `watchlist-panel.tsx` (varian penuh) | Publik | Supabase `user_watchlists` / lokal |
+| 0b | Watchlist | `watchlist/watchlist-page.tsx` | Publik | Supabase `user_watchlists` / lokal |
 | 1 | Berita & Sentimen | `news-tab.tsx` | Publik; Analisis AI wajib login | — |
 | 2 | Kalkulator Avg Down | `calculator-form`, `results-display`, `history-table` | Publik | Supabase / lokal |
 | 3 | Compounding | `compounding-tab.tsx` | Publik | Supabase / lokal (simpan, muat, hapus) |
@@ -264,13 +265,18 @@ Urutan dari atas:
 | Akses Cepat | home-dashboard.tsx | 8 menu dengan ikon yang sama seperti sidebar; ikon gembok untuk Analisis/Portofolio bila belum login |
 | Disclaimer | home-dashboard.tsx | Teks `common.disclaimer` |
 
-**Watchlist** ([watchlist-panel.tsx](src/components/watchlist-panel.tsx), store [watchlist-store.ts](src/lib/watchlist-store.ts)):
-- Satu store (`useSyncExternalStore`) dipakai bersama oleh widget Beranda, tab **Watchlist** (menu sidebar), dan tombol ☆ di Penggerak Pasar.
-- Maksimal 20 saham ([watchlist-store.ts:18](src/lib/watchlist-store.ts#L18)); urutkan berdasarkan urutan tambah, naik tertinggi, turun terdalam, atau A–Z.
-- Harga + grafik mini dari `/api/quotes`, di-refresh tiap menit saat jam bursa. Persentase yang tidak lolos pengecekan kewajaran tampil sebagai "?".
-- Tombol hapus selalu terlihat di perangkat sentuh (di desktop muncul saat hover).
-- Saat kosong, ada saran BBCA/BBRI/BMRI/TLKM/ASII/GTSI.
-- Penyimpanan: selalu localStorage `nunnn_stock_watchlist`; bila login ke Supabase, disinkron ke tabel `user_watchlists` ([connectWatchlistToUser](src/lib/watchlist-store.ts#L79)). Versi cloud menang saat login; bila cloud kosong, daftar lokal diunggah.
+**Watchlist** (widget Beranda [watchlist-panel.tsx](src/components/watchlist-panel.tsx), halaman penuh [watchlist/watchlist-page.tsx](src/components/watchlist/watchlist-page.tsx), store [watchlist-store.ts](src/lib/watchlist-store.ts)):
+- Satu store (`useSyncExternalStore`) dipakai bersama oleh widget Beranda, halaman **Watchlist Saham** (menu sidebar), dan tombol ☆ di Penggerak Pasar & Berita. Maksimal 20 saham.
+- Widget Beranda: 6 baris, harga + % + grafik mini, tambah lewat pencarian, "Lihat semua" membuka halaman penuh.
+- Halaman penuh (dibangun ulang di `30f9770`; sebelumnya hanya widget yang direntangkan di kolom sempit):
+  - `PageHeader` + bar status sesi bursa, jam WIB, waktu update, dan sumber data.
+  - Ringkasan: jumlah dipantau (naik/turun/tetap), rata-rata perubahan, saham terkuat & terlemah.
+  - Pencarian untuk menambah langsung di halaman; saran saham saat kosong.
+  - Per saham: harga, perubahan Rp & %, grafik intraday dengan garis penutupan kemarin, rentang hari ini (dari bar 5 menit) dengan penanda posisi harga, nilai transaksi, badge ARA/ARB (batas sesuai tanggal), tombol Analisis & Hapus.
+  - **Harga incaran** per saham: "Beli di bawah" atau "Jual di atas", dengan jarak ke target; baris disorot dan muncul banner saat tercapai.
+  - Urutan: urutan saya (bisa digeser naik/turun), naik, turun, nilai transaksi, A–Z. Desktop tabel, HP kartu.
+- Harga dari `/api/quotes`, di-refresh tiap menit saat jam bursa. Perubahan yang tidak lolos pengecekan kewajaran ditandai "data meragukan".
+- Penyimpanan: selalu localStorage `nunnn_stock_watchlist`; bila login ke Supabase, disinkron ke tabel `user_watchlists` ([connectWatchlistToUser](src/lib/watchlist-store.ts)). Versi cloud menang saat login; bila cloud kosong, daftar lokal diunggah. Harga incaran ikut tersimpan di item JSON yang sama.
 
 ### 5.2 Berita & Sentimen ([news-tab.tsx](src/components/news-tab.tsx), [lib/news.ts](src/lib/news.ts), [lib/idx-themes.ts](src/lib/idx-themes.ts))
 
@@ -566,7 +572,7 @@ Dibangun ulang di `3b89457`, dua bagian:
 
 **Sistem:**
 - Koneksi: mode data (Supabase / demo), **ping Supabase** dengan waktu respons, akun yang login.
-- **Skema database** (mode cloud): pemeriksaan baca-saja per migrasi (tabel/kolom/fungsi yang dibuatnya) dengan status OK / Belum ada / Error dan nama file migrasi. Per 8 Okt 2026 pemeriksaan ini mendeteksi database produksi belum punya kolom `user_approvals.is_admin` (000004), tabel `user_watchlists` (000007), dan kolom baru `ipo_plans` (000008).
+- **Skema database** (mode cloud): pemeriksaan baca-saja per migrasi (tabel/kolom/fungsi yang dibuatnya) dengan status OK / Belum ada / Error dan nama file migrasi. Per 8 Okt 2026 pemeriksaan ini mendeteksi database produksi belum punya kolom `user_approvals.is_admin` (000004), tabel `user_watchlists` (000007), dan kolom baru `ipo_plans` (000008). Bila ada yang belum, panel menyarankan menjalankan file perbaikan [000009](supabase/migrations/20261008000009_repair_production_schema.sql).
 - Jumlah data di browser ini (Avg Down, Compounding, E-IPO, portofolio akun ini, pengguna demo).
 - **Reset data demo** hanya muncul di mode demo. Password admin baru ditampilkan di panel yang **tetap terlihat** dengan tombol Salin sampai ditutup (sebelumnya hilang setelah 4 detik).
 
@@ -912,8 +918,8 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | `portfolio_cash` | user_id (PK), cash_balance ≥ 0. Hanya ditulis bila pengguna mengisi kas (upsert) | portfolio-store |
 | `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (rencana trading memakai ulang kolom-kolom ini, lihat di bawah) |
 | `ipo_plans` | price, total_lots, oversubscription (≥ 0 sejak migrasi 000008), total_subscribers, retail_ratio 0–100 (desimal, untuk rasio pemesan ritel), personal_order_lots, retail_demand_pct & queue_pct ([migrasi 000008](supabase/migrations/20261008000008_ipo_plans_allocation_inputs.sql)) | ipo/ipo-tab. Bila migrasi 000008 belum dijalankan, simpan otomatis memakai kolom lama |
-| `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel, `requireUser` (server). ⚠️ Per 8 Okt 2026 database produksi **belum punya kolom `is_admin`** (migrasi 000004 belum diterapkan penuh); jalankan ulang migrasi 000004–000008 agar Admin Panel, `claim_first_admin`, watchlist, dan simpan E-IPO lengkap berfungsi |
-| `user_watchlists` | user_id (PK), items jsonb (array, maks 20), updated_at ([migrasi 000007](supabase/migrations/20261007000007_create_user_watchlists.sql)) | watchlist-store. **Migrasi ini perlu dijalankan di Supabase** agar watchlist tersinkron ke akun |
+| `user_approvals` | email, approved, is_admin, approved_by | page.tsx, auth-modal, admin-panel, `requireUser` (server). ⚠️ Per 8 Okt 2026 tabel produksi masih versi lama (hanya id, email, approved, created_at) dan fungsi admin (`is_admin()`, `admin_set_user_approval`, `admin_delete_user`, `claim_first_admin`) belum ada, sehingga Setujui/Tangguhkan di Admin Panel tidak bisa berjalan. **Menjalankan ulang 000004 tidak cukup** (CREATE TABLE dilewati, fungsi gagal dibuat, policy bentrok). Jalankan [000009](supabase/migrations/20261008000009_repair_production_schema.sql) di SQL Editor (idempotent, mencakup 000004–000008), lalu login dengan email admin agar `claim_first_admin` berjalan |
+| `user_watchlists` | user_id (PK), items jsonb (array, maks 20), updated_at ([migrasi 000007](supabase/migrations/20261007000007_create_user_watchlists.sql)) | watchlist-store. Belum ada di produksi; termasuk dalam file perbaikan 000009 |
 
 **Pemetaan kolom untuk rencana trading di `compounding_plans`** ([compounding-tab.tsx:475](src/components/compounding-tab.tsx#L475)). Tidak butuh migrasi karena kolomnya `varchar(20)`/`numeric` tanpa batasan nilai:
 
@@ -945,7 +951,7 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `nunnn_stock_compounding_plans` | localStorage | Rencana Compounding |
 | `nunnn_stock_ipo_plans` | localStorage | Simulasi E-IPO tersimpan (mode lokal) |
 | `nunnn_stock_percentage_history` | localStorage | 5 riwayat persentase |
-| `nunnn_stock_watchlist` | localStorage | Watchlist (maks 20, `{symbol, name}`); cadangan lokal dari `user_watchlists` |
+| `nunnn_stock_watchlist` | localStorage | Watchlist (maks 20, `{symbol, name, target?: {price, kind: 'buy' \| 'sell'}}`); cadangan lokal dari `user_watchlists` |
 | `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}` | localStorage | Portofolio lokal ([portfolio-store](src/lib/portfolio-store.ts)) |
 | `nunnn_stock_mock_user` | localStorage | Sesi user demo |
 | `nunnn_stock_simulated_users` | localStorage | User demo (hash SHA-256 + salt) |
@@ -1244,6 +1250,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `c2e9dde` | 2026-10-08 | M-11, L-01 (E-IPO) | E-IPO: model jatah salah (pesanan ritel 1.000 lot "dapat 40 lot", seharusnya maks 1 lot sesuai urutan waktu); "peluang %" seperti undian; kartu SEOJK 15/2020 memakai tabel aturan baru; oversubscribe IPO dipakai untuk penyesuaian (seharusnya oversubscribe terpusat); kode saham menimpa harga penawaran dengan harga pasar; tanpa batas 10% per pemodal; `Math.ceil` menampilkan 1 lot untuk rata-rata 0,05 lot |
 | `3b89457` | 2026-10-08 | L-10 | Portofolio: holding contoh BBRI/ANTM ditulis otomatis; kas RDN Rp100 juta fiktif dimasukkan ke `portfolio_cash`; beli lagi saham yang sama gagal (constraint unik); harga "4.300" terbaca 4,3; satu request harga per saham; P/L dihitung 0 diam-diam saat harga gagal; update gagal tetap mengubah tampilan. Admin: password admin demo hilang setelah 4 detik; error hilang sendiri; reset data muncul juga di mode cloud; tanggal daftar palsu di mode demo |
 | `4b0603f` | 2026-10-08 | — | Header halaman tidak seragam (judul 3xl vs 4xl, ikon dekoratif, badge berkedip) |
+| `46c2ecd` | 2026-10-08 | — | Database produksi tertinggal migrasi: `user_approvals` versi lama dan fungsi admin tidak ada; migrasi 000004 tidak bisa dijalankan ulang. Ditambah file perbaikan idempotent 000009 |
+| `30f9770` | 2026-10-08 | — | Halaman Watchlist hanya widget yang direntangkan di kolom sempit (separuh layar kosong), tanpa perubahan Rp, rentang harian, nilai transaksi, ARA/ARB, harga incaran, pencarian langsung, maupun urutan manual |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-01 (analisis), H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-13, M-14, M-16, M-17, L-03, L-05, L-06, L-07 (auth-modal), L-08.
@@ -1326,7 +1334,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (119 commit)
+### 15.1 Riwayat pengembangan (122 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1339,7 +1347,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
 | 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
 | 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3`; dokumentasi `24ddbca` |
-| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5`; batas ARB 15% & aturan Rp1–Rp10 `2204733`; Kalkulator E-IPO sesuai SEOJK 25/2025 (urutan waktu, strategi pesanan, simulasi listing, simpan) `c2e9dde`; Portofolio (beli lagi digabung, P/L hari ini, alokasi, dividen) & Admin Panel (cek skema database, setujui semua) `3b89457`; header seragam semua halaman `4b0603f` |
+| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5`; batas ARB 15% & aturan Rp1–Rp10 `2204733`; Kalkulator E-IPO sesuai SEOJK 25/2025 (urutan waktu, strategi pesanan, simulasi listing, simpan) `c2e9dde`; Portofolio (beli lagi digabung, P/L hari ini, alokasi, dividen) & Admin Panel (cek skema database, setujui semua) `3b89457`; header seragam semua halaman `4b0603f`; migrasi perbaikan skema produksi `46c2ecd`; halaman Watchlist penuh dengan harga incaran `30f9770` |
 
 ### 15.2 Glosarium
 
