@@ -18,7 +18,13 @@ import {
   Printer,
   FolderOpen,
   Repeat,
+  Lightbulb,
+  Timer,
+  Coins,
+  Flame,
+  Wallet,
 } from 'lucide-react';
+import { AnimatedNumber, Stagger, StaggerItem } from '@/components/shared/motion';
 import {
   calculateCompounding,
   CompoundingInput,
@@ -236,13 +242,30 @@ const STAT_TONES = {
   slate: { card: 'border-slate-200 dark:border-white/5', label: 'text-slate-500 dark:text-slate-400', value: 'text-white' },
 } as const;
 
-function StatCard({ label, value, fullValue, sub, tone }: { label: string; value: string; fullValue?: string; sub?: string; tone: keyof typeof STAT_TONES }) {
+function StatCard({
+  label,
+  value,
+  fullValue,
+  sub,
+  tone,
+  amount,
+  formatAmount,
+}: {
+  label: string;
+  value: string;
+  fullValue?: string;
+  sub?: string;
+  tone: keyof typeof STAT_TONES;
+  /** Bila diisi, nilai ditampilkan sebagai angka berjalan (count-up) memakai `formatAmount`. */
+  amount?: number;
+  formatAmount?: (v: number) => string;
+}) {
   const t = STAT_TONES[tone];
   return (
     <div className={`glass-card p-4 md:p-4.5 overflow-hidden ${t.card}`}>
       <span className={`text-[9px] font-bold uppercase tracking-widest block ${t.label}`}>{label}</span>
       <h3 className={`text-lg md:text-xl font-black mt-1 tracking-tight truncate ${t.value}`} title={fullValue ?? value}>
-        {value}
+        {amount !== undefined && formatAmount ? <AnimatedNumber value={amount} format={formatAmount} fromZero /> : value}
       </h3>
       {sub && <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 truncate" title={sub}>{sub}</p>}
     </div>
@@ -784,6 +807,106 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   const longTermProfit = results.nominalEndingBalance - results.totalDeposits;
   const longTermReturnPct = results.totalDeposits > 0 ? (longTermProfit / results.totalDeposits) * 100 : 0;
 
+  // ─── Wawasan dinamis dari hasil hitungan ───
+  const shortIDR = (v: number) => formatIDR(v, true);
+  const doubling = (ratePct: number) => (ratePct > 0 ? Math.log(2) / Math.log(1 + ratePct / 100) : null);
+  const insights: Array<{ key: string; icon: typeof Lightbulb; tone: string; text: React.ReactNode }> = [];
+  if (isTrading) {
+    const netRate = ((1 + targetRate / 100) * (1 - (feeBeli + feeJual) / 100) - 1) * 100;
+    const n = doubling(netRate);
+    const grossProfit = tradingProfit + tradingResults.totalTaxDeducted;
+    if (n !== null) {
+      insights.push({
+        key: 'double',
+        icon: Timer,
+        tone: 'text-emerald-400',
+        text: L(
+          `Dengan target ${formatPercentInput(targetRate, lang)}% per ${periodText.noun.toLowerCase()} (bersih fee ±${formatPct(netRate, true, false)}), modal berlipat 2 kira-kira tiap ${n < 10 ? n.toFixed(1) : Math.round(n)} ${periodText.plural.toLowerCase()}.`,
+          `At ${formatPercentInput(targetRate, lang)}% per ${periodText.noun.toLowerCase()} (net of fees ≈${formatPct(netRate, true, false)}), capital doubles roughly every ${n < 10 ? n.toFixed(1) : Math.round(n)} ${periodText.plural.toLowerCase()}.`
+        ),
+      });
+    } else if (targetRate > 0) {
+      insights.push({ key: 'double', icon: Flame, tone: 'text-bearish-red', text: L('Fee broker lebih besar dari target profit per periode: modal justru menyusut.', 'Broker fees exceed the per-period profit target: capital shrinks.') });
+    }
+    if (tradingResults.nominalEndingBalance > 0 && tradingProfit > 0) {
+      insights.push({
+        key: 'share',
+        icon: Coins,
+        tone: 'text-sky-400',
+        text: L(
+          `Profit menyumbang ${formatPct((tradingProfit / tradingResults.nominalEndingBalance) * 100, true, false)} dari modal akhir; sisanya dana yang kamu setor.`,
+          `Profit makes up ${formatPct((tradingProfit / tradingResults.nominalEndingBalance) * 100, true, false)} of the ending capital; the rest is money you deposited.`
+        ),
+      });
+    }
+    if (tradingResults.totalTaxDeducted > 0 && grossProfit > 0) {
+      insights.push({
+        key: 'fee',
+        icon: Flame,
+        tone: 'text-amber-400',
+        text: L(
+          `Fee broker memakan ${formatIDR(tradingResults.totalTaxDeducted, true)}, yaitu ${formatPct((tradingResults.totalTaxDeducted / grossProfit) * 100, true, false)} dari profit kotor. Makin sering bertransaksi, makin besar porsinya.`,
+          `Broker fees eat ${formatIDR(tradingResults.totalTaxDeducted, true)}, i.e. ${formatPct((tradingResults.totalTaxDeducted / grossProfit) * 100, true, false)} of gross profit. The more often you trade, the bigger the share.`
+        ),
+      });
+    }
+    insights.push({
+      key: 'year',
+      icon: Lightbulb,
+      tone: isAggressive ? 'text-bearish-red' : 'text-slate-400',
+      text: L(
+        `Target ini setara ${formatPct(yearlyEquivalent, true, false)} per tahun${isAggressive ? ' — sangat jarang bisa dipertahankan konsisten, siapkan skenario rugi.' : '.'}`,
+        `This target equals ${formatPct(yearlyEquivalent, true, false)} per year${isAggressive ? ' — rarely sustainable consistently; plan for losing streaks.' : '.'}`
+      ),
+    });
+  } else {
+    const n = doubling(input.annualReturnRate * (1 - input.taxRate / 100));
+    if (n !== null) {
+      insights.push({
+        key: 'double',
+        icon: Timer,
+        tone: 'text-emerald-400',
+        text: L(
+          `Pada return ${formatPercentInput(input.annualReturnRate, lang)}%/tahun${input.taxRate > 0 ? ' setelah pajak' : ''}, dana berlipat 2 kira-kira tiap ${n.toFixed(1)} tahun.`,
+          `At ${formatPercentInput(input.annualReturnRate, lang)}%/yr${input.taxRate > 0 ? ' after tax' : ''}, money doubles roughly every ${n.toFixed(1)} years.`
+        ),
+      });
+    }
+    if (results.nominalEndingBalance > 0 && results.totalInterestEarned > 0) {
+      insights.push({
+        key: 'share',
+        icon: Coins,
+        tone: 'text-sky-400',
+        text: L(
+          `Bunga majemuk menyumbang ${formatPct((longTermProfit / results.nominalEndingBalance) * 100, true, false)} dari saldo akhir; sisanya setoran kamu.`,
+          `Compound growth makes up ${formatPct((longTermProfit / results.nominalEndingBalance) * 100, true, false)} of the ending balance; the rest is your deposits.`
+        ),
+      });
+    }
+    if (input.inflationRate > 0 && results.nominalEndingBalance > results.realEndingBalance) {
+      insights.push({
+        key: 'inflation',
+        icon: Flame,
+        tone: 'text-amber-400',
+        text: L(
+          `Inflasi ${formatPercentInput(input.inflationRate, lang)}%/tahun menggerus daya beli ${formatIDR(results.nominalEndingBalance - results.realEndingBalance, true)}: saldo akhir setara ${formatIDR(results.realEndingBalance, true)} uang hari ini.`,
+          `${formatPercentInput(input.inflationRate, lang)}%/yr inflation erodes ${formatIDR(results.nominalEndingBalance - results.realEndingBalance, true)} of purchasing power: the ending balance equals ${formatIDR(results.realEndingBalance, true)} in today's money.`
+        ),
+      });
+    }
+    if (results.nominalEndingBalance > 0 && input.annualReturnRate > 0) {
+      insights.push({
+        key: 'income',
+        icon: Wallet,
+        tone: 'text-emerald-400',
+        text: L(
+          `Bila saldo akhir tetap diinvestasikan pada return yang sama, hasilnya sekitar ${formatIDR((results.nominalEndingBalance * input.annualReturnRate) / 100 / 12, true)} per bulan (sebelum pajak).`,
+          `If the ending balance stays invested at the same return, it yields about ${formatIDR((results.nominalEndingBalance * input.annualReturnRate) / 100 / 12, true)} per month (before tax).`
+        ),
+      });
+    }
+  }
+
   const moneyStepperProps = (value: string, setValue: (updater: (prev: string) => string) => void, label: string) => ({
     type: 'text' as const,
     inputMode: 'numeric' as const,
@@ -1237,6 +1360,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="emerald"
               label={L('Modal Akhir', 'Ending Capital')}
               value={formatIDR(tradingResults.nominalEndingBalance, true)}
+              amount={tradingResults.nominalEndingBalance}
+              formatAmount={shortIDR}
               fullValue={formatIDR(tradingResults.nominalEndingBalance)}
               sub={`${L('Setelah', 'After')} ${tradingPeriods} ${periodText.plural}`}
             />
@@ -1244,6 +1369,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="blue"
               label={L('Profit Bersih', 'Net Profit')}
               value={formatIDR(tradingProfit, true)}
+              amount={tradingProfit}
+              formatAmount={shortIDR}
               fullValue={formatIDR(tradingProfit)}
               sub={`${L('Return', 'Return')} ${formatPct(tradingReturnPct)}`}
             />
@@ -1251,6 +1378,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="indigo"
               label={L('Total Disetor', 'Total Deposited')}
               value={formatIDR(tradingResults.totalDeposits, true)}
+              amount={tradingResults.totalDeposits}
+              formatAmount={shortIDR}
               fullValue={formatIDR(tradingResults.totalDeposits)}
               sub={L('Modal awal + setoran', 'Initial capital + deposits')}
             />
@@ -1258,6 +1387,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="rose"
               label={L('Total Fee Broker', 'Total Broker Fees')}
               value={formatIDR(tradingResults.totalTaxDeducted, true)}
+              amount={tradingResults.totalTaxDeducted}
+              formatAmount={shortIDR}
               fullValue={formatIDR(tradingResults.totalTaxDeducted)}
               sub={feeBeli > 0 || feeJual > 0
                 ? `${formatPercentInput(feeBeli, lang)}% + ${formatPercentInput(feeJual, lang)}% / ${periodText.noun.toLowerCase()}`
@@ -1270,6 +1401,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="emerald"
               label={t('compounding.totalEndingBalance')}
               value={formatIDR(results.nominalEndingBalance, true)}
+              amount={results.nominalEndingBalance}
+              formatAmount={shortIDR}
               fullValue={formatIDR(results.nominalEndingBalance)}
               sub={`${L('Return', 'Return')} ${formatPct(longTermReturnPct)}`}
             />
@@ -1277,6 +1410,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="indigo"
               label={t('compounding.cumulativeDeposits')}
               value={formatIDR(results.totalDeposits, true)}
+              amount={results.totalDeposits}
+              formatAmount={shortIDR}
               fullValue={formatIDR(results.totalDeposits)}
               sub={L('Modal awal + setoran', 'Initial capital + deposits')}
             />
@@ -1284,6 +1419,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="slate"
               label={L('Akumulasi Bunga (Kotor)', 'Cumulative Interest (Gross)')}
               value={formatIDR(results.totalInterestEarned, true)}
+              amount={results.totalInterestEarned}
+              formatAmount={shortIDR}
               fullValue={formatIDR(results.totalInterestEarned)}
               sub={input.taxRate > 0 ? `${L('Pajak', 'Tax')} ${formatIDR(results.totalTaxDeducted, true)}` : L('Tanpa pajak', 'No tax')}
             />
@@ -1291,12 +1428,31 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               tone="blue"
               label={L('Saldo Riil (Daya Beli)', 'Real Balance (Purchasing Power)')}
               value={formatIDR(results.realEndingBalance, true)}
+              amount={results.realEndingBalance}
+              formatAmount={shortIDR}
               fullValue={formatIDR(results.realEndingBalance)}
               sub={`${L('Inflasi', 'Inflation')} ${formatPercentInput(input.inflationRate, lang)}%/${L('thn', 'yr')}`}
             />
           </>
         )}
       </div>
+
+      {/* Wawasan dinamis */}
+      {insights.length > 0 && (
+        <div className="glass-card p-4 md:p-5 border-sky-500/20 bg-sky-500/[0.03]">
+          <h2 className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
+            <Lightbulb className="h-4 w-4" /> {L('Wawasan', 'Insights')}
+          </h2>
+          <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-2.5" key={`${calcMode}:${tradingPeriod}`}>
+            {insights.map((it) => (
+              <StaggerItem key={it.key} className="flex items-start gap-2.5 text-[11px] md:text-xs text-slate-300 leading-relaxed">
+                <it.icon className={`h-4 w-4 shrink-0 mt-0.5 ${it.tone}`} />
+                <span>{it.text}</span>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        </div>
+      )}
 
       {/* Interactive Chart */}
       <div className="glass-card p-4 md:p-6 space-y-4 print-full-width">
@@ -1377,10 +1533,21 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   );
                 })}
 
-                <path d={areaPath(d => d.endingBalance)} fill="url(#nominalGrad)" opacity="0.12" />
+                <motion.path key={`area-${chartData.length}-${calcMode}`} d={areaPath(d => d.endingBalance)} fill="url(#nominalGrad)" initial={{ opacity: 0 }} animate={{ opacity: 0.12 }} transition={{ duration: 0.9, delay: 0.3 }} />
                 <path d={areaPath(d => d.cumulativeDeposits)} fill="url(#depositGrad)" opacity="0.08" />
                 <path d={linePath(d => d.cumulativeDeposits)} fill="none" stroke="#6366f1" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.5" />
-                <path d={linePath(d => d.endingBalance)} fill="none" stroke="#00b15b" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                <motion.path
+                  key={`line-${chartData.length}-${calcMode}`}
+                  d={linePath(d => d.endingBalance)}
+                  fill="none"
+                  stroke="#00b15b"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+                />
                 {!isTrading && (
                   <path d={linePath(d => d.realEndingBalance)} fill="none" stroke="#3b82f6" strokeWidth="2.2" strokeDasharray="3 2" strokeLinecap="round" strokeLinejoin="round" />
                 )}

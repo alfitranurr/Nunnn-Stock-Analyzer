@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatedNumber } from '@/components/shared/motion';
 import { AlertTriangle, CheckCircle2, ClipboardList, FolderOpen, Rocket, Save, Trash2, Users, Wallet } from 'lucide-react';
 import { StepperInput } from '@/components/stepper-input';
 import { CompanyLogo } from '@/components/company-logo';
@@ -606,7 +607,7 @@ export function IpoTab({ user }: IpoTabProps) {
                 {L(`Perkiraan jatah Anda · porsi ${catLabel(me.category).toLowerCase()}`, `Your estimated allotment · ${catLabel(me.category).toLowerCase()} portion`)}
               </span>
               <div className="flex items-baseline flex-wrap gap-x-3 gap-y-1 mt-1">
-                <span className="text-4xl font-black text-emerald-400 tabular-nums">{lotsTxt(me.result.myLots)}</span>
+                <span className="text-4xl font-black text-emerald-400 tabular-nums"><AnimatedNumber value={me.result.myLots} format={(v) => lotsTxt(Math.round(v))} /></span>
                 <span className="text-sm text-slate-400">{L(`dari ${lotsTxt(myOrderLots)} dipesan`, `of ${lotsTxt(myOrderLots)} ordered`)}</span>
               </div>
               <p className="text-xs text-slate-300 mt-3 leading-relaxed">{stageText(me.result, true)}</p>

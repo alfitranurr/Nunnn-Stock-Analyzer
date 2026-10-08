@@ -18,6 +18,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
+import { Flash } from '@/components/shared/motion';
+import { getAutoRejectionBounds, isValidIdxPrice, minAraDays, minArbDays, roundToNearestIdxTick, ticksBetween } from '@/lib/calculator';
 import { formatNumberForInput, formatPercent, parseFormattedNumber, type Language } from '@/lib/format';
 import {
   applyPercent,
@@ -183,6 +185,70 @@ function errorMessage(error: PercentageError, mode: Mode, t: Translate): string 
   if (error === 'zero-base') return t(mode === 'what' ? 'percentage.errZeroTotal' : 'percentage.errZeroStart');
   if (error === 'non-positive-factor') return t('percentage.errFactor');
   return t('percentage.errInvalid');
+}
+
+/**
+ * Konteks harga saham BEI untuk mode yang melibatkan harga (naik/turun dan tambah/kurangi %):
+ * jumlah fraksi, minimal hari ARA/ARB beruntun, dan harga valid terdekat. Null bila input bukan harga.
+ */
+function idxContext(mode: Mode, aRaw: string, bRaw: string, dir: ApplyDirection, language: Language): string[] | null {
+  const a = toNumber(aRaw);
+  const b = toNumber(bRaw);
+  if (a === null || b === null) return null;
+  const isId = language === 'id';
+  const num = (n: number) => fmtNum(n, language);
+  const looksLikePrice = (p: number) => p >= 1 && p <= 1_000_000 && Number.isInteger(p);
+
+  if (mode === 'change' && looksLikePrice(a) && looksLikePrice(b) && a !== b) {
+    const up = b > a;
+    const ticks = up ? ticksBetween(a, b) : ticksBetween(b, a);
+    const days = up ? minAraDays(a, b) : minArbDays(a, b);
+    const limit = getAutoRejectionBounds(a);
+    const lines = [
+      isId ? `Setara ${num(ticks)} fraksi harga BEI.` : `Equals ${num(ticks)} IDX price ticks.`,
+      days <= 1
+        ? isId
+          ? `Masih dalam batas ${up ? 'ARA' : 'ARB'} 1 hari dari ${num(a)} (${up ? `+${limit.upPct}%` : `−${limit.downPct}%`}).`
+          : `Within one day's ${up ? 'ARA' : 'ARB'} limit from ${num(a)} (${up ? `+${limit.upPct}%` : `−${limit.downPct}%`}).`
+        : isId
+          ? `Butuh minimal ${days} hari ${up ? 'ARA' : 'ARB'} beruntun (papan reguler).`
+          : `Needs at least ${days} straight ${up ? 'ARA' : 'ARB'} days (regular board).`,
+    ];
+    if (!isValidIdxPrice(a) || !isValidIdxPrice(b)) {
+      lines.push(isId ? 'Catatan: salah satu harga tidak sesuai fraksi BEI.' : 'Note: one of the prices is not on a valid IDX tick.');
+    }
+    return lines;
+  }
+
+  if (mode === 'apply' && looksLikePrice(a) && b > 0) {
+    const result = dir === 'up' ? a * (1 + b / 100) : a * (1 - b / 100);
+    if (!(result > 0)) return null;
+    const lines: string[] = [];
+    const nearest = roundToNearestIdxTick(result);
+    if (!isValidIdxPrice(result)) {
+      lines.push(isId ? `Harga valid terdekat di BEI: ${num(nearest)}.` : `Nearest valid IDX price: ${num(nearest)}.`);
+    }
+    const limit = getAutoRejectionBounds(a);
+    if (dir === 'up' && result > limit.upper) {
+      const days = minAraDays(a, result);
+      lines.push(
+        isId
+          ? `Melebihi ARA 1 hari (maks ${num(limit.upper)}); butuh minimal ${days} hari ARA beruntun.`
+          : `Beyond one day's ARA (max ${num(limit.upper)}); needs at least ${days} straight ARA days.`
+      );
+    } else if (dir === 'down' && result < limit.lower) {
+      const days = minArbDays(a, result);
+      lines.push(
+        isId
+          ? `Melewati ARB 1 hari (min ${num(limit.lower)}); butuh minimal ${days} hari ARB beruntun.`
+          : `Beyond one day's ARB (min ${num(limit.lower)}); needs at least ${days} straight ARB days.`
+      );
+    } else {
+      lines.push(isId ? `Masih dalam batas harian ARB ${num(limit.lower)} – ARA ${num(limit.upper)}.` : `Within the daily limits ARB ${num(limit.lower)} – ARA ${num(limit.upper)}.`);
+    }
+    return lines;
+  }
+  return null;
 }
 
 function computeOutcome(
@@ -402,6 +468,7 @@ export function PercentageTab() {
   const directionMode: DirectionMode | null = mode === 'apply' || mode === 'reverse' ? mode : null;
   const dirFor = (m: Mode): ApplyDirection => (m === 'reverse' ? directions.reverse : directions.apply);
   const outcome = computeOutcome(mode, current.a, current.b, dirFor(mode), language, t);
+  const context = outcome.kind === 'ok' ? idxContext(mode, current.a, current.b, dirFor(mode), language) : null;
 
   // Load saved history on mount (deferred, same as the language preference).
   React.useEffect(() => {
@@ -637,7 +704,7 @@ export function PercentageTab() {
               <div className="space-y-1.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{outcome.label}</span>
                 <div className={`text-4xl md:text-5xl font-black tracking-tight break-all ${TONE_TEXT[outcome.tone]}`}>
-                  {outcome.headline}
+                  <Flash value={outcome.headline} />
                 </div>
                 <p className="text-xs md:text-sm text-slate-300">{outcome.summary}</p>
               </div>
@@ -646,7 +713,7 @@ export function PercentageTab() {
                 {outcome.stats.map((s) => (
                   <div key={s.label} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1 min-w-0">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">{s.label}</span>
-                    <span className={`text-base font-extrabold block break-all ${TONE_TEXT[s.tone]}`}>{s.value}</span>
+                    <span className={`text-base font-extrabold block break-all ${TONE_TEXT[s.tone]}`}><Flash value={s.value} /></span>
                   </div>
                 ))}
               </div>
@@ -655,6 +722,17 @@ export function PercentageTab() {
                 <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 leading-relaxed flex gap-2">
                   <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                   <span>{outcome.note}</span>
+                </div>
+              )}
+
+              {context && (
+                <div className="p-3.5 rounded-2xl bg-sky-500/5 border border-sky-500/20 text-[11px] text-sky-100/90 leading-relaxed animate-fadeIn">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1.5 mb-1">
+                    <Info className="h-3.5 w-3.5" /> {language === 'id' ? 'Bila ini harga saham BEI' : 'If these are IDX stock prices'}
+                  </span>
+                  <ul className="space-y-0.5 list-disc pl-4">
+                    {context.map((line) => <li key={line}>{line}</li>)}
+                  </ul>
                 </div>
               )}
 

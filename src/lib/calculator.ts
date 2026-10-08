@@ -159,6 +159,44 @@ export function stepIdxPrice(price: number, direction: 1 | -1): number {
   return Math.max(1, price - getIdxTickSize(price - 1));
 }
 
+/** Jumlah fraksi BEI dari `from` naik sampai mencapai ≥ `to` (0 bila `to` ≤ `from`). */
+export function ticksBetween(from: number, to: number): number {
+  if (!(from > 0) || !(to > from)) return 0;
+  let p = roundDownToIdxTick(from);
+  let n = 0;
+  while (p < to && n < 5000) {
+    p = stepIdxPrice(p, 1);
+    n++;
+  }
+  return n;
+}
+
+/** Minimal hari bursa beruntun yang ditutup ARA agar harga dari `from` mencapai ≥ `to` (papan reguler). */
+export function minAraDays(from: number, to: number, at?: number): number {
+  if (!(from > 0) || !(to > from)) return 0;
+  let p = from;
+  let d = 0;
+  while (p < to && d < 100) {
+    p = getAutoRejectionBounds(p, at).upper;
+    d++;
+  }
+  return d;
+}
+
+/** Minimal hari bursa beruntun yang ditutup ARB agar harga dari `from` turun ke ≤ `to` (papan reguler). */
+export function minArbDays(from: number, to: number, at?: number): number {
+  if (!(from > 0) || !(to > 0) || !(to < from)) return 0;
+  let p = from;
+  let d = 0;
+  while (p > to && d < 100) {
+    const next = getAutoRejectionBounds(p, at).lower;
+    if (next >= p) break;
+    p = next;
+    d++;
+  }
+  return d;
+}
+
 /**
  * Menghitung simulasi Average Down berdasarkan input user.
  */

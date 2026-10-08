@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Activity, AlertTriangle, Building2, ChartCandlestick, Layers, Lock, Loader2, Newspaper, Play, RotateCw, Sparkles, UserPlus, Waves } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
+import { Stagger, StaggerItem } from '@/components/shared/motion';
 import { Badge, Card, pct, pick, rp } from '@/components/shared/calc-ui';
 import { CompanyLogo } from '@/components/company-logo';
 import { QuickSearchTicker } from '@/components/quick-search-ticker';
@@ -10,6 +11,8 @@ import { useIdxSessionState } from '@/components/home/home-dashboard';
 import { useLanguage } from '@/lib/language-context';
 import { authFetch, classifyApiError, type ApiErrorKind } from '@/lib/auth-fetch';
 import { useDataRefreshEpoch } from '@/lib/refresh-signal';
+import { usePolling } from '@/lib/use-polling';
+import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { formatIDRCompact, formatNumberLocale } from '@/lib/format';
 import { getAutoRejectionBounds, getAutoRejectionStatus } from '@/lib/calculator';
 import { consensus, fundamentalScore, newsScore, type ScorePoint } from '@/lib/analysis-score';
@@ -143,6 +146,20 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
   const epoch = useDataRefreshEpoch();
   const { trading } = useIdxSessionState(isActive);
 
+  // Perubahan harga hari ini untuk chip Terakhir & Populer (route publik, tanpa AI).
+  const chipSymbols = React.useMemo(() => [...new Set([...recent, ...POPULAR])], [recent]);
+  const [chipQuotes, setChipQuotes] = React.useState<Record<string, QuoteItem>>({});
+  usePolling(
+    async () => {
+      try {
+        setChipQuotes(await fetchQuotes(chipSymbols));
+      } catch {
+        // Chip tetap bisa dipakai tanpa persentase.
+      }
+    },
+    { enabled: isActive && signedIn, intervalMs: trading ? 60_000 : null, minGapMs: 30_000, key: `${chipSymbols.join(',')}:${epoch}` }
+  );
+
   const loadTech = React.useCallback(async (symbol: string) => {
     const r = await loadSection<TechnicalResponse>(`/api/analysis/technical?symbol=${encodeURIComponent(symbol)}`);
     setTech((prev) => merge(prev, symbol, r));
@@ -272,9 +289,19 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
             type="button"
             onClick={() => choose(s)}
             aria-pressed={s === selected}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold border shrink-0 cursor-pointer ${s === selected ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold border shrink-0 cursor-pointer flex items-center gap-1.5 transition-colors ${s === selected ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
           >
             {s}
+            {(() => {
+              const q = chipQuotes[s];
+              if (!q || q.suspect || q.changePercent === null || !Number.isFinite(q.changePercent)) return null;
+              const c = q.changePercent;
+              return (
+                <span className={`text-[10px] font-bold tabular-nums ${c > 0 ? 'text-emerald-400' : c < 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                  {c > 0 ? '+' : ''}{formatNumberLocale(c, language, 1)}%
+                </span>
+              );
+            })()}
           </button>
         ))}
       </div>
@@ -364,15 +391,15 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
       <div className="space-y-6">
         {header}
         {startCard}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <Stagger className="grid grid-cols-2 lg:grid-cols-5 gap-3" step={0.07}>
           {features.map((f, i) => (
-            <div key={f.title} className={`p-4 rounded-2xl border border-white/10 bg-white/[0.02] ${i === features.length - 1 ? 'col-span-2 lg:col-span-1' : ''}`}>
+            <StaggerItem key={f.title} className={`p-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/30 transition-colors ${i === features.length - 1 ? 'col-span-2 lg:col-span-1' : ''}`}>
               <f.icon className="h-5 w-5 text-emerald-400" />
               <p className="text-sm font-bold text-white mt-2">{f.title}</p>
               <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{f.desc}</p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     );
   }

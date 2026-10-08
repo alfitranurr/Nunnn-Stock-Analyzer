@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { TrendingDown, ArrowRight, ShieldCheck, CheckCircle2, Sparkles, Target } from 'lucide-react';
-import { AvgDownResult } from '@/lib/calculator';
+import { TrendingDown, ArrowRight, ShieldCheck, CheckCircle2, Sparkles, Target, Lightbulb, Layers, ShieldAlert, PieChart } from 'lucide-react';
+import { AvgDownResult, minAraDays, ticksBetween } from '@/lib/calculator';
+import { AnimatedNumber, Stagger, StaggerItem } from '@/components/shared/motion';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { cleanCompanyName } from '@/lib/utils';
@@ -90,6 +91,58 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
   const isProfitAwal = result.floatingPLAwal >= 0;
   const isProfitTotal = result.floatingPLTotalPct >= 0;
   const isAvgUp = result.avgPriceReductionPct < 0;
+
+  // ─── Wawasan dinamis ───
+  const currentPrice = result.sharesTotal > 0 ? result.marketValueTotal / result.sharesTotal : 0;
+  const bepTicks = ticksBetween(currentPrice, result.breakEvenPriceBaru);
+  const araDays = minAraDays(currentPrice, result.breakEvenPriceBaru);
+  const bepSavedTicks = ticksBetween(result.breakEvenPriceBaru, result.breakEvenPriceAwal);
+  const newCapitalShare = result.investedAmountTotal > 0 ? (result.capitalRequired / result.investedAmountTotal) * 100 : 0;
+  const stressPl = result.floatingPLTotal - result.marketValueTotal * 0.1;
+  const stressPct = result.investedAmountTotal > 0 ? (stressPl / result.investedAmountTotal) * 100 : 0;
+  const insights: Array<{ key: string; icon: typeof Lightbulb; tone: string; text: React.ReactNode }> = [
+    bepTicks > 0
+      ? {
+          key: 'bep',
+          icon: Target,
+          tone: 'text-amber-400',
+          text: isId
+            ? <>BEP baru <strong className="text-white">{formatIDR(result.breakEvenPriceBaru)}</strong> berjarak <strong className="text-white">{bepTicks} fraksi</strong> dari harga sekarang{araDays > 1 ? <> — minimal <strong className="text-white">{araDays} hari ARA</strong> beruntun.</> : ' — masih bisa tercapai dalam 1 hari bursa.'}</>
+            : <>New break-even <strong className="text-white">{formatIDR(result.breakEvenPriceBaru)}</strong> is <strong className="text-white">{bepTicks} ticks</strong> above the current price{araDays > 1 ? <> — at least <strong className="text-white">{araDays} straight ARA days</strong>.</> : ' — reachable within one trading day.'}</>,
+        }
+      : {
+          key: 'bep',
+          icon: CheckCircle2,
+          tone: 'text-bullish-green',
+          text: isId ? 'Harga sekarang sudah di atas BEP baru: posisi bisa dilepas tanpa rugi (setelah fee).' : 'The current price is already above the new break-even: the position can be sold without a loss (after fees).',
+        },
+    ...(bepSavedTicks > 0
+      ? [{
+          key: 'saved',
+          icon: Layers,
+          tone: 'text-emerald-400',
+          text: isId
+            ? <>Average down memangkas BEP <strong className="text-white">{bepSavedTicks} fraksi</strong> ({formatIDR(result.breakEvenPriceAwal)} → {formatIDR(result.breakEvenPriceBaru)}).</>
+            : <>Averaging down cuts the break-even by <strong className="text-white">{bepSavedTicks} ticks</strong> ({formatIDR(result.breakEvenPriceAwal)} → {formatIDR(result.breakEvenPriceBaru)}).</>,
+        }]
+      : []),
+    {
+      key: 'share',
+      icon: PieChart,
+      tone: newCapitalShare > 60 ? 'text-amber-400' : 'text-sky-400',
+      text: isId
+        ? <>Modal baru = <strong className="text-white">{pct(newCapitalShare)}</strong> dari total modal di saham ini{newCapitalShare > 60 ? '; mayoritas dana kini bergantung pada pemulihan harga.' : '.'}</>
+        : <>New capital = <strong className="text-white">{pct(newCapitalShare)}</strong> of your total stake in this stock{newCapitalShare > 60 ? '; most of the money now depends on a price recovery.' : '.'}</>,
+    },
+    {
+      key: 'stress',
+      icon: ShieldAlert,
+      tone: 'text-bearish-red',
+      text: isId
+        ? <>Uji risiko: bila harga turun 10% lagi, P&amp;L menjadi sekitar <strong className="text-white">{formatIDR(stressPl)}</strong> ({pct(stressPct, true)}).</>
+        : <>Stress test: if the price drops another 10%, P&amp;L becomes about <strong className="text-white">{formatIDR(stressPl)}</strong> ({pct(stressPct, true)}).</>,
+    },
+  ];
   const lossGrew = result.lossShrunkPct !== null && result.lossShrunkPct < 0;
 
   return (
@@ -122,7 +175,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
             {isId ? 'Modal Baru yang Dibutuhkan' : 'Required New Capital'}
           </span>
           <h3 className="text-xl md:text-2xl font-black tracking-tight text-emerald-400 mt-1">
-            {formatIDR(result.capitalRequired)}
+            <AnimatedNumber value={result.capitalRequired} format={formatIDR} fromZero />
           </h3>
           <p className="text-[11px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
             {isId
@@ -144,6 +197,21 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           </p>
         </div>
       </motion.div>
+
+      {/* Wawasan otomatis dari hasil hitungan (fraksi BEI, hari ARA, uji turun 10%) */}
+      <div className="glass-card p-4 md:p-5 border-sky-500/20 bg-sky-500/[0.03]">
+        <h4 className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
+          <Lightbulb className="h-4 w-4" /> {isId ? 'Wawasan' : 'Insights'}
+        </h4>
+        <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-2.5" key={`${result.breakEvenPriceBaru}:${result.capitalRequired}`}>
+          {insights.map((it) => (
+            <StaggerItem key={it.key} className="flex items-start gap-2.5 text-[11px] md:text-xs text-slate-300 leading-relaxed">
+              <it.icon className={`h-4 w-4 shrink-0 mt-0.5 ${it.tone}`} />
+              <span>{it.text}</span>
+            </StaggerItem>
+          ))}
+        </Stagger>
+      </div>
 
       {/* Grid Utama: Sebelum vs Sesudah */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5.5">
@@ -237,7 +305,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 <span className="text-[11px] md:text-xs text-emerald-400 font-semibold">
                   {isId ? 'Harga Rata-Rata Baru' : 'New Average Price'}
                 </span>
-                <span className="text-base md:text-lg font-black text-emerald-400">{formatIDR(result.avgPriceBaru)}</span>
+                <AnimatedNumber value={result.avgPriceBaru} format={formatIDR} className="text-base md:text-lg font-black text-emerald-400" />
               </div>
               <MetricRow label={isId ? 'Total Modal Baru (Gross)' : 'Total New Capital (Gross)'} value={formatIDR(result.investedAmountTotal)} />
               <MetricRow label={isId ? 'Nilai Pasar Baru' : 'New Market Value'} value={formatIDR(result.marketValueTotal)} />
@@ -255,9 +323,11 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
               {isId ? 'Estimasi Floating P&L Baru' : 'Estimated New Floating P&L'}
             </span>
             <div className="flex justify-between items-center">
-              <span className={`text-lg md:text-xl font-extrabold tracking-tight ${isProfitTotal ? 'text-bullish-green dark:text-bullish-neon' : 'text-bearish-red dark:text-bearish-crimson'}`}>
-                {formatIDR(result.floatingPLTotal)}
-              </span>
+              <AnimatedNumber
+                value={result.floatingPLTotal}
+                format={formatIDR}
+                className={`text-lg md:text-xl font-extrabold tracking-tight ${isProfitTotal ? 'text-bullish-green dark:text-bullish-neon' : 'text-bearish-red dark:text-bearish-crimson'}`}
+              />
               <span className={`text-[10px] md:text-xs font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg border ${
                 isProfitTotal
                   ? 'bg-bullish-green/10 border-bullish-green/20 text-bullish-green'

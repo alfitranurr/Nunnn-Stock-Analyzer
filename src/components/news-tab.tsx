@@ -17,6 +17,7 @@ import {
   X,
   FileText,
   Eye,
+  Flame,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
@@ -239,6 +240,19 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
   }, [isActive]);
 
   const visible = items.slice(0, visibleCount);
+
+  // ─── Sorotan feed: emiten paling banyak diberitakan & rangkuman sentimen AI yang sudah dibuka ───
+  const highlights = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) for (const tk of new Set(item.tickers)) counts.set(tk, (counts.get(tk) ?? 0) + 1);
+    const top = [...counts.entries()].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 6);
+    const sources = new Set(items.map((i) => i.source)).size;
+    const sentiments = { positive: 0, negative: 0, neutral: 0 };
+    for (const a of Object.values(analyses)) {
+      if (a?.status === 'ready' && a.data.mode === 'ai' && a.data.sentiment) sentiments[a.data.sentiment] += 1;
+    }
+    return { top, sources, sentiments, analyzed: sentiments.positive + sentiments.negative + sentiments.neutral };
+  }, [items, analyses]);
 
   // Harga saham yang disebut di berita yang tampil + saham terdampak hasil analisis AI.
   const quoteSymbols = React.useMemo(() => {
@@ -621,6 +635,57 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
         )}
       </div>
 
+      {/* Sorotan feed */}
+      {status === 'ready' && items.length > 0 && (highlights.top.length > 0 || highlights.analyzed > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="rounded-2xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2.5"
+        >
+          {highlights.top.length > 0 && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 flex items-center gap-1 shrink-0">
+                <Flame className="h-3.5 w-3.5" /> {L('Paling diberitakan', 'Most covered')}
+              </span>
+              <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-0.5 min-w-0">
+                {highlights.top.map(([tk, count]) => {
+                  const q = quotes[tk];
+                  return (
+                    <button
+                      key={tk}
+                      type="button"
+                      onClick={() => {
+                        setSearchInput(tk);
+                        setActiveQuery(tk);
+                      }}
+                      title={L(`Tampilkan berita ${tk}`, `Show ${tk} news`)}
+                      className="shrink-0 px-2 py-1 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-amber-500/10 hover:border-amber-500/30 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <span className="text-white">{tk}</span>
+                      <span className="text-slate-500">×{count}</span>
+                      {q && !q.suspect && (
+                        <span className={`tabular-nums ${q.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {q.change >= 0 ? '+' : ''}{formatNumberLocale(q.changePercent, language, 1)}%
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] text-slate-500">
+            {L(`${items.length} berita dari ${highlights.sources} media`, `${items.length} stories from ${highlights.sources} outlets`)}
+            {highlights.analyzed > 0 &&
+              L(
+                ` · ${highlights.analyzed} dianalisis AI: ${highlights.sentiments.positive} positif, ${highlights.sentiments.negative} negatif, ${highlights.sentiments.neutral} netral`,
+                ` · ${highlights.analyzed} analyzed by AI: ${highlights.sentiments.positive} positive, ${highlights.sentiments.negative} negative, ${highlights.sentiments.neutral} neutral`
+              )}
+          </p>
+        </motion.div>
+      )}
+
       {/* Feed */}
       {status === 'error' ? (
         <div className="border border-red-500/20 bg-red-500/10 p-4 rounded-xl flex items-start gap-3">
@@ -677,7 +742,14 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                 const isOpen = !!expanded[item.id];
                 const sentiment = state?.status === 'ready' && state.data.mode === 'ai' ? SENTIMENT_STYLE[state.data.sentiment ?? 'neutral'] : null;
                 return (
-                  <article key={item.id} className="border border-border-color bg-card-bg rounded-2xl hover:border-emerald-500/30 transition-colors overflow-hidden">
+                  <motion.article
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '0px 0px -30px 0px' }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    className="border border-border-color bg-card-bg rounded-2xl hover:border-emerald-500/30 transition-colors overflow-hidden"
+                  >
                     <div className="p-4 md:p-5 space-y-3">
                       <a href={item.link} target="_blank" rel="noopener noreferrer" className="group block">
                         <h3 className="font-bold text-slate-100 text-sm md:text-[15px] leading-snug group-hover:text-emerald-400 transition-colors">
@@ -732,7 +804,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </article>
+                  </motion.article>
                 );
               })}
             </section>

@@ -1,4 +1,7 @@
+'use client';
+
 import * as React from 'react';
+import { motion } from 'framer-motion';
 
 interface SparklineProps {
   values: number[];
@@ -23,6 +26,7 @@ export function Sparkline({
   filled = false,
 }: SparklineProps) {
   const gradientId = React.useId();
+  const clipId = React.useId();
 
   if (values.length < 2) {
     return <div className={className} style={{ width, height }} aria-hidden="true" />;
@@ -60,6 +64,11 @@ export function Sparkline({
           <path d={`${line} L${width},${height} L0,${height} Z`} fill={`url(#${gradientId})`} />
         </>
       )}
+      <defs>
+        <clipPath id={clipId}>
+          <motion.rect x="0" y="0" height={height} initial={{ width: 0 }} animate={{ width }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
+        </clipPath>
+      </defs>
       {baseline !== undefined && (
         <line
           x1="0"
@@ -72,7 +81,7 @@ export function Sparkline({
           vectorEffect="non-scaling-stroke"
         />
       )}
-      <path d={line} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <path d={line} clipPath={`url(#${clipId})`} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

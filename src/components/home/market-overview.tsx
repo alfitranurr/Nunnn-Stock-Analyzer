@@ -4,6 +4,7 @@ import * as React from 'react';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { formatNumberLocale, formatIDRCompact } from '@/lib/format';
 import { Sparkline } from './sparkline';
+import { AnimatedNumber, GrowBar } from '@/components/shared/motion';
 import type { Lang, MarketSummaryData } from './types';
 
 interface MarketOverviewProps {
@@ -75,7 +76,7 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
               {isId ? 'IHSG · Indeks Harga Saham Gabungan' : 'IHSG · Jakarta Composite Index'}
             </span>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-1">
-              <span className="text-3xl font-black text-white tracking-tight tabular-nums">{num(ihsg.price)}</span>
+              <AnimatedNumber value={ihsg.price} format={num} className="text-3xl font-black text-white tracking-tight" />
               <span className={`text-sm font-bold flex items-center gap-1 tabular-nums ${changeColor}`}>
                 <ChangeIcon className="h-4 w-4" />
                 {isUp ? '+' : ''}{num(ihsg.change)} ({isUp ? '+' : ''}{num(ihsg.changePercent)}%)
@@ -148,9 +149,9 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
         </div>
 
         <div className="flex h-2 rounded-full overflow-hidden bg-white/5" role="img" aria-label={`${breadth.advancers} / ${breadth.unchanged} / ${breadth.decliners}`}>
-          <span className="bg-emerald-500" style={{ width: `${pct(breadth.advancers)}%` }} />
-          <span className="bg-slate-500" style={{ width: `${pct(breadth.unchanged)}%` }} />
-          <span className="bg-rose-500" style={{ width: `${pct(breadth.decliners)}%` }} />
+          <GrowBar pct={pct(breadth.advancers)} className="bg-emerald-500" />
+          <GrowBar pct={pct(breadth.unchanged)} className="bg-slate-500" />
+          <GrowBar pct={pct(breadth.decliners)} className="bg-rose-500" />
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-[10px] tabular-nums">

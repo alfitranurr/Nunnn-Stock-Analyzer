@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { Sparkles, Plus, Trash2, RefreshCw, RotateCcw, AlertTriangle } from 'lucide-react';
-import { AvgDownInput, AvgDownResult, isValidIdxPrice, getIdxTickSize, roundDownToIdxTick, stepIdxPrice } from '@/lib/calculator';
+import { AvgDownInput, AvgDownResult, isValidIdxPrice, getIdxTickSize, roundDownToIdxTick, stepIdxPrice, getAutoRejectionBounds } from '@/lib/calculator';
+import { AnimatedNumber } from '@/components/shared/motion';
 import { StepperInput } from '@/components/stepper-input';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -152,6 +153,8 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   const [avgPriceAwalIncludesFee, setAvgPriceAwalIncludesFee] = React.useState(true);
   const [isFetchingTicker, setIsFetchingTicker] = React.useState(false);
   const [fetchingTrancheId, setFetchingTrancheId] = React.useState<string | null>(null);
+  // Data pasar saham aktif: penutupan kemarin (acuan ARA/ARB hari ini) dan perubahan hari ini.
+  const [market, setMarket] = React.useState<{ symbol: string; previousClose: number; changePercent: number | null } | null>(null);
 
   const isLoadedPlanRef = React.useRef(false);
   const prevCurrentPriceRef = React.useRef(currentPrice);
@@ -204,6 +207,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     }
   }, [initialValues]);
 
+  const liveMarket = market && market.symbol === ticker.toUpperCase().trim() ? market : null;
+  const limits = liveMarket ? getAutoRejectionBounds(liveMarket.previousClose) : null;
+
   const fetchRemoteTicker = React.useCallback(async (symbol: string) => {
     setIsFetchingTicker(true);
     try {
@@ -216,6 +222,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         if (data.price !== undefined && data.price !== null) {
           setCurrentPrice(formatNumberForInput(data.price));
         }
+        setMarket(typeof data.previousClose === 'number' && data.previousClose > 0 ? { symbol, previousClose: data.previousClose, changePercent: data.changePercent ?? null } : null);
       }
     } catch (err) {
       console.error('Error fetching remote ticker data:', err);
@@ -588,6 +595,16 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     required
                   />
                   <label htmlFor={`${fieldId}-current-price`} className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</label>
+                  {limits && (
+                    <span className="block text-center text-[9px] font-semibold text-slate-500 mt-0.5 animate-fadeIn" title={language === 'id' ? 'Batas auto rejection papan reguler hari ini, dari penutupan kemarin' : "Today's regular-board auto-rejection limits, from yesterday's close"}>
+                      {liveMarket?.changePercent != null && (
+                        <span className={liveMarket.changePercent > 0 ? 'text-bullish-green' : liveMarket.changePercent < 0 ? 'text-bearish-red' : ''}>
+                          {formatPercent(liveMarket.changePercent, { language, signed: true })} ·{' '}
+                        </span>
+                      )}
+                      ARB {formatIDR(limits.lower, language).replace('Rp', '').trim()} – ARA {formatIDR(limits.upper, language).replace('Rp', '').trim()}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -736,6 +753,15 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                           {removeButton && <span className="hidden sm:flex">{removeButton}</span>}
                         </div>
 
+                        {/* Harga di luar batas ARB–ARA hari ini: order hari ini pasti ditolak bursa */}
+                        {!tickInvalid && limits && priceNum > 0 && (priceNum > limits.upper || priceNum < limits.lower) && (
+                          <span className="flex items-center gap-1 pt-1.5 sm:pl-8 text-[10px] font-semibold text-sky-400">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />
+                            {language === 'id'
+                              ? `Di luar batas hari ini (ARB ${formatIDR(limits.lower, language)} – ARA ${formatIDR(limits.upper, language)}); hanya bisa dieksekusi di hari lain.`
+                              : `Outside today's limits (ARB ${formatIDR(limits.lower, language)} – ARA ${formatIDR(limits.upper, language)}); only fillable on another day.`}
+                          </span>
+                        )}
                         {/* Peringatan fraksi harga */}
                         {tickInvalid && (
                           <span className="flex items-center gap-1 pt-1.5 sm:pl-8 text-[10px] font-semibold text-amber-400">
@@ -851,21 +877,21 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-6 text-left" aria-live="polite">
               <div className="min-w-0">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveNewAvg')}</span>
-                <span className="text-xs md:text-sm font-black text-white block truncate">{formatIDR(result.avgPriceBaru, language)}</span>
+                <AnimatedNumber value={result.avgPriceBaru} format={(v) => formatIDR(v, language)} className="text-xs md:text-sm font-black text-white block truncate" />
                 <span className={`text-[10px] font-bold ${result.avgPriceReductionPct >= 0 ? 'text-bullish-green' : 'text-amber-400'}`}>
                   {formatPercent(-result.avgPriceReductionPct, { language, signed: true })}
                 </span>
               </div>
               <div className="min-w-0">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveBep')}</span>
-                <span className="text-xs md:text-sm font-black text-white block truncate">{formatIDR(result.breakEvenPriceBaru, language)}</span>
+                <AnimatedNumber value={result.breakEvenPriceBaru} format={(v) => formatIDR(v, language)} className="text-xs md:text-sm font-black text-white block truncate" />
                 <span className={`text-[10px] font-bold ${result.gainToBreakEvenBaruPct > 0 ? 'text-slate-400' : 'text-bullish-green'}`}>
                   {formatPercent(result.gainToBreakEvenBaruPct, { language, signed: true })}
                 </span>
               </div>
               <div className="min-w-0">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveCapital')}</span>
-                <span className="text-xs md:text-sm font-black text-emerald-400 block truncate">{formatIDR(result.capitalRequired, language)}</span>
+                <AnimatedNumber value={result.capitalRequired} format={(v) => formatIDR(v, language)} className="text-xs md:text-sm font-black text-emerald-400 block truncate" />
               </div>
             </div>
           ) : (

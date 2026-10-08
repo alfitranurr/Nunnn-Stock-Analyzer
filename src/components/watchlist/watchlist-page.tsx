@@ -4,6 +4,7 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BellRing, ChevronDown, ChevronUp, LineChart, Plus, Star, Target, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
+import { Flash } from '@/components/shared/motion';
 import { QuickSearchTicker } from '@/components/quick-search-ticker';
 import { CompanyLogo } from '@/components/company-logo';
 import { StepperInput } from '@/components/stepper-input';
@@ -134,13 +135,14 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
 
   const signedPct = (v: number) => `${v > 0 ? '+' : ''}${pct(v, language)}`;
   const tone = (v: number | null) => (v === null || v === 0 ? 'text-slate-300' : v > 0 ? 'text-emerald-400' : 'text-rose-400');
-  const lastOf = (r: Row) => (r.quote ? rp(r.quote.price, language) : quoteError ? '—' : '…');
+  // Harga berkedip halus setiap kali berubah (polling 60 detik saat bursa buka).
+  const lastOf = (r: Row) => (r.quote ? <Flash value={rp(r.quote.price, language)} /> : quoteError ? '—' : '…');
 
   const changeCell = (r: Row) =>
     r.quote ? (
       r.changePct !== null ? (
         <span className={`tabular-nums ${tone(r.quote.change)}`}>
-          {r.quote.change > 0 ? '+' : ''}{formatNumberLocale(r.quote.change, language)}
+          <Flash value={`${r.quote.change > 0 ? '+' : ''}${formatNumberLocale(r.quote.change, language)}`} />
           <span className="block text-[10px] font-bold">{signedPct(r.changePct)}</span>
         </span>
       ) : (

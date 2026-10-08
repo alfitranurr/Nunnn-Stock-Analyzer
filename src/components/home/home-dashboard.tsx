@@ -190,7 +190,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
         <div className="lg:col-span-2">
           <TrendingNewsStrip language={language} />
         </div>
-        <EducationalTipCard language={language} />
+        <EducationalTipCard language={language} market={data} />
       </div>
 
       {/* Akses cepat */}

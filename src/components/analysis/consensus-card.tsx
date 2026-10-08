@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Compass } from 'lucide-react';
 import { Card, CardTitle, pick, type Lang } from '@/components/shared/calc-ui';
 import type { Rating, ScorePoint } from '@/lib/analysis-score';
+import { AnimatedNumber, GrowBar } from '@/components/shared/motion';
 
 export interface ConsensusPart {
   key: 'technical' | 'fundamental' | 'flow' | 'news';
@@ -54,7 +55,7 @@ export function ConsensusCard({
       <CardTitle icon={<Compass className="h-5 w-5 text-emerald-400" />} title={L('Skor Konsensus', 'Consensus Score')} subtitle={L('Gabungan berbobot dari data yang tersedia.', 'Weighted blend of the available data.')} />
       {result ? (
         <div className="flex items-end gap-3">
-          <span className="text-5xl font-black text-white tabular-nums leading-none">{result.score}</span>
+          <AnimatedNumber value={result.score} format={(v) => String(Math.round(v))} fromZero duration={0.9} className="text-5xl font-black text-white leading-none" />
           <div className="pb-1">
             <span className={`block text-lg font-black leading-tight ${RATING_LABEL[result.rating].cls}`}>{L(RATING_LABEL[result.rating].id, RATING_LABEL[result.rating].en)}</span>
             <span className="block text-[10px] text-slate-500">/ 100</span>
@@ -77,7 +78,7 @@ export function ConsensusCard({
               <span className="font-mono text-slate-200">{p.score ?? '—'}</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-              {p.score !== null && <div className={`h-full rounded-full ${barColor(p.score)}`} style={{ width: `${p.score}%` }} />}
+              {p.score !== null && <GrowBar pct={p.score} className={`h-full rounded-full ${barColor(p.score)}`} />}
             </div>
           </div>
         ))}

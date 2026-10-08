@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Briefcase, Calculator, Edit3, LineChart, Lock, Plus, RefreshCw, Trash2, UserPlus, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Briefcase, Calculator, Edit3, Lightbulb, LineChart, Lock, PieChart, Plus, RefreshCw, Trash2, UserPlus, Wallet } from 'lucide-react';
+import { AnimatedNumber, GrowBar, Stagger, StaggerItem } from '@/components/shared/motion';
 import { StepperInput } from '@/components/stepper-input';
 import { CompanyLogo } from '@/components/company-logo';
 import { ConfirmModal } from '@/components/confirm-modal';
@@ -227,6 +228,40 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
   const n0 = (v: number) => formatNumberLocale(v, language, 0);
   const signed = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${rp(Math.abs(v), language)}`;
   const signedPct = (v: number) => `${v > 0 ? '+' : ''}${pct(v, language)}`;
+
+  // ─── Wawasan dinamis ───
+  const insights: Array<{ key: string; icon: typeof Lightbulb; tone: string; text: React.ReactNode }> = [];
+  if (rows.length > 0 && totalValue > 0) {
+    const top = rows.reduce((a, b) => (b.weight > a.weight ? b : a));
+    insights.push({
+      key: 'concentration',
+      icon: PieChart,
+      tone: top.weight > 40 ? 'text-amber-400' : 'text-sky-400',
+      text:
+        top.weight > 40
+          ? L(`${top.h.ticker} mengisi ${pct(top.weight, language, 1)} portofolio saham; satu saham menentukan sebagian besar hasil. Pertimbangkan batas per saham.`, `${top.h.ticker} is ${pct(top.weight, language, 1)} of your stocks; one name drives most of the result. Consider a per-stock cap.`)
+          : L(`Posisi terbesar ${top.h.ticker} (${pct(top.weight, language, 1)}); sebaran ${rows.length} saham cukup seimbang.`, `Largest position ${top.h.ticker} (${pct(top.weight, language, 1)}); ${rows.length} stocks are reasonably balanced.`),
+    });
+    const movers = rows.filter((r) => r.todayPct !== null);
+    if (movers.length > 0) {
+      const best = movers.reduce((a, b) => ((b.todayPct ?? 0) > (a.todayPct ?? 0) ? b : a));
+      const worst = movers.reduce((a, b) => ((b.todayPct ?? 0) < (a.todayPct ?? 0) ? b : a));
+      if ((best.todayPct ?? 0) > 0) {
+        insights.push({ key: 'best', icon: ArrowUpRight, tone: 'text-emerald-400', text: L(`Penopang hari ini: ${best.h.ticker} ${signedPct(best.todayPct ?? 0)} (${signed(best.today ?? 0)}).`, `Today's top contributor: ${best.h.ticker} ${signedPct(best.todayPct ?? 0)} (${signed(best.today ?? 0)}).`) });
+      }
+      if ((worst.todayPct ?? 0) < 0) {
+        insights.push({ key: 'worst', icon: ArrowDownRight, tone: 'text-rose-400', text: L(`Penekan hari ini: ${worst.h.ticker} ${signedPct(worst.todayPct ?? 0)} (${signed(worst.today ?? 0)}).`, `Today's biggest drag: ${worst.h.ticker} ${signedPct(worst.todayPct ?? 0)} (${signed(worst.today ?? 0)}).`) });
+      }
+    }
+    const deepLoss = rows.filter((r) => r.plPct !== null && r.plPct <= -15).sort((a, b) => (a.plPct ?? 0) - (b.plPct ?? 0))[0];
+    if (deepLoss) {
+      insights.push({ key: 'loss', icon: AlertTriangle, tone: 'text-amber-400', text: L(`${deepLoss.h.ticker} sudah ${signedPct(deepLoss.plPct ?? 0)} dari harga rata-rata. Simulasikan dulu di Avg Down sebelum menambah posisi.`, `${deepLoss.h.ticker} is ${signedPct(deepLoss.plPct ?? 0)} from your average. Simulate it in Avg Down before adding.`) });
+    }
+    if (cash !== null && cash >= 0) {
+      const cashShare = (cash / (totalValue + cash)) * 100;
+      insights.push({ key: 'cash', icon: Wallet, tone: 'text-sky-400', text: L(`Kas RDN = ${pct(cashShare, language, 1)} dari total aset${cashShare < 5 ? ' — ruang untuk average down atau peluang baru tipis.' : '.'}`, `RDN cash = ${pct(cashShare, language, 1)} of total assets${cashShare < 5 ? ' — little room to average down or buy new opportunities.' : '.'}`) });
+    }
+  }
   const tone = (v: number | null) => (v === null || v === 0 ? 'text-slate-300' : v > 0 ? 'text-emerald-400' : 'text-rose-400');
 
   if (!user) {
@@ -293,7 +328,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           tone="emerald"
           className="col-span-2 lg:col-span-1"
           label={L('Nilai portofolio', 'Portfolio value')}
-          value={rp(totalValue + (cash ?? 0), language)}
+          value={<AnimatedNumber value={totalValue + (cash ?? 0)} format={(v) => rp(v, language)} fromZero />}
           sub={cash !== null ? L(`saham ${formatIDRCompact(totalValue, language)} + kas ${formatIDRCompact(cash, language)}`, `stocks ${formatIDRCompact(totalValue, language)} + cash ${formatIDRCompact(cash, language)}`) : L('nilai pasar saham', 'stock market value')}
         />
         <Stat label={L('Modal', 'Cost basis')} value={formatIDRCompact(totalCost, language, 2)} sub={L(`${rows.length} saham`, `${rows.length} stocks`)} />
@@ -316,6 +351,23 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           sub={totalCost > 0 ? L(`kotor · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`, `gross · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`) : L('kotor', 'gross')}
         />
       </div>
+
+      {/* Wawasan portofolio (dihitung dari posisi & harga live) */}
+      {insights.length > 0 && (
+        <Card className="py-4 sm:py-5">
+          <h2 className="text-[10px] font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
+            <Lightbulb className="h-4 w-4" /> {L('Wawasan portofolio', 'Portfolio insights')}
+          </h2>
+          <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {insights.map((it) => (
+              <StaggerItem key={it.key} className="flex items-start gap-2.5 text-xs text-slate-300 leading-relaxed">
+                <it.icon className={`h-4 w-4 shrink-0 mt-0.5 ${it.tone}`} />
+                <span>{it.text}</span>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        </Card>
+      )}
 
       {/* Kas RDN */}
       <Card className="py-4 sm:py-4">
@@ -409,9 +461,11 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
             <div className="mb-5">
               <div className="flex h-3 rounded-full overflow-hidden bg-white/5" role="img" aria-label={L('Alokasi portofolio', 'Portfolio allocation')}>
                 {allocation.shown.map((r, i) => (
-                  <div key={r.h.id} className={ALLOCATION_COLORS[i]} style={{ width: `${r.weight}%` }} title={`${r.h.ticker} ${pct(r.weight, language, 1)}`} />
+                  <div key={r.h.id} className="contents" title={`${r.h.ticker} ${pct(r.weight, language, 1)}`}>
+                    <GrowBar pct={r.weight} className={ALLOCATION_COLORS[i]} />
+                  </div>
                 ))}
-                {allocation.rest > 0 && <div className="bg-slate-500" style={{ width: `${allocation.rest}%` }} />}
+                {allocation.rest > 0 && <GrowBar pct={allocation.rest} className="bg-slate-500" />}
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] font-bold text-slate-400">
                 {allocation.shown.map((r, i) => (

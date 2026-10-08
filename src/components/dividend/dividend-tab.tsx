@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { PageHeader } from '@/components/shared/page-header';
+import { motion } from 'framer-motion';
+import { AnimatedNumber, EASE_OUT } from '@/components/shared/motion';
 import {
   AlertTriangle,
   CalendarDays,
@@ -661,10 +663,20 @@ export function DividendTab({ isActive }: DividendTabProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="p-5 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-card-bg to-[#121619] relative overflow-hidden">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">{L('Dividen bersih / tahun', 'Net dividend / year')}</span>
-            <div className="text-3xl md:text-4xl font-black text-emerald-400 tracking-tight mt-1 tabular-nums break-all">{rp(sim.netAnnualRp, language)}</div>
+            <div className="text-3xl md:text-4xl font-black text-emerald-400 tracking-tight mt-1 tabular-nums break-all">
+              <AnimatedNumber value={sim.netAnnualRp} format={(v) => rp(v, language)} fromZero />
+            </div>
             <p className="text-xs text-slate-400 mt-1">
               {L(`≈ ${rp(sim.avgMonthlyNetRp, language)} / bulan bila dirata-rata`, `≈ ${rp(sim.avgMonthlyNetRp, language)} / month on average`)}
             </p>
+            {sim.netYieldOnCostPct > 0 && (
+              <p className="text-[11px] text-emerald-300/80 mt-1">
+                {L(
+                  `Target Rp1 juta/bulan bersih butuh modal ≈ ${formatIDRCompact(12_000_000 / (sim.netYieldOnCostPct / 100), language, 1)} di yield ini.`,
+                  `A Rp1M/month net target needs ≈ ${formatIDRCompact(12_000_000 / (sim.netYieldOnCostPct / 100), language, 1)} of capital at this yield.`
+                )}
+              </p>
+            )}
             <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-2 text-[11px]">
               <span className="text-slate-400">{L('Kotor', 'Gross')}</span>
               <span className="text-right font-bold text-white tabular-nums">{rp(sim.grossAnnualRp, language)}</span>
@@ -680,7 +692,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
             </div>
             {nextPayment && todayIso ? (
               <>
-                <div className="text-2xl font-black text-white mt-1 tabular-nums">{rp(nextPayment.netRp, language)}</div>
+                <div className="text-2xl font-black text-white mt-1 tabular-nums"><AnimatedNumber value={nextPayment.netRp} format={(v) => rp(v, language)} /></div>
                 <p className="text-[11px] text-slate-400">{L(`bersih · ${rpShare(nextPayment.dps, language)}/lembar`, `net · ${rpShare(nextPayment.dps, language)}/share`)}</p>
                 <dl className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-y-1.5 text-[11px]">
                   <dt className="text-slate-400">{L('Batas beli (cum) ≈', 'Last buy (cum) ≈')}</dt>
@@ -747,7 +759,14 @@ export function DividendTab({ isActive }: DividendTabProps) {
                   >
                     <span className={`block text-[9px] sm:text-[10px] font-bold uppercase whitespace-nowrap ${c.count > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>{formatMonth(c.key, language, true)}</span>
                     <div className="h-6 sm:h-8 flex items-end justify-center mt-1">
-                      {c.count > 0 && <div className="w-3 rounded-t bg-emerald-400" style={{ height: `${Math.max(15, (c.net / (maxMonthNet || 1)) * 100)}%` }} />}
+                      {c.count > 0 && (
+                        <motion.div
+                          className="w-3 rounded-t bg-emerald-400"
+                          initial={{ height: 0 }}
+                          animate={{ height: `${Math.max(15, (c.net / (maxMonthNet || 1)) * 100)}%` }}
+                          transition={{ duration: 0.6, ease: EASE_OUT }}
+                        />
+                      )}
                     </div>
                     <span className={`block text-[9px] sm:text-[10px] font-bold tabular-nums truncate mt-1 ${c.count > 0 ? 'text-white' : 'text-slate-600'}`}>
                       {c.count > 0 ? formatIDRCompact(c.net, language, 1).replace('Rp ', '') : '–'}
