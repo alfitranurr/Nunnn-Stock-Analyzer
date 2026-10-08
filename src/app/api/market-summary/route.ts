@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { IDX_TICKERS } from '@/lib/tickers';
+import { getIdxUniverse, nameFromUniverse } from '@/lib/idx-universe';
 import { applyRateLimit } from '@/lib/rate-limit';
 import { getAutoRejectionStatus } from '@/lib/calculator';
 import { createTtlCache } from '@/lib/yahoo';
@@ -46,7 +46,9 @@ const scanCache = createTtlCache<MarketScan>(45_000, 1);
 
 async function scanMarket(): Promise<MarketScan> {
   const provider = getMarketDataProvider();
-  const tickers = Object.keys(IDX_TICKERS);
+  // Daftar emiten aktif (termasuk IPO baru); cadangan daftar bawaan bila sumber gagal.
+  const universe = await getIdxUniverse();
+  const tickers = universe.stocks.map((s) => s.symbol);
   const [ihsg, { quotes, suspect }] = await Promise.all([
     provider.getCompositeIndex(),
     getValidatedStockQuotes(tickers),
@@ -60,7 +62,7 @@ async function scanMarket(): Promise<MarketScan> {
     if (issue) continue;
     movers.push({
       symbol: quote.ticker,
-      name: quote.name || IDX_TICKERS[quote.ticker] || quote.ticker,
+      name: quote.name || nameFromUniverse(universe, quote.ticker),
       price: quote.price,
       change: quote.change,
       changePercent: quote.changePercent,

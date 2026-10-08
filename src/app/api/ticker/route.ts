@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { cleanCompanyName } from '@/lib/utils';
 import { IDX_TICKERS } from '@/lib/tickers';
+import { getIdxUniverse } from '@/lib/idx-universe';
 import { applyRateLimit } from '@/lib/rate-limit';
 import { validateTickerSymbol } from '@/lib/validators';
 import { getMarketDataProvider, getValidatedStockQuotes, logSuspectQuotes } from '@/lib/market-data';
@@ -37,12 +38,11 @@ export async function GET(request: NextRequest) {
       const cleanQ = q.toUpperCase();
       const resultsMap = new Map<string, { symbol: string; name: string }>();
 
-      // 1. Cek Dictionary Lokal BEI dulu untuk pencarian instan
-      Object.entries(IDX_TICKERS).forEach(([sym, name]) => {
-        if (sym.includes(cleanQ) || name.toUpperCase().includes(cleanQ)) {
-          resultsMap.set(sym, { symbol: sym, name: cleanCompanyName(name) });
-        }
-      });
+      // 1. Daftar emiten aktif (termasuk IPO baru) untuk pencarian instan; kode yang cocok persis di atas.
+      const universe = await getIdxUniverse();
+      const local = universe.stocks.filter((st) => st.symbol.includes(cleanQ) || st.name.toUpperCase().includes(cleanQ));
+      local.sort((a, b) => Number(b.symbol === cleanQ) - Number(a.symbol === cleanQ) || Number(b.symbol.startsWith(cleanQ)) - Number(a.symbol.startsWith(cleanQ)));
+      for (const st of local) resultsMap.set(st.symbol, { symbol: st.symbol, name: cleanCompanyName(st.name) });
 
       // 2. Query Yahoo Finance Search API dengan q dan q.JK
       const searchUrls = [

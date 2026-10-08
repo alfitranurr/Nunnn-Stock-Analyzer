@@ -21,7 +21,7 @@ export const IDX_THEMES: IdxTheme[] = [
   { id: 'bank_big', id_label: 'Bank besar', en_label: 'Large banks', tickers: ['BBCA', 'BBRI', 'BMRI', 'BBNI', 'BRIS', 'BBTN'] },
   { id: 'bank_digital', id_label: 'Bank digital', en_label: 'Digital banks', tickers: ['ARTO', 'BBYB', 'BANK', 'AGRO', 'BBHI'] },
   { id: 'multifinance', id_label: 'Multifinance', en_label: 'Multifinance', tickers: ['BFIN', 'ADMF'] },
-  { id: 'coal', id_label: 'Batu bara', en_label: 'Coal', tickers: ['ADRO', 'PTBA', 'ITMG', 'BUMI', 'BYAN', 'INDY', 'HRUM'] },
+  { id: 'coal', id_label: 'Batu bara', en_label: 'Coal', tickers: ['ADRO', 'AADI', 'PTBA', 'ITMG', 'BUMI', 'BYAN', 'INDY', 'HRUM'] },
   { id: 'nickel', id_label: 'Nikel', en_label: 'Nickel', tickers: ['INCO', 'ANTM', 'MBMA', 'NCKL', 'HRUM'] },
   { id: 'gold', id_label: 'Emas & tembaga', en_label: 'Gold & copper', tickers: ['AMMN', 'MDKA', 'ANTM', 'BRMS', 'PSAB', 'ARCI'] },
   { id: 'oil_gas', id_label: 'Minyak & gas', en_label: 'Oil & gas', tickers: ['MEDC', 'ENRG', 'PGAS', 'AKRA', 'ELSA'] },
