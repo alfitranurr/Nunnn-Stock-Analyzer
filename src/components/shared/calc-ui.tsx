@@ -2,7 +2,9 @@
 
 import * as React from 'react';
 import { formatIDR, formatNumberForInput, formatNumberLocale, parseFormattedNumber, type Language } from '@/lib/format';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { EASE_OUT, Flash } from '@/components/shared/motion';
 
 export type Lang = Language;
 
@@ -66,8 +68,19 @@ export function stepDecimal(s: string, dir: 1 | -1, step: number, min: number, m
 }
 
 // ─── Komponen kecil ───
+/** Kartu standar: muncul halus saat pertama masuk layar, border menyala tipis saat hover. */
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <section className={cn('p-4 sm:p-6 rounded-3xl border border-white/10 bg-card-bg shadow-xl w-full', className)}>{children}</section>;
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '0px 0px -30px 0px' }}
+      transition={{ duration: 0.45, ease: EASE_OUT }}
+      className={cn('p-4 sm:p-6 rounded-3xl border border-white/10 bg-card-bg shadow-xl w-full', className)}
+    >
+      {children}
+    </motion.section>
+  );
 }
 
 export function CardTitle({ icon, title, subtitle, right }: { icon: React.ReactNode; title: string; subtitle?: React.ReactNode; right?: React.ReactNode }) {
@@ -156,9 +169,11 @@ export function Stat({
   className?: string;
 }) {
   return (
-    <div className={cn('p-3.5 rounded-2xl border min-w-0', TONES[tone], className)}>
+    <div className={cn('p-3.5 rounded-2xl border min-w-0 transition-colors duration-500', TONES[tone], className)}>
       <span className="text-[10px] font-bold uppercase tracking-wider block opacity-90">{label}</span>
-      <div className={cn('text-lg font-black text-white tracking-tight mt-1 tabular-nums truncate', valueClassName)}>{value}</div>
+      <div className={cn('text-lg font-black text-white tracking-tight mt-1 tabular-nums truncate', valueClassName)}>
+        {typeof value === 'string' || typeof value === 'number' ? <Flash value={value} className="max-w-full truncate align-bottom" /> : value}
+      </div>
       {sub && <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">{sub}</div>}
     </div>
   );

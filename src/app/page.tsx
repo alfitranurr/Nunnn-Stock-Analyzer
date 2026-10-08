@@ -25,7 +25,7 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { AppUser, SimUser } from '@/lib/types';
 import { hashUserPassword, generateRandomPassword } from '@/lib/crypto';
 import { AlertCircle, Info, ChevronUp, Calculator, ShieldCheck } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
 export default function Dashboard() {
@@ -598,7 +598,8 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Main Dashboard Panel */}
+      {/* Main Dashboard Panel (animasi mengikuti preferensi "kurangi gerakan" sistem) */}
+      <MotionConfig reducedMotion="user">
       <main className={`flex-1 h-dvh flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-3 md:pb-4 max-w-7xl w-full mx-auto flex flex-col justify-between custom-scrollbar">
           
@@ -838,6 +839,7 @@ export default function Dashboard() {
 
         </div>
       </main>
+      </MotionConfig>
 
       {/* Authentication Modal */}
       <AuthModal 
