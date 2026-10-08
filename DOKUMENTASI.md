@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `30f9770` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
+> Kondisi kode: commit `c52efc9` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -44,7 +44,7 @@
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 140 file ter-track git, sekitar 24,8k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
+| Ukuran | 144 file ter-track git, sekitar 25,3k LOC di `src/`, 11 menu, 13 API route, 7 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
@@ -177,7 +177,7 @@ Sumber: [package.json](package.json)
     │       ├── news/summary/route.ts          (627)  analisis AI berita + SSRF guard (cache 24 jam)
     │       ├── ticker/route.ts                (135)  harga & pencarian ticker (via provider)
     │       ├── quotes/route.ts                (56)   harga + intraday banyak saham (watchlist, portofolio)
-    │       ├── market-summary/route.ts        (137)  IHSG, breadth, movers (scan 886 saham, cache 45 dtk)
+    │       ├── market-summary/route.ts        (137)  IHSG, breadth, movers (scan ±845 saham aktif, cache 45 dtk)
     │       ├── global-markets/route.ts        (37)   USD/IDR, LQ45, komoditas, indeks global
     │       ├── dividend/route.ts              (40)   riwayat dividen asli + harga tahunan (cache 6 jam)
     │       ├── dividend/summary/route.ts      (51)   dividen TTM banyak saham (yield chip populer)
@@ -199,7 +199,7 @@ Sumber: [package.json](package.json)
     │   shared/    calc-ui (175)  Card, Field, Segmented, Stat, Badge, format & stepper helper kalkulator
     │              page-header (39)  header standar semua halaman
     └── lib/
-        translations.ts (634) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
+        translations.ts (634) · tickers.ts (1000, 979 kode BEI bawaan) · idx-universe.ts (daftar aktif live) · compounding.ts (357)
         dividend.ts (540) · e-ipo.ts (354) · yahoo.ts (314) · calculator.ts (306) · news.ts (220) · format.ts (142)
         watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (100) · auth-guard.ts (93) · market-hours.ts (85)
         language-context.tsx (70) · use-polling.ts (66) · idx-themes.ts (54) · crypto.ts (48) · auth-fetch.ts (42)
@@ -571,6 +571,7 @@ Dibangun ulang di `3b89457`, dua bagian:
 - Error tetap tampil sampai ditutup; keberhasilan memakai toast.
 
 **Sistem:**
+- **Refresh semua data** (tombol di header Admin dan di kartu "Data pasar & daftar emiten", sejak `c52efc9`): memanggil `POST /api/admin/refresh` yang mengosongkan semua cache server (`clearAllServerCaches`: harga, scan pasar, pasar global, berita, dividen, daftar emiten) dan memuat ulang daftar emiten aktif, lalu mengirim sinyal [refresh-signal](src/lib/refresh-signal.ts) agar Beranda, Watchlist, Portofolio, dan Dividen yang terbuka (juga di tab lain) langsung mengambil data baru. Kartu menampilkan jumlah emiten dipantau, kode baru vs daftar bawaan, kode tidak aktif, jam daftar dimuat, dan hasil refresh terakhir. Catatan: di Vercel tiap instance punya cache sendiri; instance lain ikut segar setelah TTL (harga ≤ 60 dtk, daftar emiten ≤ 1 jam, dividen ≤ 6 jam).
 - Koneksi: mode data (Supabase / demo), **ping Supabase** dengan waktu respons, akun yang login.
 - **Skema database** (mode cloud): pemeriksaan baca-saja per migrasi (tabel/kolom/fungsi yang dibuatnya) dengan status OK / Belum ada / Error dan nama file migrasi. Pada 8 Okt 2026 pemeriksaan ini sempat mendeteksi database produksi tertinggal migrasi (kolom `user_approvals.is_admin`, tabel `user_watchlists`, kolom baru `ipo_plans`); sudah diperbaiki dengan [000009](supabase/migrations/20261008000009_repair_production_schema.sql) dan [000010](supabase/migrations/20261008000010_harden_claim_first_admin.sql). Bila ada yang belum, panel menyarankan menjalankan file 000009.
 - Jumlah data di browser ini (Avg Down, Compounding, E-IPO, portofolio akun ini, pengguna demo).
@@ -836,7 +837,7 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | Route | Method & param | Auth | Rate limit | Validasi | Sumber eksternal | Bila gagal |
 |---|---|---|---|---|---|---|
 | `/api/ticker` | GET `?q=` (cari) / `?symbol=` (harga) | — | IP | `q` ≤ 20 karakter `[A-Za-z0-9.\s-]`; `symbol` lewat `validateTickerSymbol`, akhiran `.JK` dibuang | Yahoo search ×2; harga lewat provider | 500 untuk pencarian; `changePercent: null` bila data meragukan |
-| `/api/market-summary` | GET `?minValue=` (Rp, filter Gainers/Losers) | — | IP | `minValue` 0–10¹³ | Provider: IHSG + scan 886 saham (spark 5d/1d, batch 20, 5 paralel). Cache bersama 45 dtk | **502**; data lama tetap disajikan bila ada |
+| `/api/market-summary` | GET `?minValue=` (Rp, filter Gainers/Losers) | — | IP | `minValue` 0–10¹³ | Provider: IHSG + scan seluruh saham aktif dari [idx-universe](src/lib/idx-universe.ts) (±845) (spark 5d/1d, batch 20, 5 paralel). Cache bersama 45 dtk | **502**; data lama tetap disajikan bila ada |
 | `/api/quotes` | GET `?symbols=A,B` (maks 30) | — | IP | Tiap simbol lewat `validateTickerSymbol` | Provider (harian 5d/1d + intraday 1d/5m). Cache 30 dtk per kombinasi | 400 bila tidak ada simbol valid; 502 |
 | `/api/global-markets` | GET | — | IP | — | Yahoo spark (harian + intraday 15m) untuk 8 instrumen. Cache 60 dtk | 502 |
 | `/api/news` | GET `?category=` / `?q=` / `?tickers=A,B` (maks 20) | — | IP | `q` ≤ 100 karakter; ticker lewat validator | Google News RSS (timeout 8 dtk). Cache 5 mnt per kueri | **502** |
@@ -846,10 +847,11 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | `/api/analysis/news` | GET `?symbol=` | proxy + `requireUser` | IP + AI | validator | Google & Yahoo RSS, Gemini/Groq/OpenAI | Berita fallback buatan + sentimen keyword |
 | `/api/dividend` | GET `?symbol=` | — | IP | validator, `.JK` dibuang | Yahoo chart `range=max&interval=1mo&events=div` (riwayat ex date + rata-rata harga per tahun) lewat [dividend-source.ts](src/lib/dividend-source.ts). Cache 6 jam per ticker | **404** ticker tidak dikenal, **502** sumber gagal (data lama tetap disajikan bila ada). Belum pernah bagi dividen → `events: []` |
 | `/api/dividend/summary` | GET `?symbols=A,B` (maks 20) | — | IP | validator | Cache yang sama dengan `/api/dividend` | Ticker yang gagal dilewati |
+| `/api/admin/refresh` | GET (status) / POST (refresh) | proxy + `requireAdmin` (`is_admin`), cek same-origin (POST) | IP | — | POST: kosongkan semua cache server lalu muat ulang daftar emiten aktif (TradingView) | Daftar bawaan bila TradingView gagal |
 | `/api/keepalive` | GET | **Tidak ada** (tanpa `CRON_SECRET`) | — | — | Supabase `select id from user_approvals limit 1` | 500 generik |
 
 **Proxy** ([proxy.ts](src/proxy.ts)):
-- Matcher: `/api/news/summary` dan `/api/analysis/:path*`.
+- Matcher: `/api/news/summary`, `/api/analysis/:path*`, dan `/api/admin/:path*`.
 - Hanya mengecek **keberadaan** kredensial: header `Authorization: Bearer <token>` atau cookie `sb-<ref>-auth-token`. JWT divalidasi di route lewat `requireUser()`.
 - Klien memanggil route ini lewat [authFetch](src/lib/auth-fetch.ts), yang menyertakan `access_token` sesi Supabase (sesi disimpan supabase-js di localStorage, bukan cookie).
 
@@ -866,6 +868,8 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 ### 7.1 Lapisan data pasar
 
 Semua harga saham BEI dibaca lewat [lib/market-data](src/lib/market-data/index.ts), bukan langsung dari Yahoo.
+
+**Daftar emiten** ([idx-universe.ts](src/lib/idx-universe.ts), sejak `6d74662`): daftar saham aktif diambil dari screener publik TradingView (cache 1 jam; bila gagal dipakai daftar terakhir yang berhasil atau daftar bawaan [tickers.ts](src/lib/tickers.ts)). Pemeriksaan 8 Okt 2026 terhadap waktu transaksi terakhir di Yahoo: 842 saham bertransaksi dalam 7 hari, semuanya ada di daftar TradingView (845). Daftar bawaan lama (Wikipedia, Des 2024) kehilangan 38 di antaranya (mis. CDIA, AADI, EMAS, CBDK, RATU, FORE) dan memuat 137 kode tanpa transaksi > 7 hari; 38 kode itu kini ditambahkan ke daftar bawaan (979 kode). Scan pasar dan pencarian ticker memakai daftar aktif, sehingga IPO baru langsung terpantau tanpa deploy ulang.
 
 **Provider.** Antarmuka `MarketDataProvider` ([types.ts](src/lib/market-data/types.ts)): `getStockQuotes(tickers, { intraday })` dan `getCompositeIndex()`. Implementasi saat ini: [yahoo-provider.ts](src/lib/market-data/yahoo-provider.ts). Untuk memakai vendor berlisensi BEI:
 1. buat `src/lib/market-data/<vendor>-provider.ts`;
@@ -1252,6 +1256,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `4b0603f` | 2026-10-08 | — | Header halaman tidak seragam (judul 3xl vs 4xl, ikon dekoratif, badge berkedip) |
 | `46c2ecd` | 2026-10-08 | — | Database produksi tertinggal migrasi: `user_approvals` versi lama dan fungsi admin tidak ada; migrasi 000004 tidak bisa dijalankan ulang. Ditambah file perbaikan idempotent 000009 |
 | `16442fc` | 2026-10-08 | M-16 | `claim_first_admin` bisa dipanggil tanpa login untuk email apa pun selama belum ada admin (2 baris uji tersisip saat pemeriksaan skema, dibersihkan oleh 000010); fungsi admin kini hanya untuk pengguna login |
+| `6d74662` | 2026-10-08 | — | 38 saham aktif tidak terpantau sama sekali (daftar Wikipedia Des 2024): tidak ada di scan pasar, hitungan ARA/ARB, maupun pencarian; 137 kode tidak aktif tetap dipindai |
+| `c52efc9` | 2026-10-08 | — | Tidak ada cara memaksa data segar; tombol Refresh semua data untuk admin (registry cache bersama via `globalThis` karena tiap route dibundel terpisah) |
 | `30f9770` | 2026-10-08 | — | Halaman Watchlist hanya widget yang direntangkan di kolom sempit (separuh layar kosong), tanpa perubahan Rp, rentang harian, nilai transaksi, ARA/ARB, harga incaran, pencarian langsung, maupun urutan manual |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
@@ -1335,7 +1341,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (122 commit)
+### 15.1 Riwayat pengembangan (129 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1348,7 +1354,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
 | 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
 | 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3`; dokumentasi `24ddbca` |
-| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5`; batas ARB 15% & aturan Rp1–Rp10 `2204733`; Kalkulator E-IPO sesuai SEOJK 25/2025 (urutan waktu, strategi pesanan, simulasi listing, simpan) `c2e9dde`; Portofolio (beli lagi digabung, P/L hari ini, alokasi, dividen) & Admin Panel (cek skema database, setujui semua) `3b89457`; header seragam semua halaman `4b0603f`; migrasi perbaikan skema produksi `46c2ecd`; halaman Watchlist penuh dengan harga incaran `30f9770` |
+| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5`; batas ARB 15% & aturan Rp1–Rp10 `2204733`; Kalkulator E-IPO sesuai SEOJK 25/2025 (urutan waktu, strategi pesanan, simulasi listing, simpan) `c2e9dde`; Portofolio (beli lagi digabung, P/L hari ini, alokasi, dividen) & Admin Panel (cek skema database, setujui semua) `3b89457`; header seragam semua halaman `4b0603f`; migrasi perbaikan skema produksi `46c2ecd`; halaman Watchlist penuh dengan harga incaran `30f9770`; pengerasan `claim_first_admin` `16442fc`; seluruh saham aktif BEI terpantau otomatis `6d74662`; tombol Refresh semua data di Admin `c52efc9` |
 
 ### 15.2 Glosarium
 
