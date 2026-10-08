@@ -178,7 +178,7 @@ Sumber: [package.json](package.json)
     │       ├── news/summary/route.ts          (627)  analisis AI berita + SSRF guard (cache 24 jam)
     │       ├── ticker/route.ts                (135)  harga & pencarian ticker (via provider)
     │       ├── quotes/route.ts                (56)   harga + intraday banyak saham (watchlist, portofolio)
-    │       ├── market-summary/route.ts        (137)  IHSG, breadth, movers (scan ±845 saham aktif, cache 45 dtk)
+    │       ├── market-summary/route.ts        (137)  IHSG, breadth, movers (scan ±845 saham aktif, cache 20 dtk)
     │       ├── global-markets/route.ts        (37)   USD/IDR, LQ45, komoditas, indeks global
     │       ├── dividend/route.ts              (40)   riwayat dividen asli + harga tahunan (cache 6 jam)
     │       ├── dividend/summary/route.ts      (51)   dividen TTM banyak saham (yield chip populer)
@@ -243,7 +243,9 @@ Ringkasan akses tiap menu:
   - Klik logo membuka Beranda.
   - Pengalih bahasa ID/EN; saat sidebar diciutkan berubah jadi satu tombol toggle.
   - Footer profil berisi email dan tombol logout, atau tombol "Masuk ke Akun".
-- **Mobile:** header atas 64px dengan tombol hamburger, lalu drawer geser 280px yang berisi menu, pengalih bahasa, dan area profil.
+- **Mobile:** header atas 64px dengan tombol refresh dan tombol hamburger, lalu drawer geser 280px yang berisi menu, pengalih bahasa, dan area profil.
+- **Tombol "Perbarui data" terpusat** ([global-refresh-button.tsx](src/components/global-refresh-button.tsx), sejak `76c0b7f`): di bagian bawah sidebar desktop (ikon saja saat diciutkan) dan di header mobile, untuk semua pengguna. Mengirim sinyal [refresh-signal](src/lib/refresh-signal.ts) sehingga semua halaman yang terbuka (juga tab lain browser ini) langsung mengambil data terbaru: Beranda (pasar, global, berita, cakupan, watchlist, snapshot portofolio), Berita, Watchlist, Portofolio, Dividen, Analisis. Jeda 8 detik antar-klik. Cache server tetap berlaku (harga ±15–20 detik); pengosongan total semua cache server tetap di Admin Panel.
+- **Pembaruan otomatis:** semua polling harga memakai `LIVE_POLL_MS` = **30 detik** selama jam bursa (sebelumnya 60 detik); pasar global tiap 60 detik.
 
 ### 5.1 Beranda ([home/home-dashboard.tsx](src/components/home/home-dashboard.tsx))
 
@@ -260,7 +262,7 @@ Urutan dari atas:
 | Breadth | market-overview.tsx | Jumlah saham naik/tetap/turun + bar, label "Mayoritas naik/turun/berimbang", jumlah ARA/ARB, total nilai transaksi, jumlah saham dipantau, dan jumlah saham yang dilewati karena datanya meragukan |
 | Cakupan emiten | [listing-coverage.tsx](src/components/home/listing-coverage.tsx) | "924 emiten terpantau di web ini dari 963 tercatat di BEI · 96%": bar aktif (TradingView) / suspensi (terdeteksi) / belum terdeteksi, tanggal & sumber angka resmi. Data dari `/api/universe`, ikut sinyal refresh Admin (sejak `f7c2190`) |
 | Global & Makro | [global-markets.tsx](src/components/home/global-markets.tsx) | USD/IDR, LQ45, Emas, Brent, Batu Bara (API2), Nikkei 225, Hang Seng, S&P 500 Futures dengan grafik mini; refresh tiap 2 menit saat Beranda aktif ([lib/global-markets.ts](src/lib/global-markets.ts)) |
-| Penggerak Pasar | [market-movers.tsx](src/components/home/market-movers.tsx) | Tab Gainers / Losers / Top Nilai / Top Volume (6 baris). Filter nilai transaksi Semua / ≥ Rp1 M / ≥ Rp10 M (default ≥ Rp1 M, hanya untuk Gainers/Losers). Badge ARA/ARB. Klik kode → Analisis; tombol ☆ → watchlist |
+| Penggerak Pasar | [market-movers.tsx](src/components/home/market-movers.tsx) | Tab Gainers / Losers / Top Nilai / Top Volume (6 baris). Filter nilai transaksi Semua / ≥ Rp1 M / ≥ Rp10 M (default ≥ Rp1 M, hanya untuk Gainers/Losers). Badge ARA/ARB. Klik kode → Analisis; tombol ☆ → watchlist. Sejak `76c0b7f`: badge **LIVE · 30 dtk** saat bursa buka atau **Data penutupan** saat tutup, jam pembaruan, jumlah saham yang tidak ditransaksikan sesi ini, baris bergeser beranimasi saat peringkat berubah, harga berkedip saat berubah. Kolom nilai diberi tanda ≈ (harga terakhir × volume; sumber gratis tidak menyediakan nilai transaksi persis, mis. PEVE Rp3,26 M vs Rp3,05 M di Stockbit) |
 | Watchlist | [watchlist-panel.tsx](src/components/watchlist-panel.tsx) | Varian ringkas (6 baris + "Lihat semua"); lihat di bawah |
 | Ringkasan Portofolio | [portfolio-snapshot.tsx](src/components/portfolio-snapshot.tsx) | Login saja. Total ekuitas (+ nilai pasar), **P&L hari ini**, P&L total, kas RDN ("Belum diatur" bila kosong, tanpa angka fiktif). Satuan "jt / M / T" ([format.ts](src/lib/format.ts) `formatIDRCompact`). Data dibaca lewat [portfolio-store](src/lib/portfolio-store.ts) yang sama dengan halaman Portofolio. Harga semua saham diambil sekali lewat `/api/quotes`; perubahan yang meragukan tidak dihitung ke P&L hari ini |
 | Berita | [trending-news-strip.tsx](src/components/trending-news-strip.tsx) | 4 berita `/api/news?category=saham` (2 kolom); pesan berbeda untuk gagal dimuat vs kosong |
@@ -868,8 +870,8 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | Route | Method & param | Auth | Rate limit | Validasi | Sumber eksternal | Bila gagal |
 |---|---|---|---|---|---|---|
 | `/api/ticker` | GET `?q=` (cari) / `?symbol=` (harga) | — | IP | `q` ≤ 20 karakter `[A-Za-z0-9.\s-]`; `symbol` lewat `validateTickerSymbol`, akhiran `.JK` dibuang | Yahoo search ×2; harga lewat provider | 500 untuk pencarian; `changePercent: null` bila data meragukan |
-| `/api/market-summary` | GET `?minValue=` (Rp, filter Gainers/Losers) | — | IP | `minValue` 0–10¹³ | Provider: IHSG + scan seluruh saham aktif dari [idx-universe](src/lib/idx-universe.ts) (±845) (spark 5d/1d, batch 20, 5 paralel). Cache bersama 45 dtk | **502**; data lama tetap disajikan bila ada |
-| `/api/quotes` | GET `?symbols=A,B` (maks 30) | — | IP | Tiap simbol lewat `validateTickerSymbol` | Provider (harian 5d/1d + intraday 1d/5m). Cache 30 dtk per kombinasi | 400 bila tidak ada simbol valid; 502 |
+| `/api/market-summary` | GET `?minValue=` (Rp, filter Gainers/Losers) | — | IP | `minValue` 0–10¹³ | Provider: IHSG + scan seluruh saham aktif dari [idx-universe](src/lib/idx-universe.ts) (±845) (spark 5d/1d, batch 20, 5 paralel). Cache bersama 20 dtk. Saham yang tidak bertransaksi di sesi terakhir tidak ikut movers/breadth (`breadth.notTraded`, daftar `notTraded`) | **502**; data lama tetap disajikan bila ada |
+| `/api/quotes` | GET `?symbols=A,B` (maks 30) | — | IP | Tiap simbol lewat `validateTickerSymbol` | Provider (harian 5d/1d + intraday 1d/5m). Cache 15 dtk per kombinasi. Tiap kutipan membawa `stale` & `lastTradeDate` | 400 bila tidak ada simbol valid; 502 |
 | `/api/global-markets` | GET | — | IP | — | Yahoo spark (harian + intraday 15m) untuk 8 instrumen. Cache 60 dtk | 502 |
 | `/api/news` | GET `?category=` / `?q=` / `?tickers=A,B` (maks 20) | — | IP | `q` ≤ 100 karakter; ticker lewat validator | Google News RSS (timeout 8 dtk). Cache 5 mnt per kueri | **502** |
 | `/api/news/summary` | POST `{title, source, link}` | Cek same-origin + proxy + `requireUser` (JWT + approval) | IP; kuota AI hanya bila memanggil AI (bukan dari cache) | `title` ≤ 300, `source` ≤ 120, `link` ≤ 2000 | Resolve link Google News, baca paragraf artikel (redirect diikuti maks 3, dicek SSRF tiap lompatan), Gemini (3 model) → Groq → OpenAI. Cache 24 jam per artikel | Cuplikan artikel asli (`mode: extract`) atau `mode: unavailable` |
@@ -910,6 +912,12 @@ Semua harga saham BEI dibaca lewat [lib/market-data](src/lib/market-data/index.t
 3. set `MARKET_DATA_PROVIDER=<id>` (plus API key vendor) di Vercel.
 
 Route dan UI tidak perlu diubah. Data global (USD/IDR, komoditas, indeks luar negeri) tetap dari Yahoo.
+
+**Saham yang tidak bertransaksi di sesi terakhir** (sejak `2d68226`, `getValidatedStockQuotes`, [index.ts](src/lib/market-data/index.ts)):
+- Tanggal sesi terakhir diambil dari waktu transaksi terakhir IHSG (`getLatestSessionDate`, cache 60 detik). Bila IHSG gagal, dipakai tanggal transaksi terbaru di antara kutipan.
+- Kutipan yang tanggal transaksi terakhirnya (WIB) lebih lama ditandai `stale: true` beserta `lastTradeDate`, dan perubahan hari ininya dibuat 0 (acuan = harga terakhir, volume 0).
+- Sebelumnya saham suspensi menampilkan pergerakan sesi lamanya sebagai pergerakan hari ini. Contoh 8 Okt 2026: CSMI (ARA terakhir 6 Okt) tampil teratas di Gainers +25%; hasil setelah perbaikan sama dengan Stockbit (ARII, PEVE, SAFE, MCAS, BLTA, BIKE; IHSG 6.031,28 −1,88%), dan 17 saham tercatat tidak ditransaksikan.
+- Watchlist dan Analisis menampilkan "tidak bertransaksi sejak <tanggal>"; P/L hari ini di Portofolio ikut benar karena perubahannya 0.
 
 **Harga acuan (penutupan sesi sebelumnya).** Field `chartPreviousClose`/`previousClose` dari Yahoo terbukti basi atau salah (7 Okt 2026: IHSG memakai penutupan 2 hari lalu sehingga tampil +0,46% padahal −0,75%; VKTR memakai Rp835 sehingga tampil −19,76% padahal −0,74%). Karena itu:
 - acuan diambil dari **bar harian terakhir sebelum tanggal sesi terakhir** (`splitSessions`, [yahoo.ts:72](src/lib/yahoo.ts#L72)). Tanggal sesi terakhir ditentukan dari `regularMarketTime` (waktu transaksi terakhir), karena setelah tengah malam Yahoo mengosongkan (`null`) bar sesi yang baru selesai; sebelum perbaikan `84ebbe7` acuan bergeser sehari (8 Okt dini hari: BBCA −2,02% padahal −0,82%, GOTO +3,45% padahal −3,23%, BYAN +2,45% padahal −6,69%);
@@ -1345,6 +1353,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `a31f09b` | 2026-10-08 | — | Refresh Admin hanya mengosongkan cache di satu instance server (instance lain basi sampai TTL, hingga 6 jam); cache dihapus total sehingga tidak ada cadangan bila sumber gagal tepat setelah refresh; feed Berita (cache browser), strip berita & snapshot portofolio Beranda tidak ikut dimuat ulang |
 | `6978da7` | 2026-10-08 | — | Tidak ada animasi pemuatan awal; halaman tampil bertahap tanpa penanda saat web dibuka/di-reload |
 | `f7c2190` | 2026-10-08 | — | Tidak ada tampilan cakupan emiten; hanya 845 saham aktif terlihat tanpa penjelasan selisih terhadap 963 emiten tercatat resmi; tidak ada cara memperbarui angka resmi |
+| `2d68226` | 2026-10-08 | — | Saham suspensi/tidak bertransaksi menampilkan pergerakan sesi lama sebagai pergerakan hari ini (CSMI tampil Gainers +25% ARA padahal transaksi terakhir 6 Okt) |
+| `76c0b7f` | 2026-10-08 | — | Tidak ada tombol refresh untuk pengguna biasa; harga diperbarui tiap 60 detik dengan cache server 30–60 detik; Penggerak Pasar tanpa penanda live/tutup maupun jam pembaruan |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
