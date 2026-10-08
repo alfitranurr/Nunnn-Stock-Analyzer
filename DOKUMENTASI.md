@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Lengkap: Nunnn Stock Analyzer
 
 > Dokumen rujukan untuk seluruh menu, fitur, arsitektur, logika kalkulasi, API, data, konfigurasi, keamanan, dan hasil audit kode.
-> Kondisi kode: commit `abdd7d9` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
+> Kondisi kode: commit `86e45a5` (branch `main`, 2026-10-08). Audit awal dibuat pada `3c29703` (2026-10-02); temuan yang sudah diperbaiki sejak itu ditandai ✅ (lihat [§12.1](#121-status-perbaikan)).
 > Referensi kode memakai format `path:baris` dan bisa diklik di VSCode atau GitHub.
 >
 > Status temuan:
@@ -39,19 +39,19 @@
 | Framework | Next.js 16.3.4 (App Router, konvensi `proxy.ts`) + React 19.2.4 |
 | Bahasa | TypeScript strict |
 | Styling | Tailwind CSS v4, framer-motion, lucide-react, hanya mode gelap |
-| Backend | Next.js Route Handlers (11 route), tanpa server actions |
+| Backend | Next.js Route Handlers (12 route), tanpa server actions |
 | Data eksternal | Yahoo Finance (endpoint tidak resmi, lewat lapisan provider `lib/market-data` yang bisa diganti vendor berlisensi), Google News RSS, Gemini → Groq → OpenAI |
 | Auth & DB | Supabase (Auth + Postgres + RLS); ada mode **Demo/Lokal** berbasis localStorage |
 | Rate limit | Upstash Redis (opsional; tidak aktif bila env tidak diisi) |
 | Deploy | Vercel (region `sin1`, cron harian) |
-| Ukuran | 125 file ter-track git, sekitar 23,6k LOC di `src/`, 11 menu, 11 API route, 7 tabel DB |
+| Ukuran | 132 file ter-track git, sekitar 24,5k LOC di `src/`, 11 menu, 12 API route, 7 tabel DB |
 | Test | **Tidak ada** |
 
 ### 5 temuan paling kritis
 
 1. ✅ ~~**Menu Analisis dan Rangkuman AI selalu 401 di produksi.**~~ Diperbaiki di `abdd7d9`: sesi dikirim sebagai header `Authorization: Bearer`. Lihat [C-01](#c-01).
 2. ✅ ~~**Rate limit AI (10/jam) ikut membatasi route fundamental dan teknikal.**~~ Diperbaiki di `abdd7d9`. Lihat [C-02](#c-02).
-3. **Data sintetis ditampilkan seolah data nyata.** Contohnya broker summary, foreign flow, harga fallback 5000, serta fundamental, dividen, dan berita fallback, semuanya tanpa penanda. Ini berisiko untuk keputusan investasi. Lihat [H-01](#h-01).
+3. **Data sintetis ditampilkan seolah data nyata.** Contohnya broker summary, foreign flow, harga fallback 5000, serta fundamental dan berita fallback, semuanya tanpa penanda. Ini berisiko untuk keputusan investasi. Dividen sudah memakai data asli sejak `86e45a5`. Lihat [H-01](#h-01).
 4. **Persetujuan admin belum dicek di RLS.** Server (`requireUser`) sudah memeriksanya sejak `abdd7d9`, tetapi CRUD tabel data lewat anon key belum. Lihat [H-02](#h-02).
 5. **Belum ada test maupun CI kualitas** (lint, type-check, build). Workflow SLSA juga tidak valid. Lihat [H-07](#h-07).
 
@@ -179,24 +179,27 @@ Sumber: [package.json](package.json)
     │       ├── quotes/route.ts                (56)   harga + intraday banyak saham (watchlist, portofolio)
     │       ├── market-summary/route.ts        (137)  IHSG, breadth, movers (scan 886 saham, cache 45 dtk)
     │       ├── global-markets/route.ts        (37)   USD/IDR, LQ45, komoditas, indeks global
-    │       ├── dividend/route.ts              (371)
+    │       ├── dividend/route.ts              (40)   riwayat dividen asli + harga tahunan (cache 6 jam)
+    │       ├── dividend/summary/route.ts      (51)   dividen TTM banyak saham (yield chip populer)
     │       └── keepalive/route.ts             (36)   ping Supabase (cron)
-    ├── components/            22 komponen + folder home/ (lihat §5)
-    │   analysis-tab (2374) · compounding-tab (1720) · ipo-tab (1032) · dividend-tab (995)
+    ├── components/            22 komponen + folder home/ & dividend/ (lihat §5)
+    │   analysis-tab (2374) · compounding-tab (1720) · ipo-tab (1032)
     │   portfolio-tab (957) · calculator-form (896) · admin-panel-tab (777) · percentage-tab (775)
     │   news-tab (765) · results-display (423) · sidebar (387) · history-table (352)
     │   auth-modal (320) · watchlist-panel (296) · client-bootstrap (294) · portfolio-snapshot (250)
     │   quick-search-ticker (177) · stepper-input (150) · confirm-modal (135)
-    │   educational-tip-card (117) · trending-news-strip (106) · theme-provider (11)
+    │   educational-tip-card (117) · trending-news-strip (106) · company-logo (34) · theme-provider (11)
     │   home/  home-dashboard (232) · market-overview (187) · market-movers (161)
     │          global-markets (91) · sparkline (78) · market-status-bar (69) · types (45)
+    │   dividend/  dividend-tab (873) · drip-projection (268) · ex-date-simulator (229)
+    │              dividend-history (179) · ui (167)
     └── lib/
         translations.ts (874) · tickers.ts (962, sekitar 940 ticker BEI) · compounding.ts (357)
-        calculator.ts (278) · e-ipo.ts (261) · yahoo.ts (244) · news.ts (220) · dividend.ts (209) · format.ts (142)
+        dividend.ts (547) · yahoo.ts (314) · calculator.ts (278) · e-ipo.ts (261) · news.ts (220) · format.ts (142)
         watchlist-store.ts (137) · percentage.ts (121) · rate-limit.ts (100) · auth-guard.ts (93) · market-hours.ts (85)
         language-context.tsx (70) · use-polling.ts (66) · idx-themes.ts (54) · crypto.ts (48) · auth-fetch.ts (42)
         supabase.ts (35) · utils.ts (35) · supabase-server.ts (34) · quotes.ts (28) · supabase-config.ts (14)
-        types.ts (26) · global-markets.ts (19) · validators.ts (17)
+        dividend-source.ts (36) · types.ts (26) · global-markets.ts (19) · validators.ts (17)
         market-data/  index (64) · yahoo-provider (57) · validate (54) · types (37)
 ```
 
@@ -214,7 +217,7 @@ Ringkasan akses tiap menu:
 | 2 | Kalkulator Avg Down | `calculator-form`, `results-display`, `history-table` | Publik | Supabase / lokal |
 | 3 | Compounding | `compounding-tab.tsx` | Publik | Supabase / lokal (simpan, muat, hapus) |
 | 4 | Persentase | `percentage-tab.tsx` | Publik | Riwayat lokal (5) |
-| 5 | Dividen | `dividend-tab.tsx` | Publik | — |
+| 5 | Dividen | `dividend/dividend-tab.tsx` + `dividend/*` | Publik | — (tanpa simpan) |
 | 6 | E-IPO | `ipo-tab.tsx` | Publik | Muat/hapus saja (tidak ada tombol save) |
 | 7 | Analisis Saham Pro | `analysis-tab.tsx` | **Wajib login** | — |
 | 8 | Portofolio Saya | `portfolio-tab.tsx` | **Wajib login** | Supabase / lokal |
@@ -429,31 +432,42 @@ Ada dua mode: **Rencana Trading** (default) dan **Investasi Jangka Panjang**. He
 
 > ⚠️ Input "0.125" terbaca sebagai 125. Lihat [M-01](#m-01).
 
-### 5.6 Kalkulator Dividen ([dividend-tab.tsx](src/components/dividend-tab.tsx), [lib/dividend.ts](src/lib/dividend.ts))
+### 5.6 Kalkulator Dividen ([dividend/dividend-tab.tsx](src/components/dividend/dividend-tab.tsx), [lib/dividend.ts](src/lib/dividend.ts))
 
-**Pilih saham:**
-- Ticker, logo, dan badge BEI.
-- Pencarian dengan debounce ke `/api/ticker?q=`, plus tombol fallback "Pilih {TICKER}".
-- Kartu harga live dengan tombol refresh.
-- 13 saham dividen populer sebagai pilihan cepat, lengkap dengan yield ([dividend-tab.tsx:38-52](src/components/dividend-tab.tsx#L38-L52)).
-- Mengganti ticker akan memanggil `/api/dividend`, yang mengisi nama, harga, dividen per saham setahun, bulan pembayaran, riwayat, dan ringkasan tahunan.
+Dibangun ulang di `86e45a5`. Semua angka berasal dari data asli; **tidak ada lagi data cadangan buatan**. Emiten yang belum pernah membagikan dividen (mis. GOTO) ditampilkan apa adanya, bukan diberi riwayat palsu.
 
-**Parameter:**
-- Mode Nominal (Rp) atau Jumlah Lot (keduanya saling sinkron).
-- Harga beli dan DPS 1 tahun, dengan baris yield-on-cost.
-- Pajak: 0%, 10% (final), atau custom.
-- Checkbox DRIP (reinvestasi dividen).
+**1. Pilih saham:**
+- Pencarian memakai [QuickSearchTicker](src/components/quick-search-ticker.tsx) (navigasi keyboard, Esc, klik di luar menutup).
+- Kartu harga: harga, perubahan Rp/% dari `/api/quotes` (tervalidasi, badge "Data meragukan" bila tidak lolos cek), jam update WIB, label "tertunda". Di-refresh tiap 60 detik saat jam bursa, hanya bila tab aktif dan terlihat.
+- 16 chip saham dividen populer, **diurutkan berdasarkan yield 12 bulan di harga sekarang** yang dihitung live (`/api/dividend/summary` + `/api/quotes`), bukan angka tetap.
+- Data dimuat hanya saat tab dibuka. Ganti saham membatalkan request lama (`AbortController`), dan data saham sebelumnya tidak pernah tampil di bawah kode saham baru. Gagal → kartu error + "Coba lagi"; 404 → "kode tidak ditemukan".
 
-**Output:**
-- Rata-rata pendapatan bersih per bulan dan Effective Net Yield.
-- Dividen bruto, pajak, dan neto setahun.
-- Tabel Jan–Des, dengan bulan pembayaran ditandai Final/Interim.
-- Tabel riwayat dividen.
-- Proyeksi DRIP 5 tahun (bila DRIP dicentang).
+**2. Profil dividen** ([dividend-history.tsx](src/components/dividend/dividend-history.tsx)):
+- Kartu: dividen 12 bulan (TTM) + jumlah pembayaran, yield TTM di harga pasar, konsistensi (tahun berturut-turut), pertumbuhan DPS 5 tahun (CAGR, fallback 3 tahun), stabilitas (berapa kali turun dalam 5 tahun penuh).
+- Grafik batang DPS per tahun (12 tahun; 6 tahun di HP), tahun berjalan bergaris putus, baris bawah = yield terhadap rata-rata harga tahun itu.
+- Tabel riwayat: tahun, cum date ≈, ex date, cair ≈, DPS; badge "Terjadwal" untuk ex date yang belum lewat. 8 baris pertama, sisanya lewat "Tampilkan semua".
 
-**Tidak ada fitur simpan.** Props `user` dan `onSignInClick` diterima tetapi tidak dipakai, dan state toast tidak pernah di-set.
+**3. Simulasi** (semua angka punya tombol −/+ [`StepperInput`](src/components/stepper-input.tsx)):
+- Mode Nominal atau Lot. Berpindah mode membawa nilai yang setara (lot ↔ modal terpakai).
+- Harga beli per lembar: default harga pasar, langkah −/+ mengikuti fraksi BEI, peringatan bila bukan kelipatan fraksi, tombol kembali ke harga pasar.
+- Dividen per lembar per tahun dengan pilihan dasar: **TTM**, **tahun penuh terakhir**, **rata-rata 3 tahun** (untuk dividen yang naik-turun seperti batu bara), atau **Manual** (mengetik/menekan −/+ otomatis pindah ke Manual).
+- Pajak: 10% (individu, tidak direinvestasi; default), 0% (individu, reinvestasi ≥3 tahun), 20% (investor asing / tarif P3B), atau tarif sendiri 0–100%.
+- Fee beli broker (default 0,15%).
 
-> ⚠️ Ada teks rusak (mojibake) "â‰ˆ" dan "â†" di [dividend-tab.tsx:608-612](src/components/dividend-tab.tsx#L608-L612) dan [:847](src/components/dividend-tab.tsx#L847). Lihat [L-02](#l-02).
+**4. Hasil:**
+- Dividen bersih per tahun (kotor − pajak), rata-rata per bulan sebagai info sekunder.
+- Pembagian berikutnya: nominal bersih, DPS, batas beli (cum) ≈ + hitung mundur hari, tanggal cair ≈, badge Terjadwal/Perkiraan.
+- Yield: bersih & kotor terhadap **modal terpakai** (yield on cost), dan yield di harga pasar.
+- Kepemilikan (lot/lembar), nilai transaksi + fee, modal terpakai, sisa modal yang tidak cukup untuk 1 lot.
+- Kalender 12 bulan (berdasarkan tanggal cair) + daftar pembayaran (tabel di desktop, kartu di HP).
+
+**5. DRIP vs diambil tunai** ([drip-projection.tsx](src/components/dividend/drip-projection.tsx)): jangka 1–30 tahun, asumsi pertumbuhan dividen & harga per tahun (tombol "Pakai CAGR historis"), kartu nilai akhir, keunggulan DRIP, lot tambahan, passive income per bulan di tahun terakhir, grafik dua garis, dan tabel per tahun.
+
+**6. Simulasi cum → ex date (dividend trap)** ([ex-date-simulator.tsx](src/components/dividend/ex-date-simulator.tsx)): beli di cum, terima dividen bersih, jual di ex date. Menampilkan hasil bersih dan **harga jual impas** (dibulatkan ke atas ke fraksi BEI). Nilai mengikuti simulasi utama sampai pengguna mengubahnya.
+
+**7. Catatan pajak & data** di bagian bawah halaman.
+
+Bahasa: semua teks dwibahasa; isi input diformat ulang (titik/koma ribuan) saat bahasa diganti. Tidak ada fitur simpan.
 
 ### 5.7 Kalkulator E-IPO ([ipo-tab.tsx](src/components/ipo-tab.tsx), [lib/e-ipo.ts](src/lib/e-ipo.ts))
 
@@ -632,23 +646,39 @@ saldo  = saldo + setoran + (profit − fee)
 - **Konversi target antar periode** `convertTradingRate` ([compounding.ts:351](src/lib/compounding.ts#L351)): `(1 + r)^(hari_tujuan / hari_asal) − 1`, majemuk dan sebelum fee. Contoh: 1%/hari ≈ 23,24%/bulan ≈ 1.127%/tahun; 5%/bulan ≈ 79,59%/tahun.
 - **Rekap** `groupTradingDetails` ([compounding.ts:323](src/lib/compounding.ts#L323)): menggabungkan N periode menjadi satu baris (21 hari → bulan, 252 hari → tahun, 12 bulan → tahun). Kelompok terakhir boleh tidak penuh (mis. 50 hari → 1–21, 22–42, 43–50). Return kumulatif = (saldo akhir − total setoran) / total setoran.
 
-### 6.4 Dividen: `calculateDividend` ([dividend.ts:84](src/lib/dividend.ts#L84))
+### 6.4 Dividen ([dividend.ts](src/lib/dividend.ts))
 
-**Jumlah lembar:**
-- Mode lot: lembar = lot × 100.
-- Mode nominal: lot = floor(floor(Rp / harga) / 100). `totalInvestmentRp` **tidak dihitung ulang** setelah pembulatan, lihat [M-10](#m-10).
+Semua fungsi murni (tanpa I/O). Tanggal berupa string ISO kalender.
 
-**Dividen dan yield:**
-- Bruto = lembar × DPS.
-- Pajak = bruto × tarif.
-- Net yield = neto / investasi.
-- Rata-rata per bulan = neto / 12.
+**Tanggal** ([dividend.ts:94-137](src/lib/dividend.ts#L94-L137)):
+- Ex date dari Yahoo (timestamp 09:00 WIB, dikonversi memakai `gmtoffset` bursa).
+- Cum date = 1 hari bursa sebelum ex date (settlement T+2). Hanya akhir pekan yang dilewati; hari libur bursa belum diketahui.
+- Tanggal cair ≈ ex date + 18 hari, digeser ke hari kerja (sampel BEI 2022–2024: 9–24 hari).
+- Tahun pembagian = tahun ex date, kecuali ex date Januari dihitung ke tahun sebelumnya (interim tertunda, mis. BBRI ex 2 Jan 2024 milik siklus 2023).
 
-**Rincian bulanan:**
-- Neto dibagi rata ke bulan-bulan pembayaran. Defaultnya bulan [4, 12] bila data tidak ada.
-- Bila ada 2 kali pembayaran, bulan yang lebih awal diberi label "Final" dan yang lain "Interim".
+**`analyzeDividends(events, today, yearlyAvgClose)`** ([dividend.ts:140](src/lib/dividend.ts#L140)):
+- TTM = jumlah DPS dengan ex date dalam 365 hari terakhir.
+- Tahun penuh terakhir = tahun pembagian sebelum tahun berjalan. Rata-rata 3 tahun hanya bila riwayat mencakup 3 tahun itu (tahun tanpa pembagian dihitung 0).
+- Konsistensi: hitung mundur dari tahun penuh terakhir selama DPS > 0. CAGR 5 tahun (fallback 3 tahun) bila kedua ujung > 0. Penurunan dihitung dalam 5 tahun penuh terakhir.
+- Yield historis per tahun = DPS / rata-rata harga penutupan bulanan tahun itu.
+- Jadwal 12 bulan ke depan: pembagian dengan ex date di masa depan dipakai apa adanya (**Terjadwal**). Pola 12 bulan terakhir (atau tahun penuh terakhir bila kosong) diproyeksikan ke tanggal yang sama tahun berikutnya (**Perkiraan**); perkiraan dalam ±45 hari dari pembagian terjadwal dibuang.
 
-**DRIP 5 tahun:** tiap tahun, lembar baru = floor(neto / harga beli). Harga dianggap tetap (tidak ada asumsi kenaikan harga maupun DPS).
+**`simulateDividend`** ([dividend.ts:309](src/lib/dividend.ts#L309)):
+- Mode lot: lembar = lot × 100. Mode nominal: lot = floor(modal / (harga × 100 × (1 + fee))).
+- Modal terpakai = lembar × harga × (1 + fee); sisa = modal − modal terpakai.
+- Bruto = lembar × DPS; pajak = bruto × tarif; yield on cost = bruto atau neto / modal terpakai. (M-10 ✅)
+
+**`buildPaymentSchedule`** ([dividend.ts:361](src/lib/dividend.ts#L361)): DPS perkiraan = DPS siklus acuan × (DPS tahunan pilihan / total siklus acuan), sehingga proporsi interim/final asli tetap (mis. BBCA 55 : 281), bukan dibagi rata.
+
+**`projectDrip`** ([dividend.ts:413](src/lib/dividend.ts#L413)):
+- DPS tahun ke-y = DPS × (1 + g_div)^(y−1); harga pada waktu t (tahun) = harga beli × (1 + g_harga)^t.
+- Setiap pembayaran: dividen bersih masuk kas DRIP, dibelikan **lot utuh** di harga saat itu termasuk fee beli; sisa kas dibawa ke pembayaran berikutnya.
+- Tanpa DRIP: lembar tetap, dividen bersih dikumpulkan sebagai kas. Nilai = lembar × harga akhir tahun + kas.
+
+**`simulateExDate`** ([dividend.ts:518](src/lib/dividend.ts#L518)):
+- Harga ex teoritis = cum − DPS, dibulatkan ke fraksi BEI terdekat.
+- Hasil = lembar × harga ex × (1 − fee jual) + dividen bersih − lembar × harga cum × (1 + fee beli).
+- Harga impas = (biaya beli − dividen bersih) / (lembar × (1 − fee jual)), dibulatkan ke atas ke fraksi BEI.
 
 ### 6.5 E-IPO ([e-ipo.ts](src/lib/e-ipo.ts))
 
@@ -805,7 +835,8 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 | `/api/analysis/fundamentals` | GET `?symbol=` | proxy + `requireUser` | IP (sejak `abdd7d9`) | validator | Yahoo v7 quote (revalidate 60), v10 quoteSummary | **Data deterministik palsu** |
 | `/api/analysis/technical` | GET `?symbol=` | proxy + `requireUser` | IP (sejak `abdd7d9`) | validator | Yahoo chart 1d/6mo + 1wk/1y | **Data deterministik, harga 5000** |
 | `/api/analysis/news` | GET `?symbol=` | proxy + `requireUser` | IP + AI | validator | Google & Yahoo RSS, Gemini/Groq/OpenAI | Berita fallback buatan + sentimen keyword |
-| `/api/dividend` | GET `?symbol=` | — | IP | validator | Yahoo chart + `events=div&range=10y` | Dividen deterministik |
+| `/api/dividend` | GET `?symbol=` | — | IP | validator, `.JK` dibuang | Yahoo chart `range=max&interval=1mo&events=div` (riwayat ex date + rata-rata harga per tahun) lewat [dividend-source.ts](src/lib/dividend-source.ts). Cache 6 jam per ticker | **404** ticker tidak dikenal, **502** sumber gagal (data lama tetap disajikan bila ada). Belum pernah bagi dividen → `events: []` |
+| `/api/dividend/summary` | GET `?symbols=A,B` (maks 20) | — | IP | validator | Cache yang sama dengan `/api/dividend` | Ticker yang gagal dilewati |
 | `/api/keepalive` | GET | **Tidak ada** (tanpa `CRON_SECRET`) | — | — | Supabase `select id from user_approvals limit 1` | 500 generik |
 
 **Proxy** ([proxy.ts](src/proxy.ts)):
@@ -820,7 +851,7 @@ Semua route berada di `src/app/api/**/route.ts`. Rate limit IP: 100/menit. Rate 
 - [validators.ts](src/lib/validators.ts) `validateTickerSymbol`: uppercase lalu dicocokkan dengan `^[A-Z]{1,5}(\.JK)?$`. Validator ini tidak menghapus `.JK`; route `ticker` dan `quotes` membuangnya sendiri.
 
 **Timeout & durasi:**
-- Fetch di `news`, `news/summary` (6–12 detik, dengan batas total 26 detik untuk AI) dan semua fetch lewat [lib/yahoo.ts](src/lib/yahoo.ts) (8 detik) memakai timeout. Route analisis dan dividen belum.
+- Fetch di `news`, `news/summary` (6–12 detik, dengan batas total 26 detik untuk AI) dan semua fetch lewat [lib/yahoo.ts](src/lib/yahoo.ts) (8 detik) memakai timeout (termasuk dividen sejak `86e45a5`). Route analisis belum.
 - `maxDuration` di [vercel.json](vercel.json): AI 30 detik, analisis 20 detik, dividen/news/market-summary 15 detik, ticker/quotes/global-markets 10 detik.
 
 ### 7.1 Lapisan data pasar
@@ -1073,13 +1104,13 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 ### High
 
 <a id="h-01"></a>
-**H-01: Data sintetis/fallback disajikan sebagai data nyata** · Integritas data · T
+**H-01 (sebagian ✅): Data sintetis/fallback disajikan sebagai data nyata** · Integritas data · T · Dividen sudah memakai data asli tanpa fallback sejak `86e45a5`; analisis belum
 
 - **Lokasi:**
   - [technical/route.ts:423-499](src/app/api/analysis/technical/route.ts#L423-L499): broker summary dari hash ticker.
   - [technical/route.ts:763](src/app/api/analysis/technical/route.ts#L763): foreign flow rekaan.
   - [technical/route.ts:647](src/app/api/analysis/technical/route.ts#L647): harga fallback 5000.
-  - `getDeterministicStockData` (fundamentals), dividen deterministik, dan berita fallback buatan.
+  - `getDeterministicStockData` (fundamentals) dan berita fallback buatan. (~~Dividen deterministik~~ dihapus di `86e45a5`.)
 - **Dampak:** pengguna bisa mengambil keputusan beli/jual berdasarkan angka palsu tanpa tahu angka itu palsu.
 - **Rekomendasi:**
   - Tambahkan `isFallback`/`isSynthetic` di setiap response dan tampilkan badge "Data simulasi" di UI.
@@ -1158,9 +1189,9 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 | M-07 | Label | technical/route.ts:796-807 | Tren "Hourly" dihitung dari data harian | Ganti nama jadi "Short-term" atau ambil data interval 1 jam |
 | <a id="m-08"></a>M-08 | Skor | [analysis-tab.tsx:617](src/components/analysis-tab.tsx#L617) | `minPossible = −5` di-*hardcode* (minimum sebenarnya −7, dan bergantung pada metrik yang ada); ROE 0–8 diberi 0 poin tetapi dicatat sebagai "kontra" | Hitung min/max dari metrik yang tersedia |
 | M-09 ✅ | Kalkulasi | calculator.ts | ~~`avgPriceReductionPct` memakai avg mentah, bukan `realAvgPriceAwal`~~ | Diperbaiki di `b9db7a6` |
-| <a id="m-10"></a>M-10 | Kalkulasi | [dividend.ts:96-102](src/lib/dividend.ts#L96-L102) | Di mode nominal, `totalInvestmentRp` tidak dihitung ulang setelah dibulatkan ke lot, sehingga yield jadi lebih kecil dari seharusnya (komentar kode mengklaim sudah dihitung ulang) | `totalInvestmentRp = totalShares × buyPrice` |
+| <a id="m-10"></a>M-10 ✅ | Kalkulasi | dividend.ts | ~~Di mode nominal, `totalInvestmentRp` tidak dihitung ulang setelah dibulatkan ke lot~~ | Diperbaiki di `86e45a5`: yield dihitung dari modal terpakai (termasuk fee), sisa modal ditampilkan |
 | M-11 | Kalkulasi | [e-ipo.ts:84-98](src/lib/e-ipo.ts#L84-L98) | Harga 0 atau lot 0 menghasilkan Infinity/NaN | Guard input ≤ 0 |
-| M-12 | Data | dividend/route.ts:306-313 | Tanggal ex-date diberi label `cumDate`; `paymentDate` hanya salinan tanggal yang sama; tahun diambil dari waktu lokal, tanggal dari UTC | Beri label "Ex-Date", pakai UTC secara konsisten |
+| M-12 ✅ | Data | dividend | ~~Tanggal ex-date diberi label `cumDate`; `paymentDate` salinan tanggal yang sama; tahun lokal vs tanggal UTC~~ | Diperbaiki di `86e45a5`: ex date memakai zona WIB, cum date & tanggal cair dihitung dan diberi label perkiraan |
 | M-13 | Sentimen | analysis/news/route.ts:84-98, 180-184 | Kata kunci dicocokkan sebagai substring ("up" ikut cocok di "Rupiah", "jatuh" di "jatuh tempo"); parsing jawaban LLM cenderung menghasilkan Bullish | Cocokkan per kata utuh; minta output JSON terstruktur |
 | <a id="m-14"></a>M-14 | Data | [page.tsx:382-406](src/app/page.tsx#L382-L406) | Rincian tahap pembelian digabung saat disimpan; `avgPriceAwalIncludesFee` tidak tersimpan di Supabase | Tambah kolom `tranches jsonb` dan `avg_includes_fee` |
 | M-15 ✅ | Performa | market-summary/route.ts | ~~Scan sekitar 940 ticker tiap request, tiap pengunjung, tiap 30 detik~~ | Diperbaiki di `db0cca3`: cache bersama 45 dtk, IHSG & scan paralel, polling hanya saat jam bursa dan tab aktif |
@@ -1179,14 +1210,14 @@ Temuan Medium lain yang terkait performa dan robustness:
 | ID | Lokasi | Masalah |
 |---|---|---|
 | <a id="l-01"></a>L-01 (sebagian ✅) | [ipo-tab.tsx](src/components/ipo-tab.tsx) | ~~Modal simpan Compounding tidak pernah dibuka~~ (diperbaiki di `f2c68f1`). E-IPO masih tidak punya tombol simpan sama sekali |
-| <a id="l-02"></a>L-02 | [dividend-tab.tsx:608-612, 847](src/components/dividend-tab.tsx#L608) | Mojibake "â‰ˆ" (seharusnya ≈) dan "â†" (seharusnya ←/→) |
+| <a id="l-02"></a>L-02 ✅ | dividend-tab.tsx | ~~Mojibake "â‰ˆ" dan "â†"~~ (halaman ditulis ulang di `86e45a5`) |
 | L-03 | analysis-tab.tsx:2340-2349 vs 220/230 | Warna legenda grafik fundamental tidak sama dengan warna batang |
 | <a id="l-04"></a>L-04 ✅ | history-table.tsx | ~~Selector `[title="Masuk ke Akun"]` gagal di mode EN~~. Diganti prop `onSignInClick` di `b9db7a6` |
 | L-05 | layout.tsx:13-18 | `userScalable:false` memblok zoom (aksesibilitas, WCAG 1.4.4) |
 | L-06 | next.config.ts:8-13 | CSP masih `'unsafe-inline'` di script-src; host AI di `connect-src` tidak dibutuhkan karena AI dipanggil dari server |
 | L-07 (sebagian ✅) | Berbagai file | Teks *hardcoded* ID masih ada di auth-modal. History-table, Compounding, dan Beranda (akses cepat) sudah dwibahasa |
 | L-08 | README.md | Usang: versi Next, xlsx, confetti, link LICENSE yang tidak ada, tree salah, env var kurang, endpoint kurang |
-| L-09 | dividend-tab.tsx:112 | Props tidak dipakai; state toast tidak pernah di-set |
+| L-09 ✅ | dividend-tab.tsx | ~~Props tidak dipakai; state toast tidak pernah di-set~~ (`86e45a5`: props hanya `isActive`) |
 | L-10 | portfolio-tab.tsx | Error ditampilkan dengan `alert()` padahal sudah ada sistem toast |
 
 ### 12.1 Status perbaikan
@@ -1199,9 +1230,10 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `db0cca3` | 2026-10-07 | M-02, M-15 | Beranda: badge "LIVE" selalu menyala walau bursa tutup; **acuan harga dari Yahoo basi** (IHSG +0,46% padahal −0,75%, VKTR −19,76% padahal −0,74%), juga memengaruhi `/api/ticker`; volume IHSG selalu 0; tombol hapus watchlist tak terlihat di HP; satuan "M" untuk juta; kas RDN fiktif Rp100 juta; isi Tips (salah ketik, kutipan Einstein, angka break-even) |
 | `84ebbe7` | 2026-10-08 | — | Setelah tengah malam acuan harga bergeser sehari karena bar sesi terakhir di Yahoo menjadi `null` (BBCA −2,02% padahal −0,82%) |
 | `abdd7d9` | 2026-10-08 | C-01, C-02, M-18, sebagian H-02 & H-03 | Berita: mode "Heuristic Engine" yang mengarang temuan & saran beli/jual; pemeriksaan approval meminta kolom `is_admin` yang tidak ada di database produksi; artikel dibaca dari seluruh HTML (menu/iklan ikut) dan redirect tidak diikuti; feed tanpa cache, duplikat, judul berakhiran nama media, kategori Politik tidak relevan |
+| `86e45a5` | 2026-10-08 | M-10, M-12, L-02, L-09, sebagian H-01 (dividen) | Dividen: riwayat palsu untuk emiten tanpa dividen (GOTO tampil yield ≈1.354%); DPS hanya dari tahun kalender berjalan (BBRI Rp209, seharusnya Rp346 TTM); bulan bayar digabung dari 10 tahun lalu dibagi rata (BBCA 6×, TLKM 3×); DRIP membeli per lembar, bukan per lot; data saham lama tetap tampil saat request saham baru gagal; yield chip populer hardcoded dan basi; belum ada tombol −/+ |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
-**Masih terbuka:** H-01, H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-10–M-14, M-16, M-17, L-01 (E-IPO), L-02, L-03, L-05, L-06, L-07 (auth-modal), L-08–L-10.
+**Masih terbuka:** H-01 (analisis), H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-03–M-08, M-11, M-13, M-14, M-16, M-17, L-01 (E-IPO), L-03, L-05, L-06, L-07 (auth-modal), L-08, L-10.
 
 ---
 
@@ -1211,18 +1243,18 @@ Temuan Medium lain yang terkait performa dan robustness:
 - `analysis-tab.tsx` (2374): chart, skeleton, scoring, dan UI dalam satu file, dengan 16 `useState`.
 - `compounding-tab.tsx` (1720): sudah dipecah ke komponen kecil (`Field`, `Segmented`, `StatCard`) dan logika dipindah ke `lib/compounding.ts`, tetapi masih satu file besar.
 - `page.tsx` (1138): auth, demo user, CRUD, dan routing tab.
-- `ipo-tab.tsx` (1032), `technical/route.ts` (997), `dividend-tab.tsx` (995), `portfolio-tab.tsx` (957).
+- `ipo-tab.tsx` (1032), `technical/route.ts` (997), `portfolio-tab.tsx` (957). (Dividen sudah dipecah ke folder `components/dividend/` sejak `86e45a5`.)
 
 **Duplikasi:**
 
 | Pola | Jumlah | Konsolidasi ke |
 |---|---|---|
-| Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo, CompanyLogo, IpoEmitenLogo, PortfolioEmitenLogo) | 6× | `components/emiten-logo.tsx` |
-| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 4× (dividend, ipo, portfolio, compounding versi singkat Juta/Miliar); results-display & history-table sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
-| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down & Compounding | Pakai juga di Dividen, E-IPO, Persentase, Portofolio |
+| Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo, IpoEmitenLogo, PortfolioEmitenLogo) | 5× | [`components/company-logo.tsx`](src/components/company-logo.tsx) (sudah ada sejak `86e45a5`, dipakai Dividen) |
+| `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 3× (ipo, portfolio, compounding versi singkat Juta/Miliar); results-display, history-table & dividen sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
+| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding & Dividen | Pakai juga di E-IPO, Persentase, Portofolio |
 | Rantai fallback Gemini → Groq → OpenAI | 2× (`news/summary` sudah memakai pemanggil generik dengan timeout & validasi; `analysis/news` masih versi lama) | `lib/llm.ts` |
 | Parser RSS | 2× | `lib/rss.ts` |
-| String User-Agent Mozilla | 12× di 7 file (analysis, dividend, news, ticker search); route data pasar sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
+| String User-Agent Mozilla | 9× di 5 file (3 route analisis, news/summary, ticker search); route data pasar & dividen sudah memakai `YAHOO_UA` dari `lib/yahoo.ts` | `lib/yahoo.ts` |
 | `NEXT_PUBLIC_ADMIN_EMAIL \|\| 'admin@…'` | 5× | `lib/config.ts` |
 | Literal kunci `nunnn_stock_*` | Puluhan | `lib/storage-keys.ts` |
 | Tipe `StockFundamentals` (server vs klien berbeda bentuk) | 2× | `lib/types.ts` |
@@ -1254,16 +1286,16 @@ Temuan Medium lain yang terkait performa dan robustness:
 1. ✅ **C-01** (`abdd7d9`): token Bearer + `requireUser(request)`.
 2. ✅ **C-02** (`abdd7d9`): limiter AI hanya untuk route LLM. Sisa: auto-refresh LIVE di Analisis masih memanggil `analysis/news` (AI) tiap menit; cache sentimen per ticker.
 3. **H-04:** pindah ke `next/font/google`.
-4. **H-01:** tambahkan flag `isFallback`/`isSynthetic` dan badge di UI.
-5. **M-01, M-02, M-10, M-03:** perbaikan satu baris di logika kalkulasi. (M-09 ✅ `b9db7a6`.)
-6. **L-01, L-02:** tambahkan tombol simpan E-IPO dan perbaiki mojibake. (Simpan Compounding ✅ `f2c68f1`; selector login L-04 ✅ `b9db7a6`.)
+4. **H-01:** tambahkan flag `isFallback`/`isSynthetic` dan badge di UI. (Dividen ✅ `86e45a5`: fallback dihapus.)
+5. **M-01, M-03:** perbaikan satu baris di logika kalkulasi. (M-09 ✅ `b9db7a6`, M-02 ✅ `db0cca3`, M-10 ✅ `86e45a5`.)
+6. **L-01:** tambahkan tombol simpan E-IPO. (Simpan Compounding ✅ `f2c68f1`; selector login L-04 ✅ `b9db7a6`; mojibake L-02 ✅ `86e45a5`.)
 
 ### P1: keamanan & keandalan (1 minggu)
 1. **H-02:** approval sudah dicek di server (`abdd7d9`); tambahkan juga di RLS tabel data.
 2. **H-03:** sisa DNS rebinding (resolve DNS dan cek alamat hasilnya). Bagian lain ✅ `abdd7d9`.
 3. **H-05:** pasang Upstash; **M-17:** `CRON_SECRET`.
 4. **H-06:** ganti `deploy.js` dengan manajemen env yang selektif.
-5. Tambahkan timeout ke fetch eksternal yang tersisa (analisis, dividen, berita) dan `Promise.all` di Analisis. (Cache market-summary M-15 ✅ `db0cca3`.)
+5. Tambahkan timeout ke fetch eksternal yang tersisa (analisis, berita analisis) dan `Promise.all` di Analisis. (Cache market-summary M-15 ✅ `db0cca3`.)
 6. **M-14:** simpan rincian tahap Avg Down.
 
 ### P2: kualitas jangka panjang
@@ -1281,7 +1313,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 
 ## 15. Lampiran
 
-### 15.1 Riwayat pengembangan (111 commit)
+### 15.1 Riwayat pengembangan (113 commit)
 
 | Periode | Fokus utama |
 |---|---|
@@ -1294,7 +1326,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | 2026-10-01 | Tab Persentase `cc0a8d2`, perbaikan TS `d45a9c7`, vercel.json untuk Hobby plan `3c29703` |
 | 2026-10-02 | Dokumentasi & audit kode ini `5d64816` |
 | 2026-10-07 | Avg Down: UX overhaul, contoh GTSI, tombol −/+, harga BEP `b9db7a6`; ikon sidebar unik `64d6a96`; Compounding: trading harian/bulanan/tahunan & UX overhaul `f2c68f1`; error Admin Panel `6360bca`; pembaruan dokumentasi `8e3ad70`; Beranda baru, watchlist 20 saham, lapisan data pasar tervalidasi `db0cca3`; dokumentasi `24ddbca` |
-| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9` |
+| 2026-10-08 | Acuan harga setelah tengah malam `84ebbe7`; Berita & Sentimen versi trader, autentikasi Bearer, approval di server, peta tema saham terdampak `abdd7d9`; Kalkulator Dividen dibangun ulang dengan data asli, jadwal cum/cair, DRIP vs tunai, simulasi dividend trap `86e45a5` |
 
 ### 15.2 Glosarium
 
@@ -1308,6 +1340,9 @@ Temuan Medium lain yang terkait performa dan robustness:
 | **DRIP** | *Dividend Reinvestment Plan*: dividen dipakai lagi untuk membeli saham |
 | **DPS / Yield** | Dividen per saham / dividen dibagi harga |
 | **Cum-date / Ex-date** | Batas terakhir memiliki saham agar berhak dividen / tanggal saham diperdagangkan tanpa hak dividen |
+| **TTM** | *Trailing twelve months*: total 12 bulan terakhir |
+| **Yield on cost** | Dividen setahun dibagi modal yang benar-benar dikeluarkan (harga beli + fee), bukan harga pasar |
+| **Dividend trap** | Membeli saham menjelang cum date demi dividen, lalu rugi karena harga turun saat ex date ditambah fee & pajak |
 | **E-IPO** | Sistem penawaran umum perdana elektronik BEI |
 | **Golongan IPO** | Kelas I–V berdasarkan nilai emisi; menentukan porsi alokasi terpusat |
 | **Clawback** | Penambahan porsi alokasi terpusat saat oversubscription tinggi |

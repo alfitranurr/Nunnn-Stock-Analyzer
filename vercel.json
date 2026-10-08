@@ -11,6 +11,7 @@
     "src/app/api/analysis/fundamentals/route.ts": { "maxDuration": 20, "memory": 1024 },
     "src/app/api/analysis/technical/route.ts": { "maxDuration": 20, "memory": 1024 },
     "src/app/api/dividend/route.ts": { "maxDuration": 15 },
+    "src/app/api/dividend/summary/route.ts": { "maxDuration": 15 },
     "src/app/api/ticker/route.ts": { "maxDuration": 10 },
     "src/app/api/news/route.ts": { "maxDuration": 15 },
     "src/app/api/market-summary/route.ts": { "maxDuration": 15 },
