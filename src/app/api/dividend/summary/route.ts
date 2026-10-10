@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const MAX_SYMBOLS = 20;
+const CONCURRENCY = 5;
 
 /**
  * GET /api/dividend/summary?symbols=BBCA,TLKM
@@ -34,18 +35,50 @@ export async function GET(request: NextRequest) {
   const today = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10); // WIB
   const ttmStart = addDays(today, -365);
 
-  const settled = await Promise.allSettled(symbols.map((s) => getDividendData(s)));
+  // Maks 5 permintaan sekaligus ke sumber (menghindari pembatasan), tiap emiten dicoba ulang sekali.
+  const settled: Array<PromiseSettledResult<Awaited<ReturnType<typeof getDividendData>>>> = new Array(symbols.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < symbols.length) {
+      const i = next++;
+      try {
+        settled[i] = { status: 'fulfilled', value: await getDividendData(symbols[i]) };
+      } catch {
+        await new Promise((r) => setTimeout(r, 600));
+        try {
+          settled[i] = { status: 'fulfilled', value: await getDividendData(symbols[i]) };
+        } catch (err) {
+          settled[i] = { status: 'rejected', reason: err };
+        }
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, symbols.length) }, worker));
+
+  const failed: string[] = [];
+  const unknown: string[] = [];
   const items = settled.flatMap((r, i) => {
-    if (r.status !== 'fulfilled' || !r.value.data) return [];
-    const ttm = r.value.data.events.filter((e) => e.exDate > ttmStart && e.exDate <= today);
+    if (r.status !== 'fulfilled') {
+      failed.push(symbols[i]);
+      return [];
+    }
+    if (!r.value.data) {
+      unknown.push(symbols[i]);
+      return [];
+    }
     const events = r.value.data.events;
+    const ttm = events.filter((e) => e.exDate > ttmStart && e.exDate <= today);
+    const last = events.length > 0 ? events[events.length - 1] : null;
     return [{
       symbol: symbols[i],
       ttmDps: Math.round(ttm.reduce((sum, e) => sum + e.amount, 0) * 100) / 100,
       ttmPayments: ttm.length,
-      lastExDate: events.length > 0 ? events[events.length - 1].exDate : null,
+      lastExDate: last?.exDate ?? null,
+      lastAmount: last?.amount ?? null,
+      fetchedAt: new Date(r.value.cachedAt).toISOString(),
     }];
   });
 
-  return NextResponse.json({ items, source: DIVIDEND_SOURCE });
+  // failed = sumber gagal (klien sebaiknya mencoba lagi); unknown = tidak ada data di sumber.
+  return NextResponse.json({ items, failed, unknown, source: DIVIDEND_SOURCE });
 }

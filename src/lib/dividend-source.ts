@@ -18,7 +18,8 @@ export interface DividendSourceData {
 
 export const DIVIDEND_SOURCE = { id: 'yahoo', label: 'Yahoo Finance', delayed: true } as const;
 
-const cache = createTtlCache<DividendSourceData | null>(6 * 60 * 60 * 1000, 400);
+// Riwayat dividen di-cache 6 jam; hasil "tidak dikenal" (Yahoo 404 sesaat) hanya 10 menit agar cepat dicoba lagi.
+const cache = createTtlCache<DividendSourceData | null>(6 * 60 * 60 * 1000, 400, { ttlFor: (v) => (v ? 6 * 60 * 60 * 1000 : 10 * 60 * 1000) });
 
 /** null = emiten tidak dikenal sumber data. Melempar error bila sumber gagal dan belum ada cache. */
 export async function getDividendData(ticker: string): Promise<{ data: DividendSourceData | null; cachedAt: number }> {

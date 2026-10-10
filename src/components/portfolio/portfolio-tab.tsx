@@ -18,7 +18,7 @@ import { formatWibTime } from '@/lib/market-hours';
 import { cleanCompanyName } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
 import { deleteHolding, loadPortfolio, saveCash, saveHolding, type Holding, type PortfolioData } from '@/lib/portfolio-store';
-import { Badge, Card, CardTitle, Segmented, Stat, fmtInput, pct, pick, rp2 as rp, sanitizeNumber, stepMagnitude } from '@/components/shared/calc-ui';
+import { Badge, Card, CardTitle, Segmented, Stat, fmtInput, formatDate, pct, pick, rp2 as rp, sanitizeNumber, stepMagnitude } from '@/components/shared/calc-ui';
 import { HoldingModal, type HoldingModalMode, type HoldingSubmit } from './holding-modal';
 
 interface PortfolioTabProps {
@@ -49,6 +49,14 @@ interface Row {
   todayPct: number | null;
   weight: number;
   dividendYear: number | null;
+  div: DividendInfo | null;
+  divFailed: boolean;
+}
+
+interface DividendInfo {
+  ttmDps: number;
+  lastExDate: string | null;
+  lastAmount: number | null;
 }
 
 export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, onAnalyzeClick, onChanged }: PortfolioTabProps) {
@@ -60,7 +68,10 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
   const [quotes, setQuotes] = React.useState<Record<string, QuoteItem>>({});
   const [quotesAt, setQuotesAt] = React.useState<number | null>(null);
   const [quotesFailed, setQuotesFailed] = React.useState(false);
-  const [dividends, setDividends] = React.useState<Record<string, number>>({});
+  const [dividends, setDividends] = React.useState<Record<string, DividendInfo>>({});
+  const [divFailed, setDivFailed] = React.useState<string[]>([]);
+  const [divLoaded, setDivLoaded] = React.useState(false);
+  const divRetryRef = React.useRef(0);
   const [refreshing, setRefreshing] = React.useState(false);
   const [sortKey, setSortKey] = React.useState<SortKey>('value');
   const [modal, setModal] = React.useState<HoldingModalMode | null>(null);
@@ -98,28 +109,53 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
     }
   };
 
-  const loadDividends = async () => {
+  /**
+   * Dividen 12 bulan per emiten. Emiten yang gagal dimuat ditandai (bukan dianggap "tanpa dividen")
+   * dan dicoba lagi otomatis; `only` = hanya muat ulang emiten tertentu (yang gagal).
+   */
+  const loadDividends = async (only?: string[]) => {
     if (!tickersKey) return;
-    const symbols = tickersKey.split(',');
-    const result: Record<string, number> = {};
+    const symbols = only ?? tickersKey.split(',');
+    if (!only) divRetryRef.current = 0;
+    const result: Record<string, DividendInfo> = {};
+    const failed: string[] = [];
     for (let i = 0; i < symbols.length; i += DIVIDEND_BATCH) {
+      const batch = symbols.slice(i, i + DIVIDEND_BATCH);
       try {
-        const res = await fetch(`/api/dividend/summary?symbols=${symbols.slice(i, i + DIVIDEND_BATCH).join(',')}`);
-        if (!res.ok) continue;
-        const json = (await res.json()) as { items: Array<{ symbol: string; ttmDps: number }> };
-        for (const item of json.items) result[item.symbol] = item.ttmDps;
+        const res = await fetch(`/api/dividend/summary?symbols=${batch.join(',')}`);
+        if (!res.ok) throw new Error(String(res.status));
+        const json = (await res.json()) as {
+          items: Array<{ symbol: string; ttmDps: number; lastExDate: string | null; lastAmount?: number | null }>;
+          failed?: string[];
+          unknown?: string[];
+        };
+        for (const item of json.items) result[item.symbol] = { ttmDps: item.ttmDps, lastExDate: item.lastExDate, lastAmount: item.lastAmount ?? null };
+        // Tidak ada data di sumber = belum pernah membagi dividen (bukan gagal).
+        for (const s of json.unknown ?? []) result[s] = { ttmDps: 0, lastExDate: null, lastAmount: null };
+        failed.push(...(json.failed ?? []), ...batch.filter((s) => !(s in result) && !(json.failed ?? []).includes(s)));
       } catch {
-        // Estimasi dividen bersifat tambahan; abaikan bila gagal.
+        failed.push(...batch);
       }
     }
-    setDividends(result);
+    setDividends((prev) => (only ? { ...prev, ...result } : result));
+    setDivFailed(failed);
+    setDivLoaded(true);
   };
+
+  // Emiten yang gagal dimuat dicoba lagi otomatis (15 dtk, 30 dtk, 45 dtk).
+  React.useEffect(() => {
+    if (divFailed.length === 0 || !isActive || divRetryRef.current >= 3) return;
+    const attempt = ++divRetryRef.current;
+    const t = window.setTimeout(() => void loadDividends(divFailed), attempt * 15_000);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadDividends dibuat ulang tiap render
+  }, [divFailed, isActive]);
 
   // Admin menekan "Refresh semua data" → ambil ulang segera.
   const refreshEpoch = useDataRefreshEpoch();
   usePolling(loadData, { enabled: isActive && !!user, intervalMs: null, minGapMs: 30_000, key: `${user?.id ?? ''}|${refreshEpoch}` });
   usePolling(loadQuotes, { enabled: isActive && !!tickersKey, intervalMs: trading ? LIVE_POLL_MS : null, minGapMs: 15_000, key: `${tickersKey}|${refreshEpoch}` });
-  usePolling(loadDividends, { enabled: isActive && !!tickersKey, intervalMs: null, minGapMs: 6 * 3600_000, key: `${tickersKey}|${refreshEpoch}` });
+  usePolling(() => loadDividends(), { enabled: isActive && !!tickersKey, intervalMs: null, minGapMs: 30 * 60_000, key: `${tickersKey}|${refreshEpoch}` });
 
   // ─── Perhitungan ───
   const rows: Row[] = React.useMemo(() => {
@@ -131,7 +167,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       const value = shares * (price ?? h.avg_price);
       const pl = price !== null ? value - cost : null;
       const valid = quote && !quote.suspect;
-      const dps = dividends[h.ticker.toUpperCase()];
+      const div = dividends[h.ticker.toUpperCase()] ?? null;
       return {
         h,
         quote,
@@ -144,12 +180,14 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
         today: valid ? shares * quote.change : null,
         todayPct: valid ? quote.changePercent : null,
         weight: 0,
-        dividendYear: dps !== undefined ? dps * shares : null,
+        dividendYear: div ? div.ttmDps * shares : null,
+        div,
+        divFailed: divFailed.includes(h.ticker.toUpperCase()),
       };
     });
     const total = base.reduce((s, r) => s + r.value, 0);
     return base.map((r) => ({ ...r, weight: total > 0 ? (r.value / total) * 100 : 0 }));
-  }, [holdings, quotes, dividends]);
+  }, [holdings, quotes, dividends, divFailed]);
 
   const sorted = React.useMemo(() => {
     const copy = [...rows];
@@ -307,6 +345,43 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       });
     }
   }
+  // Dividen per baris: nominal 12 bulan + dividen terakhir, "gagal dimuat" (dicoba ulang), atau belum pernah.
+  const dividendCell = (r: Row, align: 'right' | 'left' = 'right') => {
+    const lastLine = r.div?.lastExDate
+      ? L(
+          `${r.div.lastAmount !== null ? `Rp${formatNumberLocale(r.div.lastAmount, language, r.div.lastAmount % 1 ? 2 : 0)}/lbr · ` : ''}ex ${formatDate(r.div.lastExDate, language)}`,
+          `${r.div.lastAmount !== null ? `Rp${formatNumberLocale(r.div.lastAmount, language, r.div.lastAmount % 1 ? 2 : 0)}/sh · ` : ''}ex ${formatDate(r.div.lastExDate, language)}`
+        )
+      : null;
+    if (r.divFailed) {
+      return (
+        <span className={`inline-flex flex-col ${align === 'right' ? 'items-end' : 'items-start'}`}>
+          <span className="text-[10px] font-bold text-amber-400">{L('gagal dimuat', 'failed to load')}</span>
+          <button type="button" onClick={() => void loadDividends(divFailed)} className="text-[10px] font-bold text-slate-400 hover:text-white underline cursor-pointer">
+            {L('coba lagi', 'retry')}
+          </button>
+        </span>
+      );
+    }
+    if (!r.div) return <span className="text-slate-600">{divLoaded ? '—' : '…'}</span>;
+    if (r.dividendYear !== null && r.dividendYear > 0) {
+      return (
+        <span className="block">
+          <span className="block text-amber-300">{rp(r.dividendYear, language)}</span>
+          {lastLine && <span className="block text-[10px] font-sans font-semibold text-slate-500">{lastLine}</span>}
+        </span>
+      );
+    }
+    return (
+      <span className="block" title={L('Tidak ada dividen dalam 12 bulan terakhir', 'No dividends in the last 12 months')}>
+        <span className="block text-slate-600">—</span>
+        <span className="block text-[10px] font-sans font-semibold text-slate-500">
+          {r.div.lastExDate ? L(`terakhir ${formatDate(r.div.lastExDate, language)}`, `last ${formatDate(r.div.lastExDate, language)}`) : L('belum pernah', 'never paid')}
+        </span>
+      </span>
+    );
+  };
+
   // Kolom tabel yang sedang dipakai untuk mengurutkan diberi warna & panah.
   const sortedCol = (k: SortKey) => (sortKey === k ? 'text-emerald-400' : '');
   const sortMark = (k: SortKey) => (sortKey === k ? (k === 'ticker' ? ' A–Z' : ' ↓') : '');
@@ -400,7 +475,13 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           tone="amber"
           label={L('Dividen 12 bln', 'Dividends (12m)')}
           value={rp(dividendYear, language)}
-          sub={totalCost > 0 ? L(`kotor · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`, `gross · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`) : L('kotor', 'gross')}
+          sub={
+            divFailed.length > 0
+              ? L(`${divFailed.length} saham gagal dimuat · dicoba lagi`, `${divFailed.length} stocks failed · retrying`)
+              : totalCost > 0
+                ? L(`kotor · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`, `gross · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`)
+                : L('kotor', 'gross')
+          }
         />
       </div>
 
@@ -614,7 +695,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                         {r.pl !== null ? signed(r.pl) : '—'}
                         <span className="block text-[10px]">{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-amber-300">{r.dividendYear !== null && r.dividendYear > 0 ? rp(r.dividendYear, language) : <span className="text-slate-600" title={L('Tidak ada dividen dalam 12 bulan terakhir', 'No dividends in the last 12 months')}>—</span>}</td>
+                      <td className="py-3 px-3 text-right font-mono">{dividendCell(r)}</td>
                       <td className="py-3 px-3">
                         <div className="flex justify-end gap-1.5">
                           <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border-teal-500/20`} title={L('Analisis', 'Analyze')} aria-label={L(`Analisis ${r.h.ticker}`, `Analyze ${r.h.ticker}`)}>
@@ -662,6 +743,10 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                     </div>
                     <div><dt className="text-[9px] uppercase font-bold text-slate-500">{L('Nilai', 'Value')}</dt><dd className="font-bold text-white">{rp(r.value, language)}</dd></div>
                   </dl>
+                  <div className="flex items-start justify-between gap-3 mt-2.5 pt-2.5 border-t border-white/5 text-[11px]">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 pt-0.5">{L('Dividen 12 bln', 'Dividends 12m')}</span>
+                    <span className="text-right font-bold">{dividendCell(r)}</span>
+                  </div>
                   <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
                     <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} gap-1 py-1.5 text-[10px] font-bold bg-teal-500/10 text-teal-400 border-teal-500/20`}><LineChart className="h-3.5 w-3.5" />{L('Analisis', 'Analyze')}</button>
                     <button type="button" onClick={() => onAvgDownClick(r.h.ticker, r.h.lot, r.h.avg_price)} className={`${actionBtn} gap-1 py-1.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border-emerald-500/20`}><Calculator className="h-3.5 w-3.5" />Avg</button>

@@ -355,7 +355,7 @@ export function clearAllServerCaches(): { caches: number; entries: number } {
   return { caches: cacheClearers.size, entries };
 }
 
-export function createTtlCache<T>(ttlMs: number, maxEntries = 100) {
+export function createTtlCache<T>(ttlMs: number, maxEntries = 100, options?: { ttlFor?: (value: T) => number }) {
   const store = new Map<string, { at: number; value: T }>();
   const inflight = new Map<string, Promise<T>>();
   cacheClearers.add(() => store.size);
@@ -366,7 +366,8 @@ export function createTtlCache<T>(ttlMs: number, maxEntries = 100) {
     if (generation !== null) markStaleBefore(generation);
 
     const hit = store.get(key);
-    if (hit && Date.now() - hit.at < ttlMs && hit.at >= staleBefore()) return { value: hit.value, cachedAt: hit.at };
+    const ttl = hit ? (options?.ttlFor?.(hit.value) ?? ttlMs) : ttlMs;
+    if (hit && Date.now() - hit.at < ttl && hit.at >= staleBefore()) return { value: hit.value, cachedAt: hit.at };
 
     let pending = inflight.get(key);
     if (!pending) {
