@@ -504,6 +504,9 @@ Dibangun ulang di `c2e9dde` mengikuti teks resmi **SEOJK 25/SEOJK.04/2025** (ber
 
 **4. Simulasi hari pertama listing** ([listing-simulator.tsx](src/components/ipo/listing-simulator.tsx)): lot dijual (default = jatah), harga jual sendiri + harga impas, fee beli IPO (default 0%) dan fee jual. Skenario: ARB hari 1, −10%, flat, +10%, ARA 1/2/3 hari berturut-turut, dihitung dengan `getAutoRejectionBounds` (batas yang berlaku saat ini, dibulatkan ke fraksi).
 
+- **Hari ARA / ARB beruntun bisa diatur** (sejak `e2de25a`): ARA 0–20 hari (default 3, tombol cepat 3× / 5× / 10×) dan ARB 0–10 hari (default 1). Batas tiap hari dihitung dari penutupan hari sebelumnya dan dibulatkan ke fraksi BEI; baris ARB ditampilkan dari yang terdalam. Kolom **× harga IPO** menunjukkan kelipatan harga. Contoh harga IPO Rp200: ARA 10 hari = Rp 1.975 (9,88×), ARB 3 hari = Rp 124. Catatan di tabel: BEI biasanya menyuspensi saham setelah ARA/ARB beruntun, jadi deretan panjang hanya hitungan batas harga.
+- Seluruh nominal halaman E-IPO memakai Rupiah 2 desimal (`rp2`), sama dengan Portofolio dan Watchlist.
+
 **Aturan (akordeon)** ([ipo-rules.tsx](src/components/ipo/ipo-rules.tsx)): tabel golongan & penyesuaian dengan golongan aktif disorot, catatan definisi, dan urutan penjatahan di tiap porsi beserta contoh resmi SEOJK.
 
 **Simulasi tersimpan:** daftar kartu dengan Muat dan Hapus (dengan konfirmasi). Tersimpan di `ipo_plans` (login) atau `nunnn_stock_ipo_plans` (lokal).
@@ -1370,6 +1373,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `f6821a9` | 2026-10-11 | — | Wawasan Portofolio berantakan (teks bebas, posisi tidak rata); tombol Nilai/P/L %/Hari ini/Kode tanpa keterangan bahwa itu urutan maupun arahnya |
 | `c3435fa` | 2026-10-11 | — | Kegagalan sesaat memuat dividen dibuang diam-diam sehingga saham yang membagi dividen (GTSI Rp1 ex 6 Jul 2026) tampil "—" dan baru dicoba lagi setelah 6 jam |
 | `1096531` | 2026-10-11 | — | Watchlist belum mengikuti format terbaru: harga tanpa desimal, tombol urutan tanpa keterangan/arah, kartu Terlemah menyebut saham 0% (GOTO) dengan warna merah |
+| `e2de25a` | 2026-10-11 | — | Simulasi listing E-IPO hanya sampai ARA 3 hari dan ARB 1 hari, tanpa bisa diatur |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
