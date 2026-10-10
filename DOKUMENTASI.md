@@ -562,6 +562,8 @@ Ditulis ulang di `802aed7`. Semua angka berasal dari data pasar nyata; bagian ya
 
 Dibangun ulang di `3b89457`. Data dibaca/ditulis lewat [lib/portfolio-store.ts](src/lib/portfolio-store.ts) (Supabase untuk akun cloud, localStorage untuk mode lokal), sama dengan ringkasan di Beranda.
 
+**Format angka** (sejak `12bfcf5`): semua nominal di halaman Portofolio dan form tambah/ubah saham memakai `rp2` ([calc-ui](src/components/shared/calc-ui.tsx)), yaitu Rupiah dengan tepat 2 desimal (mis. avg Rp 399,65, floating P/L −Rp 9.127.440,00), termasuk kartu ringkasan, kas, nilai pasar, dan dividen (tidak lagi diringkas "jt/M"). Bobot dan persentase memakai 2 desimal (71,91%). Saham tanpa dividen 12 bulan menampilkan "—". Di HP sempit, angka kartu ringkasan memakai font sedikit lebih kecil agar tidak terpotong.
+
 **Ringkasan (5 kartu):** nilai portofolio (saham + kas bila diisi), modal, floating P/L (Rp & %), P/L hari ini (perubahan meragukan tidak dihitung), dan estimasi dividen 12 bulan (dividen kotor TTM × lembar, dari `/api/dividend/summary`) beserta yield on cost.
 
 **Kas RDN (opsional):** belum diatur sampai pengguna mengisinya; disimpan dengan upsert ke `portfolio_cash`. Tidak ada lagi kas fiktif Rp100 juta yang dibuat otomatis.
@@ -1087,7 +1089,7 @@ Belum ada `.env.example`.
 | Komponen | Kegunaan |
 |---|---|
 | `AnimatedNumber` | Angka berjalan (count-up) dari nilai lama ke baru. Teks diperbarui langsung di DOM, tanpa render ulang tiap frame. `fromZero` untuk angka hasil utama |
-| `Reveal`, `Stagger` / `StaggerItem` | Muncul halus (fade + naik) saat masuk layar, sekali saja; daftar muncul berurutan |
+| `Reveal`, `Stagger` / `StaggerItem` | Muncul halus (fade + naik) saat masuk layar, sekali saja; daftar muncul berurutan. `Stagger` memakai `useInView` + `animate` (sejak `badf4db`) sehingga item yang ditambahkan belakangan ikut tampil; sebelumnya wawasan Portofolio yang muncul setelah harga dimuat tetap tak terlihat |
 | `GrowBar` | Batang progres yang tumbuh ke nilainya dan bergeser halus saat nilai berubah |
 | `Flash` | Kilatan singkat setiap kali nilai berubah (harga live, hasil kalkulator) |
 
@@ -1356,6 +1358,8 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `2d68226` | 2026-10-08 | — | Saham suspensi/tidak bertransaksi menampilkan pergerakan sesi lama sebagai pergerakan hari ini (CSMI tampil Gainers +25% ARA padahal transaksi terakhir 6 Okt) |
 | `76c0b7f` | 2026-10-08 | — | Tidak ada tombol refresh untuk pengguna biasa; harga diperbarui tiap 60 detik dengan cache server 30–60 detik; Penggerak Pasar tanpa penanda live/tutup maupun jam pembaruan |
 | `edf98ae` | 2026-10-08 | — | Dua tombol refresh berbeda (sidebar & Admin) membingungkan; kini satu tombol di sidebar, otomatis menyertakan refresh server untuk admin |
+| `badf4db` | 2026-10-11 | — | Item `Stagger` yang ditambahkan setelah tampil (wawasan Portofolio setelah harga dimuat) tetap transparan, menyisakan ruang kosong |
+| `12bfcf5` | 2026-10-11 | — | Nominal Portofolio dibulatkan ke rupiah penuh (avg pecahan tidak terlihat) dan sebagian diringkas "jt/M"; bobot hanya 1 desimal |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
