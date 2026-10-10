@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BellRing, ChevronDown, ChevronUp, LineChart, Plus, Star, Target, Trash2 } from 'lucide-react';
+import { ArrowUpDown, BellRing, ChevronDown, ChevronUp, LineChart, Plus, Star, Target, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Flash } from '@/components/shared/motion';
 import { QuickSearchTicker } from '@/components/quick-search-ticker';
@@ -11,7 +11,7 @@ import { StepperInput } from '@/components/stepper-input';
 import { Sparkline } from '@/components/home/sparkline';
 import { MarketStatusBar } from '@/components/home/market-status-bar';
 import { useIdxSessionState } from '@/components/home/home-dashboard';
-import { Badge, Card, Segmented, Stat, fmtInput, pct, pick, rp, sanitizeNumber, type Lang } from '@/components/shared/calc-ui';
+import { Badge, Card, Segmented, Stat, fmtInput, pct, pick, rp2 as rp, sanitizeNumber, type Lang } from '@/components/shared/calc-ui';
 import { useLanguage } from '@/lib/language-context';
 import { usePolling } from '@/lib/use-polling';
 import { LIVE_POLL_MS, useDataRefreshEpoch } from '@/lib/refresh-signal';
@@ -147,7 +147,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
     ) : r.quote ? (
       r.changePct !== null ? (
         <span className={`tabular-nums ${tone(r.quote.change)}`}>
-          <Flash value={`${r.quote.change > 0 ? '+' : ''}${formatNumberLocale(r.quote.change, language)}`} />
+          <Flash value={`${r.quote.change > 0 ? '+' : ''}${formatNumberLocale(r.quote.change, language, 2)}`} />
           <span className="block text-[10px] font-bold">{signedPct(r.changePct)}</span>
         </span>
       ) : (
@@ -167,8 +167,8 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
           <span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-1 rounded bg-white" style={{ left: `${pos}%` }} />
         </div>
         <div className="flex justify-between text-[9px] text-slate-500 mt-1 tabular-nums">
-          <span>{formatNumberLocale(r.low, language)}</span>
-          <span>{formatNumberLocale(r.high, language)}</span>
+          <span>{formatNumberLocale(r.low, language, 2)}</span>
+          <span>{formatNumberLocale(r.high, language, 2)}</span>
         </div>
       </div>
     );
@@ -256,8 +256,18 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Stat label={L('Dipantau', 'Watching')} value={`${entries.length}/${WATCHLIST_MAX}`} sub={L(`${up} naik · ${down} turun · ${flat} tetap`, `${up} up · ${down} down · ${flat} flat`)} />
           <Stat tone={avg === null ? 'slate' : avg >= 0 ? 'emerald' : 'rose'} label={L('Rata-rata hari ini', 'Average today')} value={<span className={tone(avg)}>{avg !== null ? signedPct(avg) : '—'}</span>} sub={L('perubahan rata-rata', 'mean change')} />
-          <Stat tone="emerald" label={L('Terkuat', 'Strongest')} value={best ? best.entry.symbol : '—'} sub={best ? signedPct(best.changePct ?? 0) : undefined} />
-          <Stat tone="rose" label={L('Terlemah', 'Weakest')} value={worst ? worst.entry.symbol : '—'} sub={worst ? signedPct(worst.changePct ?? 0) : undefined} />
+          <Stat
+            tone={best && (best.changePct ?? 0) > 0 ? 'emerald' : 'slate'}
+            label={L('Terkuat', 'Strongest')}
+            value={best && (best.changePct ?? 0) > 0 ? best.entry.symbol : '—'}
+            sub={best ? ((best.changePct ?? 0) > 0 ? signedPct(best.changePct ?? 0) : L('tidak ada yang naik', 'nothing is up')) : undefined}
+          />
+          <Stat
+            tone={worst && (worst.changePct ?? 0) < 0 ? 'rose' : 'slate'}
+            label={L('Terlemah', 'Weakest')}
+            value={worst && (worst.changePct ?? 0) < 0 ? worst.entry.symbol : '—'}
+            sub={worst ? ((worst.changePct ?? 0) < 0 ? signedPct(worst.changePct ?? 0) : L('tidak ada yang turun', 'nothing is down')) : undefined}
+          />
         </div>
       )}
 
@@ -285,19 +295,24 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
             )}
           </div>
           {entries.length > 1 && (
-            <Segmented
-              ariaLabel={L('Urutkan', 'Sort')}
-              value={sort}
-              onChange={setSort}
-              className="lg:w-[420px]"
-              options={[
-                { value: 'manual', label: L('Urutan saya', 'My order') },
-                { value: 'gain', label: L('Naik', 'Gainers') },
-                { value: 'loss', label: L('Turun', 'Losers') },
-                { value: 'value', label: L('Nilai', 'Value') },
-                { value: 'az', label: 'A–Z' },
-              ]}
-            />
+            <div className="flex flex-col items-start lg:items-end gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <ArrowUpDown className="h-3 w-3" /> {L('Urutkan berdasarkan', 'Sort by')}
+              </span>
+              <Segmented
+                ariaLabel={L('Urutkan watchlist', 'Sort watchlist')}
+                value={sort}
+                onChange={setSort}
+                className="w-full lg:w-[460px]"
+                options={[
+                  { value: 'manual', label: <><span className="sm:hidden">{L('Saya', 'Mine')}</span><span className="hidden sm:inline">{L('Urutan saya', 'My order')}</span></>, title: L('Urutan yang kamu atur dengan tombol ▲▼ di tiap baris', 'The order you set with the ▲▼ buttons on each row') },
+                  { value: 'gain', label: L('Naik ↓', 'Gainers ↓'), title: L('Kenaikan hari ini terbesar di atas', 'Biggest gain today first') },
+                  { value: 'loss', label: L('Turun ↓', 'Losers ↓'), title: L('Penurunan hari ini terdalam di atas', 'Biggest drop today first') },
+                  { value: 'value', label: L('Nilai ↓', 'Value ↓'), title: L('Nilai transaksi terbesar di atas', 'Largest traded value first') },
+                  { value: 'az', label: <><span className="sm:hidden">A–Z</span><span className="hidden sm:inline">{L('Kode A–Z', 'Ticker A–Z')}</span></>, title: L('Urut abjad kode saham', 'Alphabetical by ticker') },
+                ]}
+              />
+            </div>
           )}
         </div>
 
@@ -323,12 +338,20 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    <th className="py-2.5 px-3">{L('Saham', 'Stock')}</th>
+                    <th className={`py-2.5 px-3 ${sort === 'az' ? 'text-emerald-400' : ''}`} aria-sort={sort === 'az' ? 'ascending' : undefined}>{L('Saham', 'Stock')}{sort === 'az' ? ' A–Z' : ''}</th>
                     <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
-                    <th className="py-2.5 px-3 text-right">{L('Perubahan', 'Change')}</th>
+                    <th className={`py-2.5 px-3 text-right ${sort === 'gain' || sort === 'loss' ? 'text-emerald-400' : ''}`} aria-sort={sort === 'gain' ? 'descending' : sort === 'loss' ? 'ascending' : undefined}>
+                      {L('Perubahan', 'Change')}{sort === 'gain' ? ' ↓' : sort === 'loss' ? ' ↑' : ''}
+                    </th>
                     <th className="py-2.5 px-3">{L('Intraday', 'Intraday')}</th>
                     <th className="py-2.5 px-3">{L('Rentang hari ini', 'Day range')}</th>
-                    <th className="py-2.5 px-3 text-right">{L('Nilai transaksi', 'Traded value')}</th>
+                    <th
+                      className={`py-2.5 px-3 text-right ${sort === 'value' ? 'text-emerald-400' : ''}`}
+                      aria-sort={sort === 'value' ? 'descending' : undefined}
+                      title={L('Perkiraan: harga terakhir × volume', 'Estimate: last price × volume')}
+                    >
+                      {L('Nilai transaksi ≈', 'Traded value ≈')}{sort === 'value' ? ' ↓' : ''}
+                    </th>
                     <th className="py-2.5 px-3">{L('Harga incaran', 'Target')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Aksi', 'Actions')}</th>
                   </tr>
@@ -344,7 +367,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
                           {r.quote && !r.quote.suspect && r.quote.closes.length > 1 ? <Sparkline values={r.quote.closes} baseline={r.quote.previousClose} width={110} height={30} /> : <span className="text-slate-600">—</span>}
                         </td>
                         <td className="py-3 px-3">{rangeCell(r)}</td>
-                        <td className="py-3 px-3 text-right font-mono">{r.value !== null && r.value > 0 ? formatIDRCompact(r.value, language, 1) : '—'}</td>
+                        <td className="py-3 px-3 text-right font-mono" title={r.value !== null && r.value > 0 ? `≈ ${rp(r.value, language)}` : undefined}>{r.value !== null && r.value > 0 ? formatIDRCompact(r.value, language, 2) : '—'}</td>
                         <td className="py-3 px-3">{targetCell(r)}</td>
                         <td className="py-3 px-3">{actions(r, i)}</td>
                       </tr>
@@ -379,7 +402,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
                   <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
                     <div className="min-w-0">
                       {targetCell(r)}
-                      <span className="block text-[10px] text-slate-500 mt-0.5">{L('Nilai', 'Value')} {r.value !== null && r.value > 0 ? formatIDRCompact(r.value, language, 1) : '—'}</span>
+                      <span className="block text-[10px] text-slate-500 mt-0.5">{L('Nilai ≈', 'Value ≈')} {r.value !== null && r.value > 0 ? formatIDRCompact(r.value, language, 2) : '—'}</span>
                     </div>
                     {actions(r, i)}
                   </div>
