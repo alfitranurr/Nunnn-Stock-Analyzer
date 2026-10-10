@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Briefcase, Calculator, Edit3, Lightbulb, LineChart, Lock, PieChart, Plus, RefreshCw, Trash2, UserPlus, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowDownRight, ArrowUpDown, ArrowUpRight, Briefcase, Calculator, Edit3, Lightbulb, LineChart, Lock, PieChart, Plus, RefreshCw, Trash2, UserPlus, Wallet } from 'lucide-react';
 import { AnimatedNumber, GrowBar, Stagger, StaggerItem } from '@/components/shared/motion';
 import { StepperInput } from '@/components/stepper-input';
 import { CompanyLogo } from '@/components/company-logo';
@@ -230,38 +230,86 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
   const signedPct = (v: number) => `${v > 0 ? '+' : ''}${pct(v, language)}`;
 
   // ─── Wawasan dinamis ───
-  const insights: Array<{ key: string; icon: typeof Lightbulb; tone: string; text: React.ReactNode }> = [];
+  type InsightTone = 'emerald' | 'amber' | 'rose' | 'sky';
+  const insights: Array<{
+    key: string;
+    icon: typeof Lightbulb;
+    tone: InsightTone;
+    title: string;
+    value: string;
+    text: string;
+    action?: { label: string; onClick: () => void };
+  }> = [];
   if (rows.length > 0 && totalValue > 0) {
     const top = rows.reduce((a, b) => (b.weight > a.weight ? b : a));
+    const concentrated = top.weight > 40;
     insights.push({
       key: 'concentration',
       icon: PieChart,
-      tone: top.weight > 40 ? 'text-amber-400' : 'text-sky-400',
-      text:
-        top.weight > 40
-          ? L(`${top.h.ticker} mengisi ${pct(top.weight, language, 2)} portofolio saham; satu saham menentukan sebagian besar hasil. Pertimbangkan batas per saham.`, `${top.h.ticker} is ${pct(top.weight, language, 2)} of your stocks; one name drives most of the result. Consider a per-stock cap.`)
-          : L(`Posisi terbesar ${top.h.ticker} (${pct(top.weight, language, 2)}); sebaran ${rows.length} saham cukup seimbang.`, `Largest position ${top.h.ticker} (${pct(top.weight, language, 2)}); ${rows.length} stocks are reasonably balanced.`),
+      tone: concentrated ? 'amber' : 'sky',
+      title: L('Konsentrasi', 'Concentration'),
+      value: `${top.h.ticker} ${pct(top.weight, language, 2)}`,
+      text: concentrated
+        ? L('Satu saham menentukan sebagian besar hasil portofolio. Pertimbangkan batas per saham.', 'One stock drives most of the result. Consider a per-stock cap.')
+        : L(`Posisi terbesar; sebaran ${rows.length} saham cukup seimbang.`, `Largest position; ${rows.length} stocks are reasonably balanced.`),
     });
     const movers = rows.filter((r) => r.todayPct !== null);
     if (movers.length > 0) {
       const best = movers.reduce((a, b) => ((b.todayPct ?? 0) > (a.todayPct ?? 0) ? b : a));
       const worst = movers.reduce((a, b) => ((b.todayPct ?? 0) < (a.todayPct ?? 0) ? b : a));
       if ((best.todayPct ?? 0) > 0) {
-        insights.push({ key: 'best', icon: ArrowUpRight, tone: 'text-emerald-400', text: L(`Penopang hari ini: ${best.h.ticker} ${signedPct(best.todayPct ?? 0)} (${signed(best.today ?? 0)}).`, `Today's top contributor: ${best.h.ticker} ${signedPct(best.todayPct ?? 0)} (${signed(best.today ?? 0)}).`) });
+        insights.push({
+          key: 'best',
+          icon: ArrowUpRight,
+          tone: 'emerald',
+          title: L('Penopang hari ini', "Today's top contributor"),
+          value: `${best.h.ticker} ${signedPct(best.todayPct ?? 0)}`,
+          text: L(`Menambah ${signed(best.today ?? 0).replace('+', '')} ke nilai portofolio hari ini.`, `Added ${signed(best.today ?? 0).replace('+', '')} to the portfolio today.`),
+        });
       }
       if ((worst.todayPct ?? 0) < 0) {
-        insights.push({ key: 'worst', icon: ArrowDownRight, tone: 'text-rose-400', text: L(`Penekan hari ini: ${worst.h.ticker} ${signedPct(worst.todayPct ?? 0)} (${signed(worst.today ?? 0)}).`, `Today's biggest drag: ${worst.h.ticker} ${signedPct(worst.todayPct ?? 0)} (${signed(worst.today ?? 0)}).`) });
+        insights.push({
+          key: 'worst',
+          icon: ArrowDownRight,
+          tone: 'rose',
+          title: L('Penekan hari ini', "Today's biggest drag"),
+          value: `${worst.h.ticker} ${signedPct(worst.todayPct ?? 0)}`,
+          text: L(`Mengurangi ${signed(worst.today ?? 0).replace('−', '')} dari nilai portofolio hari ini.`, `Took ${signed(worst.today ?? 0).replace('−', '')} off the portfolio today.`),
+        });
       }
     }
     const deepLoss = rows.filter((r) => r.plPct !== null && r.plPct <= -15).sort((a, b) => (a.plPct ?? 0) - (b.plPct ?? 0))[0];
     if (deepLoss) {
-      insights.push({ key: 'loss', icon: AlertTriangle, tone: 'text-amber-400', text: L(`${deepLoss.h.ticker} sudah ${signedPct(deepLoss.plPct ?? 0)} dari harga rata-rata. Simulasikan dulu di Avg Down sebelum menambah posisi.`, `${deepLoss.h.ticker} is ${signedPct(deepLoss.plPct ?? 0)} from your average. Simulate it in Avg Down before adding.`) });
+      insights.push({
+        key: 'loss',
+        icon: AlertTriangle,
+        tone: 'amber',
+        title: L('Rugi terdalam', 'Deepest loss'),
+        value: `${deepLoss.h.ticker} ${signedPct(deepLoss.plPct ?? 0)}`,
+        text: L('Dari harga rata-rata. Simulasikan dulu sebelum menambah posisi.', 'From your average price. Simulate before adding to the position.'),
+        action: { label: L('Simulasikan Avg Down', 'Simulate Avg Down'), onClick: () => onAvgDownClick(deepLoss.h.ticker, deepLoss.h.lot, deepLoss.h.avg_price) },
+      });
     }
     if (cash !== null && cash >= 0) {
       const cashShare = (cash / (totalValue + cash)) * 100;
-      insights.push({ key: 'cash', icon: Wallet, tone: 'text-sky-400', text: L(`Kas RDN = ${pct(cashShare, language, 2)} dari total aset${cashShare < 5 ? ' — ruang untuk average down atau peluang baru tipis.' : '.'}`, `RDN cash = ${pct(cashShare, language, 2)} of total assets${cashShare < 5 ? ' — little room to average down or buy new opportunities.' : '.'}`) });
+      insights.push({
+        key: 'cash',
+        icon: Wallet,
+        tone: cash === 0 || cashShare < 5 ? 'amber' : 'sky',
+        title: L('Kas RDN', 'RDN cash'),
+        value: L(`${pct(cashShare, language, 2)} dari aset`, `${pct(cashShare, language, 2)} of assets`),
+        text:
+          cash === 0
+            ? L('Rp 0,00: belum ada dana cadangan untuk average down atau peluang baru.', 'Rp 0.00: no reserve left for averaging down or new opportunities.')
+            : cashShare < 5
+              ? L(`${rp(cash, language)}: dana cadangan tipis untuk average down atau peluang baru.`, `${rp(cash, language)}: thin reserve for averaging down or new opportunities.`)
+              : L(`${rp(cash, language)} sebagai cadangan untuk peluang berikutnya.`, `${rp(cash, language)} kept as a reserve for the next opportunity.`),
+      });
     }
   }
+  // Kolom tabel yang sedang dipakai untuk mengurutkan diberi warna & panah.
+  const sortedCol = (k: SortKey) => (sortKey === k ? 'text-emerald-400' : '');
+  const sortMark = (k: SortKey) => (sortKey === k ? (k === 'ticker' ? ' A–Z' : ' ↓') : '');
   const tone = (v: number | null) => (v === null || v === 0 ? 'text-slate-300' : v > 0 ? 'text-emerald-400' : 'text-rose-400');
 
   if (!user) {
@@ -359,16 +407,51 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       {/* Wawasan portofolio (dihitung dari posisi & harga live) */}
       {insights.length > 0 && (
         <Card className="py-4 sm:py-5">
-          <h2 className="text-[10px] font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
-            <Lightbulb className="h-4 w-4" /> {L('Wawasan portofolio', 'Portfolio insights')}
-          </h2>
-          <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {insights.map((it) => (
-              <StaggerItem key={it.key} className="flex items-start gap-2.5 text-xs text-slate-300 leading-relaxed">
-                <it.icon className={`h-4 w-4 shrink-0 mt-0.5 ${it.tone}`} />
-                <span>{it.text}</span>
-              </StaggerItem>
-            ))}
+          <div className="flex items-center justify-between gap-3 mb-3.5">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" /> {L('Wawasan portofolio', 'Portfolio insights')}
+            </h2>
+            <span className="hidden sm:inline text-[10px] font-semibold text-slate-500">{L(`${insights.length} wawasan · dari posisi & harga terkini`, `${insights.length} insights · from positions & latest prices`)}</span>
+          </div>
+          <Stagger
+            className={`grid grid-cols-1 gap-3 ${
+              {
+                1: '',
+                2: 'sm:grid-cols-2',
+                3: 'sm:grid-cols-2 lg:grid-cols-3',
+                4: 'sm:grid-cols-2 lg:grid-cols-4',
+              }[insights.length] ?? 'sm:grid-cols-2 lg:grid-cols-3'
+            }`}
+          >
+            {insights.map((it) => {
+              const toneCls = {
+                emerald: { box: 'border-emerald-500/20 bg-emerald-500/[0.04]', chip: 'bg-emerald-500/15 text-emerald-400', value: 'text-emerald-300' },
+                amber: { box: 'border-amber-500/20 bg-amber-500/[0.04]', chip: 'bg-amber-500/15 text-amber-400', value: 'text-amber-200' },
+                rose: { box: 'border-rose-500/20 bg-rose-500/[0.04]', chip: 'bg-rose-500/15 text-rose-400', value: 'text-rose-300' },
+                sky: { box: 'border-sky-500/20 bg-sky-500/[0.04]', chip: 'bg-sky-500/15 text-sky-400', value: 'text-white' },
+              }[it.tone];
+              return (
+                <StaggerItem key={it.key} className={`h-full p-3.5 rounded-2xl border flex gap-3 ${toneCls.box}`}>
+                  <span className={`h-8 w-8 shrink-0 rounded-xl flex items-center justify-center ${toneCls.chip}`}>
+                    <it.icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1 flex flex-col">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{it.title}</span>
+                    <span className={`text-sm font-black tabular-nums mt-0.5 ${toneCls.value}`}>{it.value}</span>
+                    <p className="text-[11px] text-slate-400 leading-snug mt-1">{it.text}</p>
+                    {it.action && (
+                      <button
+                        type="button"
+                        onClick={it.action.onClick}
+                        className="self-start mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer"
+                      >
+                        <Calculator className="h-3 w-3" /> {it.action.label}
+                      </button>
+                    )}
+                  </div>
+                </StaggerItem>
+              );
+            })}
           </Stagger>
         </Card>
       )}
@@ -429,18 +512,22 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
             </>
           }
           right={rows.length > 1 ? (
-            <Segmented
-              ariaLabel={L('Urutkan', 'Sort')}
-              value={sortKey}
-              onChange={setSortKey}
-              className="self-start"
-              options={[
-                { value: 'value', label: L('Nilai', 'Value') },
-                { value: 'pl', label: 'P/L %' },
-                { value: 'today', label: L('Hari ini', 'Today') },
-                { value: 'ticker', label: L('Kode', 'Ticker') },
-              ]}
-            />
+            <div className="self-start flex flex-col items-start sm:items-end gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <ArrowUpDown className="h-3 w-3" /> {L('Urutkan berdasarkan', 'Sort by')}
+              </span>
+              <Segmented
+                ariaLabel={L('Urutkan daftar saham', 'Sort holdings')}
+                value={sortKey}
+                onChange={setSortKey}
+                options={[
+                  { value: 'value', label: L('Nilai ↓', 'Value ↓'), title: L('Nilai pasar terbesar di atas', 'Largest market value first') },
+                  { value: 'pl', label: 'P/L % ↓', title: L('Persentase untung terbesar di atas, rugi terdalam di bawah', 'Highest P/L % first, deepest loss last') },
+                  { value: 'today', label: L('Hari ini ↓', 'Today ↓'), title: L('Kenaikan hari ini terbesar di atas', 'Biggest gain today first') },
+                  { value: 'ticker', label: L('Kode A–Z', 'Ticker A–Z'), title: L('Urut abjad kode saham', 'Alphabetical by ticker') },
+                ]}
+              />
+            </div>
           ) : undefined}
         />
 
@@ -489,12 +576,12 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    <th className="py-2.5 px-3">{L('Saham', 'Stock')}</th>
+                    <th className={`py-2.5 px-3 ${sortedCol('ticker')}`} aria-sort={sortKey === 'ticker' ? 'ascending' : undefined}>{L('Saham', 'Stock')}{sortMark('ticker')}</th>
                     <th className="py-2.5 px-3 text-right">Lot</th>
                     <th className="py-2.5 px-3 text-right">{L('Avg', 'Avg')}</th>
-                    <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
-                    <th className="py-2.5 px-3 text-right">{L('Nilai pasar', 'Market value')}</th>
-                    <th className="py-2.5 px-3 text-right">{L('Floating P/L', 'Floating P/L')}</th>
+                    <th className={`py-2.5 px-3 text-right ${sortedCol('today')}`} aria-sort={sortKey === 'today' ? 'descending' : undefined}>{L('Harga', 'Price')}{sortMark('today')}</th>
+                    <th className={`py-2.5 px-3 text-right ${sortedCol('value')}`} aria-sort={sortKey === 'value' ? 'descending' : undefined}>{L('Nilai pasar', 'Market value')}{sortMark('value')}</th>
+                    <th className={`py-2.5 px-3 text-right ${sortedCol('pl')}`} aria-sort={sortKey === 'pl' ? 'descending' : undefined}>{L('Floating P/L', 'Floating P/L')}{sortMark('pl')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Div. 12 bln', 'Div. 12m')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Aksi', 'Actions')}</th>
                   </tr>
@@ -527,7 +614,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                         {r.pl !== null ? signed(r.pl) : '—'}
                         <span className="block text-[10px]">{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-amber-300">{r.dividendYear !== null && r.dividendYear > 0 ? rp(r.dividendYear, language) : '—'}</td>
+                      <td className="py-3 px-3 text-right font-mono text-amber-300">{r.dividendYear !== null && r.dividendYear > 0 ? rp(r.dividendYear, language) : <span className="text-slate-600" title={L('Tidak ada dividen dalam 12 bulan terakhir', 'No dividends in the last 12 months')}>—</span>}</td>
                       <td className="py-3 px-3">
                         <div className="flex justify-end gap-1.5">
                           <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border-teal-500/20`} title={L('Analisis', 'Analyze')} aria-label={L(`Analisis ${r.h.ticker}`, `Analyze ${r.h.ticker}`)}>
