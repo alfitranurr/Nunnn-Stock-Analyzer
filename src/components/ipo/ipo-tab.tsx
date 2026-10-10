@@ -35,7 +35,7 @@ import {
   fmtInput,
   pct,
   pick,
-  rp,
+  rp2 as rp,
   sanitizeInteger,
   sanitizeNumber,
   stepDecimal,

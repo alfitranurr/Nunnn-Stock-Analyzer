@@ -9,7 +9,12 @@ import { parseFormattedNumber } from '@/lib/format';
 import { getAutoRejectionBounds, roundToNearestIdxTick, roundUpToIdxTick, stepIdxPrice } from '@/lib/calculator';
 import { DEFAULT_SELL_FEE_PCT } from '@/lib/dividend';
 import { listingPnl, SHARES_PER_LOT } from '@/lib/e-ipo';
-import { Card, CardTitle, Field, clamp, fmtInput, pct, pick, rp, sanitizeInteger, sanitizeNumber, stepDecimal, type Lang } from '@/components/shared/calc-ui';
+import { Card, CardTitle, Field, clamp, fmtInput, pct, pick, rp2 as rp, sanitizeInteger, sanitizeNumber, stepDecimal, type Lang } from '@/components/shared/calc-ui';
+import { formatNumberLocale } from '@/lib/format';
+
+const MAX_ARA_DAYS = 20;
+const MAX_ARB_DAYS = 10;
+const ARA_PRESETS = [3, 5, 10];
 
 interface ListingSimulatorProps {
   language: Lang;
@@ -27,6 +32,9 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
   const [targetStr, setTargetStr] = React.useState<string | null>(null);
   const [buyFeeStr, setBuyFeeStr] = React.useState('0');
   const [sellFeeStr, setSellFeeStr] = React.useState(() => fmtInput(DEFAULT_SELL_FEE_PCT, language));
+  // Jumlah hari ARA / ARB beruntun yang disimulasikan (bisa diatur pengguna).
+  const [araDays, setAraDays] = React.useState(3);
+  const [arbDays, setArbDays] = React.useState(1);
 
   const [inputLanguage, setInputLanguage] = React.useState(language);
   if (inputLanguage !== language) {
@@ -44,16 +52,36 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
 
   const scenarios = React.useMemo(() => {
     if (ipoPrice <= 0 || now === null) return [];
-    const rows: Array<{ id: string; label: string; price: number }> = [];
+    const rows: Array<{ id: string; label: string; price: number; kind: 'arb' | 'mid' | 'ara' }> = [];
     const first = getAutoRejectionBounds(ipoPrice, now);
-    rows.push({ id: 'arb', label: L(`ARB hari 1 (−${first.downPct}%)`, `Day-1 ARB (−${first.downPct}%)`), price: first.lower });
-    rows.push({ id: 'down10', label: L('Turun 10%', 'Down 10%'), price: Math.max(first.lower, roundToNearestIdxTick(ipoPrice * 0.9)) });
-    rows.push({ id: 'flat', label: L('Sama dengan harga IPO', 'Flat at IPO price'), price: ipoPrice });
-    rows.push({ id: 'up10', label: L('Naik 10%', 'Up 10%'), price: Math.min(first.upper, roundToNearestIdxTick(ipoPrice * 1.1)) });
+
+    // ARB beruntun: hitung dari hari 1 lalu tampilkan dari yang terdalam (harga terendah di atas).
+    const arbRows: typeof rows = [];
+    let down = ipoPrice;
+    for (let day = 1; day <= arbDays; day++) {
+      const b = getAutoRejectionBounds(down, now);
+      if (b.lower >= down) break; // sudah di harga minimum
+      arbRows.push({
+        id: `arb${day}`,
+        label: day === 1 ? L(`ARB 1 hari (−${b.downPct}%)`, `1 ARB day (−${b.downPct}%)`) : L(`ARB ${day} hari berturut-turut`, `${day} straight ARB days`),
+        price: b.lower,
+        kind: 'arb',
+      });
+      down = b.lower;
+    }
+    rows.push(...arbRows.reverse());
+    rows.push({ id: 'down10', label: L('Turun 10%', 'Down 10%'), price: Math.max(first.lower, roundToNearestIdxTick(ipoPrice * 0.9)), kind: 'mid' });
+    rows.push({ id: 'flat', label: L('Sama dengan harga IPO', 'Flat at IPO price'), price: ipoPrice, kind: 'mid' });
+    rows.push({ id: 'up10', label: L('Naik 10%', 'Up 10%'), price: Math.min(first.upper, roundToNearestIdxTick(ipoPrice * 1.1)), kind: 'mid' });
     let ref = ipoPrice;
-    for (let day = 1; day <= 3; day++) {
+    for (let day = 1; day <= araDays; day++) {
       const b = getAutoRejectionBounds(ref, now);
-      rows.push({ id: `ara${day}`, label: L(`ARA ${day} hari berturut-turut`, `${day} straight ARA day(s)`), price: b.upper });
+      rows.push({
+        id: `ara${day}`,
+        label: day === 1 ? L(`ARA 1 hari (+${b.upPct}%)`, `1 ARA day (+${b.upPct}%)`) : L(`ARA ${day} hari berturut-turut`, `${day} straight ARA days`),
+        price: b.upper,
+        kind: 'ara',
+      });
       ref = b.upper;
     }
     return rows.map((r) => {
@@ -62,7 +90,7 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
     });
     // L bergantung pada language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ipoPrice, lots, buyFee, sellFee, language, now]);
+  }, [ipoPrice, lots, buyFee, sellFee, language, now, araDays, arbDays]);
 
   const target = targetStr !== null ? parseFormattedNumber(targetStr) : 0;
   const custom = target > 0 ? listingPnl(lots, ipoPrice, target, buyFee, sellFee) : null;
@@ -157,6 +185,60 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
         </Field>
       </div>
 
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Field
+          label={L('Hari ARA beruntun', 'Straight ARA days')}
+          htmlFor={`${fieldId}-ara`}
+          hint={
+            <span className="flex flex-wrap items-center gap-1.5">
+              {L('Cepat:', 'Quick:')}
+              {ARA_PRESETS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setAraDays(n)}
+                  aria-pressed={araDays === n}
+                  className={`px-2 py-0.5 rounded-md border text-[10px] font-bold cursor-pointer ${araDays === n ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400' : 'border-white/10 text-slate-400 hover:text-white'}`}
+                >
+                  {n}×
+                </button>
+              ))}
+            </span>
+          }
+        >
+          <StepperInput
+            id={`${fieldId}-ara`}
+            type="text"
+            inputMode="numeric"
+            value={String(araDays)}
+            onChange={(e) => setAraDays(clamp(parseInt(sanitizeInteger(e.target.value), 10) || 0, 0, MAX_ARA_DAYS))}
+            onStep={(dir) => setAraDays((v) => clamp(v + dir, 0, MAX_ARA_DAYS))}
+            canDecrement={araDays > 0}
+            canIncrement={araDays < MAX_ARA_DAYS}
+            decrementLabel={L('Kurangi hari ARA', 'Fewer ARA days')}
+            incrementLabel={L('Tambah hari ARA', 'More ARA days')}
+            inputClassName="font-bold text-emerald-300"
+            adornment={<span className="flex items-center pr-1 text-xs text-slate-500">{L('hari', 'days')}</span>}
+          />
+        </Field>
+        <Field label={L('Hari ARB beruntun', 'Straight ARB days')} htmlFor={`${fieldId}-arb`} hint={L(`Maks ${MAX_ARB_DAYS} hari`, `Max ${MAX_ARB_DAYS} days`)}>
+          <StepperInput
+            id={`${fieldId}-arb`}
+            type="text"
+            inputMode="numeric"
+            value={String(arbDays)}
+            onChange={(e) => setArbDays(clamp(parseInt(sanitizeInteger(e.target.value), 10) || 0, 0, MAX_ARB_DAYS))}
+            onStep={(dir) => setArbDays((v) => clamp(v + dir, 0, MAX_ARB_DAYS))}
+            canDecrement={arbDays > 0}
+            canIncrement={arbDays < MAX_ARB_DAYS}
+            decrementLabel={L('Kurangi hari ARB', 'Fewer ARB days')}
+            incrementLabel={L('Tambah hari ARB', 'More ARB days')}
+            inputClassName="font-bold text-rose-300"
+            adornment={<span className="flex items-center pr-1 text-xs text-slate-500">{L('hari', 'days')}</span>}
+          />
+        </Field>
+      </div>
+
       {ipoPrice <= 0 ? (
         <p className="mt-5 py-6 text-center text-xs text-slate-500 rounded-2xl border border-dashed border-white/10">{L('Isi harga penawaran terlebih dahulu.', 'Enter the offering price first.')}</p>
       ) : (
@@ -167,6 +249,7 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
                 <th className="py-2.5 px-3">{L('Skenario', 'Scenario')}</th>
                 <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
                 <th className="py-2.5 px-3 text-right hidden sm:table-cell">{L('Perubahan', 'Change')}</th>
+                <th className="py-2.5 px-3 text-right hidden md:table-cell" title={L('Harga skenario ÷ harga IPO', 'Scenario price ÷ IPO price')}>{L('× harga IPO', '× IPO price')}</th>
                 <th className="py-2.5 px-3 text-right">{L('Untung / rugi bersih', 'Net P/L')}</th>
               </tr>
             </thead>
@@ -181,6 +264,7 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
                   <td className={`py-2.5 px-3 text-right font-mono hidden sm:table-cell ${s.changePct > 0 ? 'text-emerald-400' : s.changePct < 0 ? 'text-rose-400' : ''}`}>
                     {s.changePct > 0 ? '+' : ''}{pct(s.changePct, language)}
                   </td>
+                  <td className="py-2.5 px-3 text-right font-mono hidden md:table-cell text-slate-400">{formatNumberLocale(s.price / ipoPrice, language, 2)}×</td>
                   <td className={`py-2.5 px-3 text-right font-mono font-bold ${s.pnlRp >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {s.pnlRp >= 0 ? '+' : '−'}{rp(Math.abs(s.pnlRp), language)}
                     <span className="block text-[10px] font-semibold opacity-80">{s.pnlRp >= 0 ? '+' : ''}{pct(s.pnlPct, language)}</span>
@@ -191,8 +275,8 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
           </table>
           <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
             {L(
-              `Modal ${lots} lot × ${SHARES_PER_LOT} lembar × ${rp(ipoPrice, language)} = ${rp(lots * SHARES_PER_LOT * ipoPrice, language)}.${arbNote} Saham di Papan Akselerasi dan saham dalam pemantauan khusus memakai batas berbeda.`,
-              `Capital ${lots} lots × ${SHARES_PER_LOT} shares × ${rp(ipoPrice, language)} = ${rp(lots * SHARES_PER_LOT * ipoPrice, language)}.${arbNote} Acceleration Board and special-monitoring stocks use different limits.`
+              `Modal ${lots} lot × ${SHARES_PER_LOT} lembar × ${rp(ipoPrice, language)} = ${rp(lots * SHARES_PER_LOT * ipoPrice, language)}.${arbNote} Batas tiap hari dihitung dari harga penutupan hari sebelumnya (ARA/ARB penuh) dan dibulatkan ke fraksi BEI. Dalam praktik BEI biasanya menghentikan sementara (suspensi) saham setelah ARA/ARB beruntun, jadi deretan panjang hanya hitungan batas harga, bukan perkiraan. Saham di Papan Akselerasi dan saham dalam pemantauan khusus memakai batas berbeda.`,
+              `Capital ${lots} lots × ${SHARES_PER_LOT} shares × ${rp(ipoPrice, language)} = ${rp(lots * SHARES_PER_LOT * ipoPrice, language)}.${arbNote} Each day's limit is computed from the previous close (full ARA/ARB) and rounded to the IDX tick. In practice IDX usually suspends a stock after a streak of ARA/ARB days, so long streaks are price-limit math, not forecasts. Acceleration Board and special-monitoring stocks use different limits.`
             )}
           </p>
         </div>
