@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { animate, motion, useReducedMotion } from 'framer-motion';
+import { animate, motion, useInView, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 /** Kurva standar animasi aplikasi (cepat di awal, mendarat halus). */
@@ -82,12 +82,16 @@ export function Reveal({ children, className, delay = 0 }: { children: React.Rea
 
 /** Wadah grid/list yang memunculkan anaknya berurutan; pakai bersama `StaggerItem`. */
 export function Stagger({ children, className, step = 0.05 }: { children: React.ReactNode; className?: string; step?: number }) {
+  // `animate` (bukan `whileInView`) agar anak yang ditambahkan belakangan (mis. wawasan yang muncul
+  // setelah harga dimuat) ikut mewarisi status "show" dan tidak tertinggal tak terlihat.
+  const ref = React.useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '0px 0px -40px 0px' });
   return (
     <motion.div
+      ref={ref}
       className={className}
       initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: '0px 0px -40px 0px' }}
+      animate={inView ? 'show' : 'hidden'}
       variants={{ hidden: {}, show: { transition: { staggerChildren: step } } }}
     >
       {children}
