@@ -564,6 +564,10 @@ Dibangun ulang di `3b89457`. Data dibaca/ditulis lewat [lib/portfolio-store.ts](
 
 **Format angka** (sejak `12bfcf5`): semua nominal di halaman Portofolio dan form tambah/ubah saham memakai `rp2` ([calc-ui](src/components/shared/calc-ui.tsx)), yaitu Rupiah dengan tepat 2 desimal (mis. avg Rp 399,65, floating P/L −Rp 9.127.440,00), termasuk kartu ringkasan, kas, nilai pasar, dan dividen (tidak lagi diringkas "jt/M"). Bobot dan persentase memakai 2 desimal (71,91%). Saham tanpa dividen 12 bulan menampilkan "—". Di HP sempit, angka kartu ringkasan memakai font sedikit lebih kecil agar tidak terpotong.
 
+**Wawasan portofolio** (dirapikan di `f6821a9`): ubin seragam berisi ikon, judul pendek, angka utama, dan keterangan. Isinya: Konsentrasi (posisi terbesar; peringatan bila > 40%), Penopang dan Penekan hari ini, Rugi terdalam (≤ −15% dari rata-rata, dengan tombol **Simulasikan Avg Down**), dan Kas RDN (porsi dari aset; peringatan bila Rp 0 atau < 5%). Jumlah kolom mengikuti jumlah wawasan agar tidak ada ubin sendirian di baris terakhir.
+
+**Urutan daftar saham:** kontrol berlabel **Urutkan berdasarkan** dengan arah yang jelas: Nilai ↓ (nilai pasar terbesar dulu), P/L % ↓, Hari ini ↓, Kode A–Z, beserta tooltip. Kolom tabel yang sedang dipakai mengurutkan diberi warna dan panah (`aria-sort`).
+
 **Ringkasan (5 kartu):** nilai portofolio (saham + kas bila diisi), modal, floating P/L (Rp & %), P/L hari ini (perubahan meragukan tidak dihitung), dan estimasi dividen 12 bulan (dividen kotor TTM × lembar, dari `/api/dividend/summary`) beserta yield on cost.
 
 **Kas RDN (opsional):** belum diatur sampai pengguna mengisinya; disimpan dengan upsert ke `portfolio_cash`. Tidak ada lagi kas fiktif Rp100 juta yang dibuat otomatis.
@@ -1360,6 +1364,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `edf98ae` | 2026-10-08 | — | Dua tombol refresh berbeda (sidebar & Admin) membingungkan; kini satu tombol di sidebar, otomatis menyertakan refresh server untuk admin |
 | `badf4db` | 2026-10-11 | — | Item `Stagger` yang ditambahkan setelah tampil (wawasan Portofolio setelah harga dimuat) tetap transparan, menyisakan ruang kosong |
 | `12bfcf5` | 2026-10-11 | — | Nominal Portofolio dibulatkan ke rupiah penuh (avg pecahan tidak terlihat) dan sebagian diringkas "jt/M"; bobot hanya 1 desimal |
+| `f6821a9` | 2026-10-11 | — | Wawasan Portofolio berantakan (teks bebas, posisi tidak rata); tombol Nilai/P/L %/Hari ini/Kode tanpa keterangan bahwa itu urutan maupun arahnya |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
