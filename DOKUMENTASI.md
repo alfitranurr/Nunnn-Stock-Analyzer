@@ -275,12 +275,13 @@ Urutan dari atas:
 - Widget Beranda: 6 baris, harga + % + grafik mini, tambah lewat pencarian, "Lihat semua" membuka halaman penuh.
 - Halaman penuh (dibangun ulang di `30f9770`; sebelumnya hanya widget yang direntangkan di kolom sempit):
   - `PageHeader` + bar status sesi bursa, jam WIB, waktu update, dan sumber data.
-  - Ringkasan: jumlah dipantau (naik/turun/tetap), rata-rata perubahan, saham terkuat & terlemah.
+  - Ringkasan: jumlah dipantau (naik/turun/tetap), rata-rata perubahan, saham terkuat & terlemah (sejak `1096531`: bila tidak ada yang turun/naik, kartu menampilkan "—" + "tidak ada yang turun/naik", bukan menyebut saham 0% sebagai terlemah).
   - Pencarian untuk menambah langsung di halaman; saran saham saat kosong.
   - Per saham: harga, perubahan Rp & %, grafik intraday dengan garis penutupan kemarin, rentang hari ini (dari bar 5 menit) dengan penanda posisi harga, nilai transaksi, badge ARA/ARB (batas sesuai tanggal), tombol Analisis & Hapus.
   - **Harga incaran** per saham: "Beli di bawah" atau "Jual di atas", dengan jarak ke target; baris disorot dan muncul banner saat tercapai.
-  - Urutan: urutan saya (bisa digeser naik/turun), naik, turun, nilai transaksi, A–Z. Desktop tabel, HP kartu.
-- Harga dari `/api/quotes`, di-refresh tiap menit saat jam bursa. Perubahan yang tidak lolos pengecekan kewajaran ditandai "data meragukan".
+  - Urutan berlabel **Urutkan berdasarkan** (sejak `1096531`): Urutan saya (digeser dengan ▲▼), Naik ↓, Turun ↓, Nilai ↓, Kode A–Z, beserta tooltip; label diringkas di HP (Saya, A–Z). Kolom tabel yang dipakai mengurutkan diberi warna dan panah (`aria-sort`). Desktop tabel, HP kartu.
+  - Format angka mengikuti Portofolio: harga, perubahan, rentang hari ini, dan harga incaran dalam Rupiah 2 desimal; nilai transaksi tetap ringkas (2 desimal) dengan tanda ≈ karena merupakan perkiraan harga × volume (nilai persis di tooltip).
+- Harga dari `/api/quotes`, di-refresh tiap 30 detik saat jam bursa. Perubahan yang tidak lolos pengecekan kewajaran ditandai "data meragukan".
 - Penyimpanan: selalu localStorage `nunnn_stock_watchlist`; bila login ke Supabase, disinkron ke tabel `user_watchlists` ([connectWatchlistToUser](src/lib/watchlist-store.ts)). Versi cloud menang saat login; bila cloud kosong, daftar lokal diunggah. Harga incaran ikut tersimpan di item JSON yang sama.
 
 ### 5.2 Berita & Sentimen ([news-tab.tsx](src/components/news-tab.tsx), [lib/news.ts](src/lib/news.ts), [lib/idx-themes.ts](src/lib/idx-themes.ts))
@@ -1368,6 +1369,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `12bfcf5` | 2026-10-11 | — | Nominal Portofolio dibulatkan ke rupiah penuh (avg pecahan tidak terlihat) dan sebagian diringkas "jt/M"; bobot hanya 1 desimal |
 | `f6821a9` | 2026-10-11 | — | Wawasan Portofolio berantakan (teks bebas, posisi tidak rata); tombol Nilai/P/L %/Hari ini/Kode tanpa keterangan bahwa itu urutan maupun arahnya |
 | `c3435fa` | 2026-10-11 | — | Kegagalan sesaat memuat dividen dibuang diam-diam sehingga saham yang membagi dividen (GTSI Rp1 ex 6 Jul 2026) tampil "—" dan baru dicoba lagi setelah 6 jam |
+| `1096531` | 2026-10-11 | — | Watchlist belum mengikuti format terbaru: harga tanpa desimal, tombol urutan tanpa keterangan/arah, kartu Terlemah menyebut saham 0% (GOTO) dengan warna merah |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
