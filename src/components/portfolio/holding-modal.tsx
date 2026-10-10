@@ -12,7 +12,7 @@ import { fetchQuotes } from '@/lib/quotes';
 import { parseFormattedNumber } from '@/lib/format';
 import { isValidIdxPrice, stepIdxPrice } from '@/lib/calculator';
 import { mergeAveragePrice, type Holding } from '@/lib/portfolio-store';
-import { Field, fmtInput, pick, rp, sanitizeInteger, sanitizeNumber, type Lang } from '@/components/shared/calc-ui';
+import { Field, fmtInput, pick, rp2 as rp, sanitizeInteger, sanitizeNumber, type Lang } from '@/components/shared/calc-ui';
 
 export type HoldingModalMode = { kind: 'add' } | { kind: 'edit'; holding: Holding };
 

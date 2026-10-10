@@ -13,12 +13,12 @@ import { useLanguage } from '@/lib/language-context';
 import { usePolling } from '@/lib/use-polling';
 import { LIVE_POLL_MS, useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
-import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/lib/format';
+import { formatNumberLocale, parseFormattedNumber } from '@/lib/format';
 import { formatWibTime } from '@/lib/market-hours';
 import { cleanCompanyName } from '@/lib/utils';
 import type { AppUser } from '@/lib/types';
 import { deleteHolding, loadPortfolio, saveCash, saveHolding, type Holding, type PortfolioData } from '@/lib/portfolio-store';
-import { Badge, Card, CardTitle, Segmented, Stat, fmtInput, pct, pick, rp, sanitizeNumber, stepMagnitude } from '@/components/shared/calc-ui';
+import { Badge, Card, CardTitle, Segmented, Stat, fmtInput, pct, pick, rp2 as rp, sanitizeNumber, stepMagnitude } from '@/components/shared/calc-ui';
 import { HoldingModal, type HoldingModalMode, type HoldingSubmit } from './holding-modal';
 
 interface PortfolioTabProps {
@@ -239,8 +239,8 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       tone: top.weight > 40 ? 'text-amber-400' : 'text-sky-400',
       text:
         top.weight > 40
-          ? L(`${top.h.ticker} mengisi ${pct(top.weight, language, 1)} portofolio saham; satu saham menentukan sebagian besar hasil. Pertimbangkan batas per saham.`, `${top.h.ticker} is ${pct(top.weight, language, 1)} of your stocks; one name drives most of the result. Consider a per-stock cap.`)
-          : L(`Posisi terbesar ${top.h.ticker} (${pct(top.weight, language, 1)}); sebaran ${rows.length} saham cukup seimbang.`, `Largest position ${top.h.ticker} (${pct(top.weight, language, 1)}); ${rows.length} stocks are reasonably balanced.`),
+          ? L(`${top.h.ticker} mengisi ${pct(top.weight, language, 2)} portofolio saham; satu saham menentukan sebagian besar hasil. Pertimbangkan batas per saham.`, `${top.h.ticker} is ${pct(top.weight, language, 2)} of your stocks; one name drives most of the result. Consider a per-stock cap.`)
+          : L(`Posisi terbesar ${top.h.ticker} (${pct(top.weight, language, 2)}); sebaran ${rows.length} saham cukup seimbang.`, `Largest position ${top.h.ticker} (${pct(top.weight, language, 2)}); ${rows.length} stocks are reasonably balanced.`),
     });
     const movers = rows.filter((r) => r.todayPct !== null);
     if (movers.length > 0) {
@@ -259,7 +259,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
     }
     if (cash !== null && cash >= 0) {
       const cashShare = (cash / (totalValue + cash)) * 100;
-      insights.push({ key: 'cash', icon: Wallet, tone: 'text-sky-400', text: L(`Kas RDN = ${pct(cashShare, language, 1)} dari total aset${cashShare < 5 ? ' — ruang untuk average down atau peluang baru tipis.' : '.'}`, `RDN cash = ${pct(cashShare, language, 1)} of total assets${cashShare < 5 ? ' — little room to average down or buy new opportunities.' : '.'}`) });
+      insights.push({ key: 'cash', icon: Wallet, tone: 'text-sky-400', text: L(`Kas RDN = ${pct(cashShare, language, 2)} dari total aset${cashShare < 5 ? ' — ruang untuk average down atau peluang baru tipis.' : '.'}`, `RDN cash = ${pct(cashShare, language, 2)} of total assets${cashShare < 5 ? ' — little room to average down or buy new opportunities.' : '.'}`) });
     }
   }
   const tone = (v: number | null) => (v === null || v === 0 ? 'text-slate-300' : v > 0 ? 'text-emerald-400' : 'text-rose-400');
@@ -325,29 +325,33 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       {/* Ringkasan */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Stat
+          valueClassName="text-[13.5px] min-[400px]:text-[15px] sm:text-lg"
           tone="emerald"
           className="col-span-2 lg:col-span-1"
           label={L('Nilai portofolio', 'Portfolio value')}
           value={<AnimatedNumber value={totalValue + (cash ?? 0)} format={(v) => rp(v, language)} fromZero />}
-          sub={cash !== null ? L(`saham ${formatIDRCompact(totalValue, language)} + kas ${formatIDRCompact(cash, language)}`, `stocks ${formatIDRCompact(totalValue, language)} + cash ${formatIDRCompact(cash, language)}`) : L('nilai pasar saham', 'stock market value')}
+          sub={cash !== null ? L(`saham ${rp(totalValue, language)} + kas ${rp(cash, language)}`, `stocks ${rp(totalValue, language)} + cash ${rp(cash, language)}`) : L('nilai pasar saham', 'stock market value')}
         />
-        <Stat label={L('Modal', 'Cost basis')} value={formatIDRCompact(totalCost, language, 2)} sub={L(`${rows.length} saham`, `${rows.length} stocks`)} />
+        <Stat valueClassName="text-[13.5px] min-[400px]:text-[15px] sm:text-lg" label={L('Modal', 'Cost basis')} value={rp(totalCost, language)} sub={L(`${rows.length} saham`, `${rows.length} stocks`)} />
         <Stat
+          valueClassName="text-[13.5px] min-[400px]:text-[15px] sm:text-lg"
           tone={floatingPl > 0 ? 'emerald' : floatingPl < 0 ? 'rose' : 'slate'}
           label={L('Floating P/L', 'Floating P/L')}
           value={<span className={tone(floatingPl)}>{signed(floatingPl)}</span>}
           sub={pricedCost > 0 ? signedPct((floatingPl / pricedCost) * 100) : '—'}
         />
         <Stat
+          valueClassName="text-[13.5px] min-[400px]:text-[15px] sm:text-lg"
           tone={todayPl > 0 ? 'emerald' : todayPl < 0 ? 'rose' : 'slate'}
           label={L('Hari ini', 'Today')}
           value={<span className={tone(todayPl)}>{todayRows.length > 0 ? signed(todayPl) : '—'}</span>}
           sub={todayBase > 0 ? signedPct((todayPl / todayBase) * 100) : L('menunggu harga', 'awaiting prices')}
         />
         <Stat
+          valueClassName="text-[13.5px] min-[400px]:text-[15px] sm:text-lg"
           tone="amber"
           label={L('Dividen 12 bln', 'Dividends (12m)')}
-          value={formatIDRCompact(dividendYear, language, 2)}
+          value={rp(dividendYear, language)}
           sub={totalCost > 0 ? L(`kotor · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`, `gross · yield on cost ${pct((dividendYear / totalCost) * 100, language)}`) : L('kotor', 'gross')}
         />
       </div>
@@ -461,7 +465,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
             <div className="mb-5">
               <div className="flex h-3 rounded-full overflow-hidden bg-white/5" role="img" aria-label={L('Alokasi portofolio', 'Portfolio allocation')}>
                 {allocation.shown.map((r, i) => (
-                  <div key={r.h.id} className="contents" title={`${r.h.ticker} ${pct(r.weight, language, 1)}`}>
+                  <div key={r.h.id} className="contents" title={`${r.h.ticker} ${pct(r.weight, language, 2)}`}>
                     <GrowBar pct={r.weight} className={ALLOCATION_COLORS[i]} />
                   </div>
                 ))}
@@ -471,11 +475,11 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                 {allocation.shown.map((r, i) => (
                   <span key={r.h.id} className="flex items-center gap-1.5">
                     <span className={`h-2 w-2 rounded-full ${ALLOCATION_COLORS[i]}`} />
-                    {r.h.ticker} {pct(r.weight, language, 1)}
+                    {r.h.ticker} {pct(r.weight, language, 2)}
                   </span>
                 ))}
                 {allocation.rest > 0 && (
-                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-500" />{L('Lainnya', 'Others')} {pct(allocation.rest, language, 1)}</span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-500" />{L('Lainnya', 'Others')} {pct(allocation.rest, language, 2)}</span>
                 )}
               </div>
             </div>
@@ -509,7 +513,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                       </td>
                       <td className="py-3 px-3 text-right tabular-nums">
                         {n0(r.h.lot)}
-                        <span className="block text-[10px] text-slate-500">{pct(r.weight, language, 1)}</span>
+                        <span className="block text-[10px] text-slate-500">{pct(r.weight, language, 2)}</span>
                       </td>
                       <td className="py-3 px-3 text-right font-mono">{rp(r.h.avg_price, language)}</td>
                       <td className="py-3 px-3 text-right font-mono">
@@ -523,7 +527,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                         {r.pl !== null ? signed(r.pl) : '—'}
                         <span className="block text-[10px]">{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-amber-300">{r.dividendYear !== null ? formatIDRCompact(r.dividendYear, language, 1) : '—'}</td>
+                      <td className="py-3 px-3 text-right font-mono text-amber-300">{r.dividendYear !== null && r.dividendYear > 0 ? rp(r.dividendYear, language) : '—'}</td>
                       <td className="py-3 px-3">
                         <div className="flex justify-end gap-1.5">
                           <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border-teal-500/20`} title={L('Analisis', 'Analyze')} aria-label={L(`Analisis ${r.h.ticker}`, `Analyze ${r.h.ticker}`)}>
@@ -554,7 +558,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                     <div className="flex items-center gap-2.5 min-w-0">
                       <CompanyLogo symbol={r.h.ticker} size={38} />
                       <div className="min-w-0">
-                        <span className="block font-black text-white">{r.h.ticker} <span className="text-[10px] font-bold text-slate-500">{pct(r.weight, language, 1)}</span></span>
+                        <span className="block font-black text-white">{r.h.ticker} <span className="text-[10px] font-bold text-slate-500">{pct(r.weight, language, 2)}</span></span>
                         <span className="block text-[10px] text-slate-500 truncate">{cleanCompanyName(r.h.company_name) || '—'}</span>
                       </div>
                     </div>
@@ -569,7 +573,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                       <dt className="text-[9px] uppercase font-bold text-slate-500">{L('Harga', 'Price')}</dt>
                       <dd className="font-bold text-slate-200">{r.price !== null ? rp(r.price, language) : '—'} <span className={tone(r.todayPct)}>{r.todayPct !== null ? signedPct(r.todayPct) : ''}</span></dd>
                     </div>
-                    <div><dt className="text-[9px] uppercase font-bold text-slate-500">{L('Nilai', 'Value')}</dt><dd className="font-bold text-white">{formatIDRCompact(r.value, language, 2)}</dd></div>
+                    <div><dt className="text-[9px] uppercase font-bold text-slate-500">{L('Nilai', 'Value')}</dt><dd className="font-bold text-white">{rp(r.value, language)}</dd></div>
                   </dl>
                   <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
                     <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} gap-1 py-1.5 text-[10px] font-bold bg-teal-500/10 text-teal-400 border-teal-500/20`}><LineChart className="h-3.5 w-3.5" />{L('Analisis', 'Analyze')}</button>

@@ -11,6 +11,10 @@ export type Lang = Language;
 /** Pilih teks sesuai bahasa. */
 export const pick = (language: Lang, id: string, en: string) => (language === 'id' ? id : en);
 
+/** Rupiah dengan tepat 2 desimal, mis. "Rp 4.300.800,00" / "-Rp 923,81" (angka portofolio yang persis). */
+export const rp2 = (value: number, language: Lang) =>
+  `${value < 0 ? '-' : ''}Rp ${formatNumberLocale(Math.abs(Math.round(value * 100) / 100), language, 2)}`;
+
 /** Rupiah dibulatkan ke rupiah penuh, mis. "Rp 1.250.000". */
 export const rp = (value: number, language: Lang) => formatIDR(Math.round(value), language);
 
