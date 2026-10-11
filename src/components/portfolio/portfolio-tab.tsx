@@ -20,6 +20,7 @@ import type { AppUser } from '@/lib/types';
 import { deleteHolding, loadPortfolio, saveCash, saveHolding, type Holding, type PortfolioData } from '@/lib/portfolio-store';
 import { Badge, Card, CardTitle, Segmented, Stat, fmtInput, formatDate, pct, pick, rp2 as rp, sanitizeNumber, stepMagnitude } from '@/components/shared/calc-ui';
 import { HoldingModal, type HoldingModalMode, type HoldingSubmit } from './holding-modal';
+import { PerformanceJournal, usePortfolioJournal } from './performance-journal';
 
 interface PortfolioTabProps {
   user: AppUser | null;
@@ -79,6 +80,8 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
   const [editingCash, setEditingCash] = React.useState(false);
   const [cashStr, setCashStr] = React.useState('');
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [view, setView] = React.useState<'holdings' | 'journal'>('holdings');
+  const [confirmResetJournal, setConfirmResetJournal] = React.useState(false);
 
   const { trading } = useIdxSessionState(isActive);
 
@@ -231,6 +234,12 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
     setModal(null);
     await afterChange(payload.id ? L(`Posisi ${payload.ticker} diperbarui.`, `${payload.ticker} position updated.`) : L(`${payload.ticker} ditambahkan.`, `${payload.ticker} added.`));
   };
+
+  // ─── Jurnal target & performa: nilai portofolio dicatat hanya bila semua harga valid ───
+  const journalReady =
+    !loading &&
+    (holdings.length === 0 ? (cash ?? 0) > 0 : rows.every((r) => r.quote !== null && !r.quote.suspect));
+  const journal = usePortfolioJournal({ user, isActive, value: journalReady ? totalValue + (cash ?? 0) : null, ready: journalReady });
 
   const confirmDelete = async () => {
     const target = toDelete;
@@ -485,6 +494,31 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
         />
       </div>
 
+      {/* Pilih tampilan: kepemilikan atau jurnal target bulanan */}
+      <Segmented
+        ariaLabel={L('Tampilan portofolio', 'Portfolio view')}
+        value={view}
+        onChange={setView}
+        className="w-full sm:w-96"
+        options={[
+          { value: 'holdings', label: L('Kepemilikan', 'Holdings') },
+          { value: 'journal', label: L('Target & Performa', 'Target & Performance') },
+        ]}
+      />
+
+      {view === 'journal' && user && (
+        <PerformanceJournal
+          language={language}
+          user={user}
+          journal={journal}
+          ready={journalReady}
+          hasPortfolio={holdings.length > 0 || (cash ?? 0) > 0}
+          onConfirmReset={() => setConfirmResetJournal(true)}
+        />
+      )}
+
+      {view === 'holdings' && (
+      <>
       {/* Wawasan portofolio (dihitung dari posisi & harga live) */}
       {insights.length > 0 && (
         <Card className="py-4 sm:py-5">
@@ -767,8 +801,27 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           </>
         )}
       </Card>
+      </>
+      )}
 
       <HoldingModal language={language} mode={modal} holdings={holdings} onClose={() => setModal(null)} onSubmit={submitHolding} />
+
+      <ConfirmModal
+        isOpen={confirmResetJournal}
+        onClose={() => setConfirmResetJournal(false)}
+        onConfirm={() => {
+          setConfirmResetJournal(false);
+          journal
+            .reset()
+            .then(() => showToast(L('Jurnal dimulai ulang; nilai portofolio sekarang menjadi modal awal baru.', 'Journal restarted; the current portfolio value becomes the new starting value.')))
+            .catch((err: unknown) => showToast(err instanceof Error ? err.message : String(err), 'error'));
+        }}
+        title={L('Mulai ulang jurnal?', 'Restart journal?')}
+        message={L('Semua catatan bulanan (modal awal, total akhir, setoran) akan dihapus. Jurnal baru dimulai dari nilai portofolio saat ini.', 'All monthly records (start, end, deposits) will be deleted. A new journal starts from the current portfolio value.')}
+        confirmText={L('Ya, mulai ulang', 'Yes, restart')}
+        cancelText={L('Batal', 'Cancel')}
+        type="danger"
+      />
 
       <ConfirmModal
         isOpen={toDelete !== null}
