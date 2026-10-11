@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarRange, NotebookPen, RotateCcw, Target } from 'lucide-react';
+import { CalendarRange, Info, NotebookPen, RotateCcw, Target } from 'lucide-react';
 import { Card, CardTitle, Stat, formatMonth, pct, pick, rp2 as rp, sanitizeNumber, type Lang } from '@/components/shared/calc-ui';
 import { AnimatedNumber } from '@/components/shared/motion';
 import { formatNumberLocale, parseFormattedNumber } from '@/lib/format';
@@ -306,20 +306,37 @@ export function PerformanceJournal({
               </table>
             </div>
 
-            <div className="mt-3 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-              <p className="text-[10px] text-slate-500 leading-relaxed max-w-3xl">
-                {L(
-                  'Untung = total akhir − modal awal; untung % terhadap modal awal. Kumulatif = perkalian return bulanan. Jalur target = target bulan lalu × (1 + target %), dimulai dari modal awal jurnal; sel hijau = total akhir sudah di atas jalur itu. Top-up atau tarik dana ikut terhitung sebagai naik/turunnya nilai. Nilai bulan berjalan memakai harga terakhir (bisa tertunda) dan belum dipotong fee jual & pajak.',
-                  'Profit = end value − start value; profit % is relative to the start value. Cumulative = monthly returns multiplied. Target path = last month’s target × (1 + target %), starting from the journal starting value; green cells = end value is above that path. Deposits or withdrawals count as changes in value. The current month uses the latest (possibly delayed) prices, before sell fees & tax.'
-                )}
-              </p>
-              <button
-                type="button"
-                onClick={onConfirmReset}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-500/25 bg-rose-500/[0.06] hover:bg-rose-500/10 text-[11px] font-bold text-rose-300 cursor-pointer"
-              >
-                <RotateCcw className="h-3 w-3" /> {L('Mulai ulang jurnal', 'Restart journal')}
-              </button>
+            <div className="mt-5 pt-4 border-t border-white/5">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 text-sky-400" /> {L('Cara membaca tabel', 'How to read the table')}
+                </h3>
+                <button
+                  type="button"
+                  onClick={onConfirmReset}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-500/25 bg-rose-500/[0.06] hover:bg-rose-500/10 text-[11px] font-bold text-rose-300 cursor-pointer"
+                >
+                  <RotateCcw className="h-3 w-3" /> {L('Mulai ulang jurnal', 'Restart journal')}
+                </button>
+              </div>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                {[
+                  { term: L('Untung', 'Profit'), def: L('Total akhir − modal awal', 'End value − start value') },
+                  { term: L('Untung %', 'Profit %'), def: L('Untung ÷ modal awal', 'Profit ÷ start value') },
+                  { term: L('Kumulatif', 'Cumulative'), def: L('Untung % tiap bulan dikalikan berantai', 'Monthly profit % compounded') },
+                  { term: L('Jalur target', 'Target path'), def: L('Target bulan lalu × (1 + target %), mulai dari nilai awal jurnal', 'Last month’s target × (1 + target %), starting from the journal starting value') },
+                  { term: L('Sel hijau', 'Green cell'), def: L('Total akhir sudah melewati jalur target itu', 'End value has passed that target path') },
+                ].map((d) => (
+                  <div key={d.term} className="p-2.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                    <dt className="text-[10px] font-black uppercase tracking-wider text-slate-300">{d.term}</dt>
+                    <dd className="text-[11px] text-slate-400 leading-snug mt-0.5">{d.def}</dd>
+                  </div>
+                ))}
+              </dl>
+              <ul className="mt-3 space-y-1 text-[10.5px] text-slate-500 leading-snug">
+                <li className="flex gap-1.5"><span className="text-amber-400">•</span>{L('Top-up atau tarik dana ikut terhitung sebagai naik/turunnya nilai.', 'Deposits or withdrawals count as changes in value.')}</li>
+                <li className="flex gap-1.5"><span className="text-amber-400">•</span>{L('Bulan berjalan memakai harga terakhir (bisa tertunda) dan belum dipotong fee jual & pajak.', 'The current month uses the latest (possibly delayed) prices, before sell fees & tax.')}</li>
+              </ul>
             </div>
           </>
         )}
