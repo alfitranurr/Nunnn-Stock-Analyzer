@@ -208,10 +208,17 @@ export function PerformanceJournal({
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Stat
-                label={L('Modal awal jurnal', 'Journal starting value')}
+                label={L('Nilai awal jurnal', 'Journal starting value')}
                 value={rp(table.startValue, language)}
                 valueClassName="text-[13.5px] min-[400px]:text-[15px] sm:text-lg"
-                sub={table.startMonth ? L(`mulai ${formatMonth(`${table.startMonth}-01`, language, true)}`, `since ${formatMonth(`${table.startMonth}-01`, language, true)}`) : undefined}
+                sub={
+                  table.startMonth
+                    ? L(
+                        `nilai pasar saat mulai dicatat (${formatMonth(`${table.startMonth}-01`, language, true)}), bukan harga beli`,
+                        `market value when tracking began (${formatMonth(`${table.startMonth}-01`, language, true)}), not purchase cost`
+                      )
+                    : undefined
+                }
               />
               <Stat
                 tone="emerald"
@@ -240,7 +247,7 @@ export function PerformanceJournal({
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
                     <th className="py-2.5 px-3 sticky left-0 z-10 bg-card-bg">{L('Bulan', 'Month')}</th>
-                    <th className="py-2.5 px-3 text-right">{L('Modal awal', 'Start')}</th>
+                    <th className="py-2.5 px-3 text-right" title={L('Nilai pasar portofolio di awal bulan (= total akhir bulan sebelumnya), bukan harga beli', 'Portfolio market value at the start of the month (= previous month end), not purchase cost')}>{L('Modal awal', 'Start')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Total akhir', 'End value')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Untung', 'Profit')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Untung %', 'Profit %')}</th>
