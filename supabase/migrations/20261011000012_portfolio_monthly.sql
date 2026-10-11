@@ -1,6 +1,6 @@
 -- Jurnal performa bulanan portofolio (tab "Target & Performa" di halaman Portofolio).
--- Satu baris per pengguna per bulan: modal awal, total akhir (nilai portofolio terakhir yang tercatat
--- di bulan itu), dan setoran/penarikan bersih agar untung tidak tercampur dana baru.
+-- Satu baris per pengguna per bulan: modal awal dan total akhir (nilai portofolio terakhir yang
+-- tercatat di bulan itu).
 -- Idempotent: aman dijalankan ulang.
 
 create table if not exists public.portfolio_monthly (
@@ -8,8 +8,6 @@ create table if not exists public.portfolio_monthly (
   month date not null check (extract(day from month) = 1),
   start_value numeric not null check (start_value >= 0),
   end_value numeric not null check (end_value >= 0),
-  -- Positif = setoran dana baru, negatif = penarikan.
-  net_flow numeric not null default 0,
   first_recorded_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (user_id, month)

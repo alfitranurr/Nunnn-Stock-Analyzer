@@ -5,9 +5,8 @@
  * - Pencatatan: nilai portofolio (nilai pasar saham + kas RDN) dicatat otomatis saat halaman Portofolio
  *   terbuka dan semua harga termuat. Bulan pertama memakai nilai saat pertama dicatat sebagai modal awal;
  *   bulan berikutnya memakai total akhir bulan sebelumnya.
- * - Perhitungan (fungsi murni): untung = total akhir − modal awal − setoran bersih; untung % terhadap
- *   modal awal (+ setoran positif); return kumulatif = perkalian return bulanan (time-weighted, tidak
- *   terdistorsi setoran); jalur target = (target bulan lalu + setoran) × (1 + target %).
+ * - Perhitungan (fungsi murni): untung = total akhir − modal awal; untung % terhadap modal awal;
+ *   return kumulatif = perkalian return bulanan; jalur target = target bulan lalu × (1 + target %).
  */
 
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -19,8 +18,6 @@ export interface MonthlyRecord {
   month: string;
   startValue: number;
   endValue: number;
-  /** Positif = setoran, negatif = penarikan. */
-  netFlow: number;
   firstRecordedAt: string;
   updatedAt: string;
 }
@@ -74,7 +71,7 @@ export async function loadJournal(user: AppUser): Promise<{ records: MonthlyReco
   if (!usesCloud(user)) return { records: sortRecords(readLocal(user.id)), source: 'local', warning: null };
   const { data, error } = await supabase
     .from('portfolio_monthly')
-    .select('month, start_value, end_value, net_flow, first_recorded_at, updated_at')
+    .select('month, start_value, end_value, first_recorded_at, updated_at')
     .order('month');
   if (error) {
     return { records: sortRecords(readLocal(user.id)), source: 'local', warning: getErrorMessage(error) };
@@ -84,7 +81,6 @@ export async function loadJournal(user: AppUser): Promise<{ records: MonthlyReco
       month: String(r.month).slice(0, 7),
       startValue: Number(r.start_value) || 0,
       endValue: Number(r.end_value) || 0,
-      netFlow: Number(r.net_flow) || 0,
       firstRecordedAt: String(r.first_recorded_at),
       updatedAt: String(r.updated_at),
     })),
@@ -101,7 +97,6 @@ export async function saveRecord(user: AppUser, source: JournalSource, record: M
         month: `${record.month}-01`,
         start_value: Math.max(0, record.startValue),
         end_value: Math.max(0, record.endValue),
-        net_flow: record.netFlow,
         first_recorded_at: record.firstRecordedAt,
         updated_at: record.updatedAt,
       },
@@ -131,7 +126,7 @@ export function snapshotRecord(records: MonthlyRecord[], month: string, value: n
   const existing = records.find((r) => r.month === month);
   if (existing) return { ...existing, endValue: value, updatedAt: nowIso };
   const previous = sortRecords(records).filter((r) => r.month < month).pop();
-  return { month, startValue: previous ? previous.endValue : value, endValue: value, netFlow: 0, firstRecordedAt: nowIso, updatedAt: nowIso };
+  return { month, startValue: previous ? previous.endValue : value, endValue: value, firstRecordedAt: nowIso, updatedAt: nowIso };
 }
 
 export type JournalStatus =
@@ -159,7 +154,6 @@ export interface JournalTable {
   startValue: number;
   currentValue: number | null;
   totalGain: number;
-  totalFlow: number;
   cumulativePct: number | null;
 }
 
@@ -167,7 +161,7 @@ export interface JournalTable {
 export function buildJournal(records: MonthlyRecord[], rates: number[], currentMonth: string, minMonths = 12): JournalTable {
   const sorted = sortRecords(records);
   if (sorted.length === 0) {
-    return { rows: [], startMonth: null, startValue: 0, currentValue: null, totalGain: 0, totalFlow: 0, cumulativePct: null };
+    return { rows: [], startMonth: null, startValue: 0, currentValue: null, totalGain: 0, cumulativePct: null };
   }
   const startMonth = sorted[0].month;
   const lastMonth = sorted[sorted.length - 1].month > currentMonth ? sorted[sorted.length - 1].month : currentMonth;
@@ -178,26 +172,22 @@ export function buildJournal(records: MonthlyRecord[], rates: number[], currentM
   let factor = 1;
   let hasReturn = false;
   let totalGain = 0;
-  let totalFlow = 0;
   const rows: JournalRow[] = [];
 
   for (let i = 0; i < count; i++) {
     const month = addMonths(startMonth, i);
     const record = byMonth.get(month) ?? null;
-    const flow = record?.netFlow ?? 0;
     rates.forEach((rate, k) => {
-      targetPaths[k] = (targetPaths[k] + flow) * (1 + rate / 100);
+      targetPaths[k] = targetPaths[k] * (1 + rate / 100);
     });
 
     let gain: number | null = null;
     let returnPct: number | null = null;
     let status: JournalStatus = { kind: 'none' };
     if (record) {
-      gain = record.endValue - record.startValue - record.netFlow;
-      const base = record.startValue + Math.max(0, record.netFlow);
-      returnPct = base > 0 ? (gain / base) * 100 : null;
+      gain = record.endValue - record.startValue;
+      returnPct = record.startValue > 0 ? (gain / record.startValue) * 100 : null;
       totalGain += gain;
-      totalFlow += record.netFlow;
       if (returnPct !== null) {
         factor *= 1 + returnPct / 100;
         hasReturn = true;
@@ -225,7 +215,6 @@ export function buildJournal(records: MonthlyRecord[], rates: number[], currentM
     startValue: sorted[0].startValue,
     currentValue: current ? current.endValue : null,
     totalGain,
-    totalFlow,
     cumulativePct: hasReturn ? (factor - 1) * 100 : null,
   };
 }

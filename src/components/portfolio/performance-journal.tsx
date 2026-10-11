@@ -66,15 +66,6 @@ export function usePortfolioJournal({ user, isActive, value, ready }: { user: Ap
     return () => window.clearTimeout(timer);
   }, [user, loaded, ready, isActive, value, source]);
 
-  const setFlow = async (month: string, flow: number) => {
-    if (!user) return;
-    const record = recordsRef.current.find((r) => r.month === month);
-    if (!record) return;
-    const next = { ...record, netFlow: flow, updatedAt: new Date().toISOString() };
-    setRecords((prev) => prev.map((r) => (r.month === month ? next : r)));
-    await saveRecord(user, source, next);
-  };
-
   const reset = async () => {
     if (!user) return;
     await resetJournal(user, source);
@@ -82,7 +73,7 @@ export function usePortfolioJournal({ user, isActive, value, ready }: { user: Ap
     setRecords([]);
   };
 
-  return { records, source, warning, loaded, setFlow, reset };
+  return { records, source, warning, loaded, reset };
 }
 
 export type PortfolioJournal = ReturnType<typeof usePortfolioJournal>;
@@ -126,7 +117,6 @@ export function PerformanceJournal({
       return '';
     }
   });
-  const [flowDraft, setFlowDraft] = React.useState<Record<string, string>>({});
 
   const month = currentMonthKey();
   const table = React.useMemo(() => buildJournal(journal.records, rates, month), [journal.records, rates, month]);
@@ -144,19 +134,6 @@ export function PerformanceJournal({
     } catch {
       // abaikan
     }
-  };
-
-  const commitFlow = (m: string) => {
-    const raw = flowDraft[m];
-    if (raw === undefined) return;
-    const negative = raw.trim().startsWith('-') || raw.trim().startsWith('−');
-    const amount = parseFormattedNumber(sanitizeNumber(raw)) * (negative ? -1 : 1);
-    void journal.setFlow(m, Number.isFinite(amount) ? amount : 0);
-    setFlowDraft((d) => {
-      const { [m]: _omit, ...rest } = d;
-      void _omit;
-      return rest;
-    });
   };
 
   const statusText = (s: JournalStatus) =>
@@ -180,8 +157,8 @@ export function PerformanceJournal({
           icon={<CalendarRange className="h-5 w-5 text-emerald-400" />}
           title={L('Target & Performa Bulanan', 'Monthly Target & Performance')}
           subtitle={L(
-            'Dicatat otomatis dari nilai portofolio (nilai pasar saham + kas RDN) setiap kali halaman ini terbuka dan semua harga termuat. Modal awal bulan = total akhir bulan sebelumnya. Isi kolom Setoran/Tarik saat menambah atau menarik dana agar untung tidak tercampur dana baru.',
-            'Recorded automatically from your portfolio value (stocks at market + RDN cash) whenever this page is open and all prices are loaded. A month starts at the previous month’s ending value. Fill in Deposits/Withdrawals when you add or withdraw money so profit is not mixed with new funds.'
+            'Dicatat otomatis dari nilai portofolio (nilai pasar saham + kas RDN) setiap kali halaman ini terbuka dan semua harga termuat. Modal awal bulan = total akhir bulan sebelumnya.',
+            'Recorded automatically from your portfolio value (stocks at market + RDN cash) whenever this page is open and all prices are loaded. A month starts at the previous month’s ending value.'
           )}
           right={
             <div className="self-start flex flex-col items-start sm:items-end gap-1">
@@ -264,7 +241,6 @@ export function PerformanceJournal({
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
                     <th className="py-2.5 px-3 sticky left-0 z-10 bg-card-bg">{L('Bulan', 'Month')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Modal awal', 'Start')}</th>
-                    <th className="py-2.5 px-3 text-right" title={L('Positif = setoran, negatif (awali dengan -) = penarikan', 'Positive = deposit, negative (prefix -) = withdrawal')}>{L('Setoran / tarik', 'Deposit / withdraw')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Total akhir', 'End value')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Untung', 'Profit')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Untung %', 'Profit %')}</th>
@@ -286,22 +262,6 @@ export function PerformanceJournal({
                           {row.isCurrent && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-[9px] font-black">LIVE</span>}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono whitespace-nowrap">{row.record ? rp(row.record.startValue, language) : '—'}</td>
-                        <td className="py-2.5 px-3 text-right">
-                          {row.record ? (
-                            <input
-                              inputMode="decimal"
-                              value={flowDraft[row.month] ?? (row.record.netFlow !== 0 ? formatNumberLocale(row.record.netFlow, language, 2) : '')}
-                              placeholder="0"
-                              onChange={(e) => setFlowDraft((d) => ({ ...d, [row.month]: e.target.value.replace(/[^0-9.,\-−]/g, '') }))}
-                              onBlur={() => commitFlow(row.month)}
-                              onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
-                              aria-label={L(`Setoran atau penarikan ${row.month}`, `Deposit or withdrawal ${row.month}`)}
-                              className="w-32 px-2 py-1 rounded-md border border-white/10 bg-input-bg text-right font-mono text-xs text-white outline-none focus:border-emerald-500/50"
-                            />
-                          ) : (
-                            <span className="text-slate-600">—</span>
-                          )}
-                        </td>
                         <td className="py-2.5 px-3 text-right font-mono font-bold text-white whitespace-nowrap">{end !== null ? rp(end, language) : '—'}</td>
                         <td className={`py-2.5 px-3 text-right font-mono whitespace-nowrap ${tone(row.gain)}`}>{row.gain !== null ? signedRp(row.gain) : '—'}</td>
                         <td className={`py-2.5 px-3 text-right font-mono ${tone(row.returnPct)}`}>{row.returnPct !== null ? signedPctTxt(row.returnPct) : '—'}</td>
@@ -326,7 +286,6 @@ export function PerformanceJournal({
                   <tr className="border-t border-white/15 text-xs font-bold">
                     <td className="py-3 px-3 text-white sticky left-0 z-10 bg-card-bg">{L('Total', 'Total')}</td>
                     <td className="py-3 px-3 text-right font-mono">{rp(table.startValue, language)}</td>
-                    <td className="py-3 px-3 text-right font-mono">{table.totalFlow !== 0 ? signedRp(table.totalFlow) : '—'}</td>
                     <td className="py-3 px-3 text-right font-mono text-white">{table.currentValue !== null ? rp(table.currentValue, language) : '—'}</td>
                     <td className={`py-3 px-3 text-right font-mono ${tone(table.totalGain)}`}>{signedRp(table.totalGain)}</td>
                     <td className="py-3 px-3" />
@@ -343,8 +302,8 @@ export function PerformanceJournal({
             <div className="mt-3 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <p className="text-[10px] text-slate-500 leading-relaxed max-w-3xl">
                 {L(
-                  'Untung = total akhir − modal awal − setoran bersih. Untung % dihitung terhadap modal awal (+ setoran). Kumulatif = perkalian return bulanan, jadi tidak terdistorsi setoran. Jalur target = (target bulan lalu + setoran) × (1 + target %), dimulai dari modal awal jurnal; sel hijau = total akhir sudah di atas jalur itu. Nilai bulan berjalan memakai harga terakhir (bisa tertunda) dan belum dipotong fee jual & pajak.',
-                  'Profit = end value − start value − net deposits. Profit % is relative to the start value (+ deposits). Cumulative = monthly returns multiplied, so deposits do not distort it. Target path = (last month’s target + deposits) × (1 + target %), starting from the journal starting value; green cells = end value is above that path. The current month uses the latest (possibly delayed) prices, before sell fees & tax.'
+                  'Untung = total akhir − modal awal; untung % terhadap modal awal. Kumulatif = perkalian return bulanan. Jalur target = target bulan lalu × (1 + target %), dimulai dari modal awal jurnal; sel hijau = total akhir sudah di atas jalur itu. Top-up atau tarik dana ikut terhitung sebagai naik/turunnya nilai. Nilai bulan berjalan memakai harga terakhir (bisa tertunda) dan belum dipotong fee jual & pajak.',
+                  'Profit = end value − start value; profit % is relative to the start value. Cumulative = monthly returns multiplied. Target path = last month’s target × (1 + target %), starting from the journal starting value; green cells = end value is above that path. Deposits or withdrawals count as changes in value. The current month uses the latest (possibly delayed) prices, before sell fees & tax.'
                 )}
               </p>
               <button
