@@ -46,8 +46,9 @@ import { StepperInput } from '@/components/stepper-input';
 import { ConfirmModal } from '@/components/confirm-modal';
 
 // Local wrapper preserves the original max-fraction-digits (4) for this tab.
-const formatNumberForInput = (num: number | string | undefined | null): string =>
-  _formatNumberForInput(num, { maxFractionDigits: 4 });
+// Pemisah ribuan mengikuti bahasa (ID: 10.000.000, EN: 10,000,000), sama dengan halaman lain.
+const formatNumberForInput = (num: number | string | undefined | null, language: Lang): string =>
+  _formatNumberForInput(num, { maxFractionDigits: 4, language });
 
 interface CompoundingTabProps {
   user: AppUser | null;
@@ -80,7 +81,7 @@ interface TradingParams {
 }
 
 // ─── Nilai default ───
-const DEFAULT_INITIAL_AMOUNT = '10,000,000';
+const DEFAULT_INITIAL_AMOUNT = 10_000_000;
 
 const TRADING_DEFAULTS: Record<TradingPeriod, TradingParams> = {
   daily: { target: '1', duration: '20', contribution: '0' },
@@ -89,7 +90,7 @@ const TRADING_DEFAULTS: Record<TradingPeriod, TradingParams> = {
 };
 
 const LONG_TERM_DEFAULTS = {
-  contribution: '1,000,000',
+  contribution: 1_000_000,
   contributionFrequency: 'monthly' as ContributionFrequency,
   annualReturn: '10',
   compoundingFrequency: 'monthly' as CompoundingFrequency,
@@ -183,10 +184,10 @@ const stepCount = (s: string, dir: 1 | -1, min: number, max: number): string =>
 // Langkah nominal mengikuti besarnya angka: 10 juta → ±1 juta, 1,5 juta → ±100 ribu.
 const moneyStep = (value: number) => (value < 1_000_000 ? 100_000 : Math.pow(10, Math.floor(Math.log10(value)) - 1));
 
-const stepMoney = (s: string, dir: 1 | -1): string => {
+const stepMoney = (s: string, dir: 1 | -1, language: Lang): string => {
   const value = parseFormattedNumber(s);
   const step = moneyStep(dir > 0 ? value : Math.max(0, value - 1));
-  return formatNumberForInput(Math.max(0, Math.round((value + dir * step) / step) * step));
+  return formatNumberForInput(Math.max(0, Math.round((value + dir * step) / step) * step), language);
 };
 
 const sanitizeMoney = (s: string) => s.replace(/[^0-9.,]/g, '');
@@ -295,9 +296,9 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   const [calcMode, setCalcMode] = React.useState<CalcMode>('trading');
   const [tradingPeriod, setTradingPeriod] = React.useState<TradingPeriod>('daily');
   const [tradingParams, setTradingParams] = React.useState<Record<TradingPeriod, TradingParams>>(TRADING_DEFAULTS);
-  const [initialAmountStr, setInitialAmountStr] = React.useState(DEFAULT_INITIAL_AMOUNT);
+  const [initialAmountStr, setInitialAmountStr] = React.useState(() => formatNumberForInput(DEFAULT_INITIAL_AMOUNT, lang));
 
-  const [contributionAmountStr, setContributionAmountStr] = React.useState(LONG_TERM_DEFAULTS.contribution);
+  const [contributionAmountStr, setContributionAmountStr] = React.useState(() => formatNumberForInput(LONG_TERM_DEFAULTS.contribution, lang));
   const [contributionFrequency, setContributionFrequency] = React.useState<ContributionFrequency>(LONG_TERM_DEFAULTS.contributionFrequency);
   const [annualReturnRateStr, setAnnualReturnRateStr] = React.useState(LONG_TERM_DEFAULTS.annualReturn);
   const [compoundingFrequency, setCompoundingFrequency] = React.useState<CompoundingFrequency>(LONG_TERM_DEFAULTS.compoundingFrequency);
@@ -305,6 +306,18 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   const [durationMonthsStr, setDurationMonthsStr] = React.useState(LONG_TERM_DEFAULTS.months);
   const [inflationRateStr, setInflationRateStr] = React.useState(LONG_TERM_DEFAULTS.inflation);
   const [taxRateStr, setTaxRateStr] = React.useState(LONG_TERM_DEFAULTS.tax);
+
+  // Ganti bahasa → format ulang input nominal (titik/koma ribuan) tanpa mengubah nilainya.
+  const [inputLang, setInputLang] = React.useState(lang);
+  if (inputLang !== lang) {
+    setInputLang(lang);
+    const reformat = (s: string) => (s ? formatNumberForInput(parseFormattedNumber(s), lang) : s);
+    setInitialAmountStr(reformat(initialAmountStr));
+    setContributionAmountStr(reformat(contributionAmountStr));
+    setTradingParams(prev => Object.fromEntries(
+      Object.entries(prev).map(([k, v]) => [k, { ...v, contribution: reformat(v.contribution) }])
+    ) as Record<TradingPeriod, TradingParams>);
+  }
 
   const [brokerPreset, setBrokerPreset] = React.useState('stockbit');
   const [feeBeliStr, setFeeBeliStr] = React.useState(BROKER_PRESETS.stockbit.buy);
@@ -582,7 +595,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
   const handleLoadPlan = (plan: CompoundingPlan) => {
     const period = tradingPeriodFromDb(plan.compounding_frequency);
-    setInitialAmountStr(formatNumberForInput(plan.initial_amount));
+    setInitialAmountStr(formatNumberForInput(plan.initial_amount, lang));
     if (period) {
       setCalcMode('trading');
       setTradingPeriod(period);
@@ -591,13 +604,13 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
         [period]: {
           target: formatPercentInput(Number(plan.annual_return_rate), lang),
           duration: String(plan.duration_months),
-          contribution: formatNumberForInput(plan.contribution_amount),
+          contribution: formatNumberForInput(plan.contribution_amount, lang),
         },
       }));
       applyFees(Number(plan.tax_rate) || 0, Number(plan.inflation_rate) || 0);
     } else {
       setCalcMode('standard');
-      setContributionAmountStr(formatNumberForInput(plan.contribution_amount));
+      setContributionAmountStr(formatNumberForInput(plan.contribution_amount, lang));
       setContributionFrequency(plan.contribution_frequency as ContributionFrequency);
       setAnnualReturnRateStr(formatPercentInput(Number(plan.annual_return_rate), lang));
       setCompoundingFrequency(plan.compounding_frequency as CompoundingFrequency);
@@ -611,12 +624,12 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   };
 
   const handleReset = () => {
-    setInitialAmountStr(DEFAULT_INITIAL_AMOUNT);
+    setInitialAmountStr(formatNumberForInput(DEFAULT_INITIAL_AMOUNT, lang));
     if (isTrading) {
       setTradingParams(prev => ({ ...prev, [tradingPeriod]: TRADING_DEFAULTS[tradingPeriod] }));
       handlePresetChange('stockbit');
     } else {
-      setContributionAmountStr(LONG_TERM_DEFAULTS.contribution);
+      setContributionAmountStr(formatNumberForInput(LONG_TERM_DEFAULTS.contribution, lang));
       setContributionFrequency(LONG_TERM_DEFAULTS.contributionFrequency);
       setAnnualReturnRateStr(LONG_TERM_DEFAULTS.annualReturn);
       setCompoundingFrequency(LONG_TERM_DEFAULTS.compoundingFrequency);
@@ -911,7 +924,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
     type: 'text' as const,
     inputMode: 'numeric' as const,
     value,
-    onStep: (dir: 1 | -1) => setValue(prev => stepMoney(prev, dir)),
+    onStep: (dir: 1 | -1) => setValue(prev => stepMoney(prev, dir, lang)),
     canDecrement: parseFormattedNumber(value) > 0,
     decrementLabel: `${t('calculator.decrease')} ${label}`,
     incrementLabel: `${t('calculator.increase')} ${label}`,
@@ -1067,7 +1080,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               id={`${fieldId}-initial`}
               {...moneyStepperProps(initialAmountStr, (u) => setInitialAmountStr(u), L('Modal Awal', 'Initial Capital'))}
               onChange={(e) => setInitialAmountStr(sanitizeMoney(e.target.value))}
-              onBlur={() => initialAmountStr && setInitialAmountStr(formatNumberForInput(initialAmountStr))}
+              onBlur={() => initialAmountStr && setInitialAmountStr(formatNumberForInput(initialAmountStr, lang))}
             />
           </Field>
 
@@ -1170,7 +1183,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   id={`${fieldId}-contribution`}
                   {...moneyStepperProps(current.contribution, (u) => updateTradingParam('contribution', u), L('Setoran', 'Deposit'))}
                   onChange={(e) => updateTradingParam('contribution', sanitizeMoney(e.target.value))}
-                  onBlur={() => current.contribution && updateTradingParam('contribution', formatNumberForInput(current.contribution))}
+                  onBlur={() => current.contribution && updateTradingParam('contribution', formatNumberForInput(current.contribution, lang))}
                 />
               </Field>
 
@@ -1234,7 +1247,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                       id={`${fieldId}-lt-contribution`}
                       {...moneyStepperProps(contributionAmountStr, (u) => setContributionAmountStr(u), L('Setoran', 'Deposit'))}
                       onChange={(e) => setContributionAmountStr(sanitizeMoney(e.target.value))}
-                      onBlur={() => contributionAmountStr && setContributionAmountStr(formatNumberForInput(contributionAmountStr))}
+                      onBlur={() => contributionAmountStr && setContributionAmountStr(formatNumberForInput(contributionAmountStr, lang))}
                     />
                   </div>
                   <select

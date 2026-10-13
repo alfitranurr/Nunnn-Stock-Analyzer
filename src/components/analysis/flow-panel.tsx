@@ -36,7 +36,7 @@ export function FlowPanel({ language, data }: { language: Lang; data: TechnicalR
         )}
       />
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <Stat tone={st.tone} className="col-span-2 lg:col-span-1" valueClassName="text-base whitespace-normal" label={L('Status', 'Status')} value={L(st.id, st.en)} sub={L(`skor ${f.score}/100`, `score ${f.score}/100`)} />
+        <Stat tone={st.tone} className="col-span-2 lg:col-span-1" valueClassName="text-base sm:text-base whitespace-normal" label={L('Status', 'Status')} value={L(st.id, st.en)} sub={L(`skor ${f.score}/100`, `score ${f.score}/100`)} />
         <Stat
           tone={i.cmf === null ? 'slate' : i.cmf > 0.05 ? 'emerald' : i.cmf < -0.05 ? 'rose' : 'slate'}
           label="Chaikin Money Flow (20)"

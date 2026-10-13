@@ -175,7 +175,10 @@ export function Stat({
   return (
     <div className={cn('p-3.5 rounded-2xl border min-w-0 transition-colors duration-500', TONES[tone], className)}>
       <span className="text-[10px] font-bold uppercase tracking-wider block opacity-90">{label}</span>
-      <div className={cn('text-lg font-black text-white tracking-tight mt-1 tabular-nums truncate', valueClassName)}>
+      <div
+        className={cn('text-[15px] min-[400px]:text-base sm:text-lg font-black text-white tracking-tight mt-1 tabular-nums truncate', valueClassName)}
+        title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
+      >
         {typeof value === 'string' || typeof value === 'number' ? <Flash value={value} className="max-w-full truncate align-bottom" /> : value}
       </div>
       {sub && <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">{sub}</div>}
