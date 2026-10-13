@@ -464,7 +464,7 @@ Dibangun ulang di `86e45a5`. Semua angka berasal dari data asli; **tidak ada lag
 - Grafik batang DPS per tahun (12 tahun; 6 tahun di HP), tahun berjalan bergaris putus, baris bawah = yield terhadap rata-rata harga tahun itu.
 - Tabel riwayat: tahun, cum date ≈, ex date, cair ≈, DPS; badge "Terjadwal" untuk ex date yang belum lewat. 8 baris pertama, sisanya lewat "Tampilkan semua".
 
-**3. Simulasi** (semua angka punya tombol −/+ [`StepperInput`](src/components/stepper-input.tsx)):
+**3. Simulasi** (semua angka punya tombol −/+ [`StepperInput`](src/components/stepper-input.tsx)). Isian dikelompokkan dalam dua panel: **Posisi beli** (mode Nominal/Lot, modal atau lot, harga beli, fee beli, dan kotak **Total dibeli** = lembar + nilai transaksi termasuk fee) dan **Dividen & pajak** (dasar dividen, dividen per lembar, 4 pilihan pajak dalam satu baris). Kedua panel bersebelahan di layar ≥ 1280px dan bertumpuk di bawah itu, supaya angka tidak terpotong.
 - Mode Nominal atau Lot. Berpindah mode membawa nilai yang setara (lot ↔ modal terpakai).
 - Harga beli per lembar: default harga pasar, langkah −/+ mengikuti fraksi BEI, peringatan bila bukan kelipatan fraksi, tombol kembali ke harga pasar.
 - Dividen per lembar per tahun dengan pilihan dasar: **TTM**, **tahun penuh terakhir**, **rata-rata 3 tahun** (untuk dividen yang naik-turun seperti batu bara), atau **Manual** (mengetik/menekan −/+ otomatis pindah ke Manual).

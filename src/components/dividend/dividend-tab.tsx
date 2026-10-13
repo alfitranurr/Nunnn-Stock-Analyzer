@@ -12,6 +12,8 @@ import {
   Landmark,
   RefreshCw,
   RotateCcw,
+  Receipt,
+  ShoppingCart,
   SlidersHorizontal,
   Wallet,
 } from 'lucide-react';
@@ -467,10 +469,18 @@ export function DividendTab({ isActive }: DividendTabProps) {
           subtitle={L('Semua angka bisa diketik atau diatur dengan tombol −/+ (tahan untuk cepat).', 'Type any number or use the −/+ buttons (hold to repeat).')}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-          {/* Modal / lot */}
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {/* A. Posisi beli */}
+          <section className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="h-7 w-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><ShoppingCart className="h-3.5 w-3.5 text-emerald-400" /></span>
+              <div className="min-w-0">
+                <h3 className="text-xs font-black text-white leading-tight">{L('Posisi beli', 'Position')}</h3>
+                <p className="text-[10px] text-slate-500 leading-tight">{L('Berapa yang dibeli dan di harga berapa', 'How much you buy and at what price')}</p>
+              </div>
+            </div>
             <Segmented
+              className="w-full"
               ariaLabel={L('Mode input', 'Input mode')}
               value={inputMode}
               onChange={switchMode}
@@ -479,90 +489,119 @@ export function DividendTab({ isActive }: DividendTabProps) {
                 { value: 'lot', label: L('Jumlah lot', 'Lots') },
               ]}
             />
-            {inputMode === 'amount' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+              {inputMode === 'amount' ? (
+                <Field
+                  label={L('Modal investasi', 'Investment capital')}
+                  htmlFor={`${fieldId}-capital`}
+                  hint={sim.lots > 0
+                    ? L(`= ${formatNumberLocale(sim.lots, language)} lot · sisa ${rp(sim.leftoverRp, language)}`, `= ${formatNumberLocale(sim.lots, language)} lots · leftover ${rp(sim.leftoverRp, language)}`)
+                    : buyPrice > 0 ? L('Belum cukup untuk 1 lot', 'Not enough for 1 lot') : undefined}
+                >
+                  <StepperInput
+                    id={`${fieldId}-capital`}
+                    type="text"
+                    inputMode="numeric"
+                    value={capitalStr}
+                    onChange={(e) => setCapitalStr(sanitizeNumber(e.target.value))}
+                    onBlur={() => setCapitalStr((v) => fmtInput(parseFormattedNumber(v), language, 0))}
+                    onStep={(dir) => setCapitalStr((prev) => stepMoney(prev, dir, language))}
+                    canDecrement={parseFormattedNumber(capitalStr) > 0}
+                    decrementLabel={`${t('calculator.decrease')} ${L('modal', 'capital')}`}
+                    incrementLabel={`${t('calculator.increase')} ${L('modal', 'capital')}`}
+                    inputClassName="font-extrabold text-white"
+                    adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">Rp</span>}
+                  />
+                </Field>
+              ) : (
+                <Field
+                  label={L('Jumlah lot', 'Number of lots')}
+                  htmlFor={`${fieldId}-lots`}
+                  hint={L(`= ${formatNumberLocale(sim.shares, language)} lembar · ${rp(sim.totalCostRp, language)}`, `= ${formatNumberLocale(sim.shares, language)} shares · ${rp(sim.totalCostRp, language)}`)}
+                >
+                  <StepperInput
+                    id={`${fieldId}-lots`}
+                    type="text"
+                    inputMode="numeric"
+                    value={lotsStr}
+                    onChange={(e) => setLotsStr(sanitizeInteger(e.target.value))}
+                    onStep={(dir) => setLotsStr((prev) => String(Math.max(0, (parseInt(prev, 10) || 0) + dir)))}
+                    canDecrement={(parseInt(lotsStr, 10) || 0) > 0}
+                    decrementLabel={`${t('calculator.decrease')} lot`}
+                    incrementLabel={`${t('calculator.increase')} lot`}
+                    inputClassName="font-extrabold text-white"
+                    adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">lot</span>}
+                  />
+                </Field>
+              )}
               <Field
-                label={L('Modal investasi', 'Investment capital')}
-                htmlFor={`${fieldId}-capital`}
-                hint={sim.lots > 0
-                  ? L(`= ${formatNumberLocale(sim.lots, language)} lot · sisa ${rp(sim.leftoverRp, language)}`, `= ${formatNumberLocale(sim.lots, language)} lots · leftover ${rp(sim.leftoverRp, language)}`)
-                  : buyPrice > 0 ? L('Belum cukup untuk 1 lot', 'Not enough for 1 lot') : undefined}
+                label={
+                  <>
+                    <span>{L('Harga beli / lembar', 'Buy price / share')}</span>
+                    {buyTouched && marketPrice && (
+                      <button type="button" onClick={resetBuyPrice} className="normal-case tracking-normal text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer">
+                        <RotateCcw className="h-3 w-3" /> {L('harga pasar', 'market price')}
+                      </button>
+                    )}
+                  </>
+                }
+                htmlFor={`${fieldId}-price`}
+                hint={buyPriceOffTick
+                  ? <span className="text-amber-400">{L('Bukan kelipatan fraksi harga BEI', 'Not a valid IDX tick price')}</span>
+                  : marketPrice ? L(`Harga pasar ${rp(marketPrice, language)}`, `Market price ${rp(marketPrice, language)}`) : undefined}
               >
                 <StepperInput
-                  id={`${fieldId}-capital`}
+                  id={`${fieldId}-price`}
                   type="text"
                   inputMode="numeric"
-                  value={capitalStr}
-                  onChange={(e) => setCapitalStr(sanitizeNumber(e.target.value))}
-                  onBlur={() => setCapitalStr((v) => fmtInput(parseFormattedNumber(v), language, 0))}
-                  onStep={(dir) => setCapitalStr((prev) => stepMoney(prev, dir, language))}
-                  canDecrement={parseFormattedNumber(capitalStr) > 0}
-                  decrementLabel={`${t('calculator.decrease')} ${L('modal', 'capital')}`}
-                  incrementLabel={`${t('calculator.increase')} ${L('modal', 'capital')}`}
+                  value={buyPriceStr}
+                  placeholder={marketPrice ? fmtInput(marketPrice, language, 0) : '0'}
+                  onChange={(e) => setBuyPrice(sanitizeNumber(e.target.value))}
+                  onBlur={() => buyPriceStr && setBuyPriceStr((v) => fmtInput(parseFormattedNumber(v), language, 0))}
+                  onStep={(dir) => setBuyPrice(fmtInput(stepIdxPrice(buyPrice, dir), language, 0))}
+                  canDecrement={buyPrice > 1}
+                  invalid={buyPriceOffTick}
+                  decrementLabel={`${t('calculator.decrease')} ${L('harga', 'price')}`}
+                  incrementLabel={`${t('calculator.increase')} ${L('harga', 'price')}`}
                   inputClassName="font-extrabold text-white"
                   adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">Rp</span>}
                 />
               </Field>
-            ) : (
-              <Field
-                label={L('Jumlah lot', 'Number of lots')}
-                htmlFor={`${fieldId}-lots`}
-                hint={L(`= ${formatNumberLocale(sim.shares, language)} lembar · ${rp(sim.totalCostRp, language)}`, `= ${formatNumberLocale(sim.shares, language)} shares · ${rp(sim.totalCostRp, language)}`)}
-              >
+              <Field label={L('Fee beli broker', 'Broker buy fee')} htmlFor={`${fieldId}-fee`}>
                 <StepperInput
-                  id={`${fieldId}-lots`}
+                  id={`${fieldId}-fee`}
                   type="text"
-                  inputMode="numeric"
-                  value={lotsStr}
-                  onChange={(e) => setLotsStr(sanitizeInteger(e.target.value))}
-                  onStep={(dir) => setLotsStr((prev) => String(Math.max(0, (parseInt(prev, 10) || 0) + dir)))}
-                  canDecrement={(parseInt(lotsStr, 10) || 0) > 0}
-                  decrementLabel={`${t('calculator.decrease')} lot`}
-                  incrementLabel={`${t('calculator.increase')} lot`}
-                  inputClassName="font-extrabold text-white"
-                  adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">lot</span>}
+                  inputMode="decimal"
+                  value={buyFeeStr}
+                  onChange={(e) => setBuyFeeStr(sanitizeNumber(e.target.value))}
+                  onStep={(dir) => setBuyFeeStr((prev) => stepDecimal(prev, dir, 0.01, 0, 5, language))}
+                  canDecrement={buyFee > 0}
+                  decrementLabel={`${t('calculator.decrease')} fee`}
+                  incrementLabel={`${t('calculator.increase')} fee`}
+                  inputClassName="font-bold text-white"
+                  adornment={<span className="flex items-center pr-1 text-xs text-slate-500">%</span>}
                 />
               </Field>
-            )}
-          </div>
+              <Field label={L('Total dibeli', 'Total bought')}>
+                <div className="glass-input bg-white/[0.02] flex items-center justify-between gap-2 px-3 py-2.5">
+                  <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap">{formatNumberLocale(sim.shares, language)} {L('lembar', 'shares')}</span>
+                  <span className="text-xs font-extrabold text-white tabular-nums truncate">{rp(sim.totalCostRp, language)}</span>
+                </div>
+              </Field>
+            </div>
+          </section>
 
-          {/* Harga beli */}
-          <Field
-            label={
-              <>
-                <span>{L('Harga beli / lembar', 'Buy price / share')}</span>
-                {buyTouched && marketPrice && (
-                  <button type="button" onClick={resetBuyPrice} className="normal-case tracking-normal text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer">
-                    <RotateCcw className="h-3 w-3" /> {L('harga pasar', 'market price')}
-                  </button>
-                )}
-              </>
-            }
-            htmlFor={`${fieldId}-price`}
-            hint={buyPriceOffTick
-              ? <span className="text-amber-400">{L('Bukan kelipatan fraksi harga BEI', 'Not a valid IDX tick price')}</span>
-              : marketPrice ? L(`Harga pasar ${rp(marketPrice, language)}`, `Market price ${rp(marketPrice, language)}`) : undefined}
-          >
-            <StepperInput
-              id={`${fieldId}-price`}
-              type="text"
-              inputMode="numeric"
-              value={buyPriceStr}
-              placeholder={marketPrice ? fmtInput(marketPrice, language, 0) : '0'}
-              onChange={(e) => setBuyPrice(sanitizeNumber(e.target.value))}
-              onBlur={() => buyPriceStr && setBuyPriceStr((v) => fmtInput(parseFormattedNumber(v), language, 0))}
-              onStep={(dir) => setBuyPrice(fmtInput(stepIdxPrice(buyPrice, dir), language, 0))}
-              canDecrement={buyPrice > 1}
-              invalid={buyPriceOffTick}
-              decrementLabel={`${t('calculator.decrease')} ${L('harga', 'price')}`}
-              incrementLabel={`${t('calculator.increase')} ${L('harga', 'price')}`}
-              inputClassName="font-extrabold text-white"
-              adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">Rp</span>}
-            />
-          </Field>
-
-          {/* Dividen per lembar */}
-          <div className="space-y-2">
+          {/* B. Dividen & pajak */}
+          <section className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="h-7 w-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><Receipt className="h-3.5 w-3.5 text-emerald-400" /></span>
+              <div className="min-w-0">
+                <h3 className="text-xs font-black text-white leading-tight">{L('Dividen & pajak', 'Dividend & tax')}</h3>
+                <p className="text-[10px] text-slate-500 leading-tight">{L('Dasar dividen per lembar dan tarif pajaknya', 'Dividend basis per share and its tax rate')}</p>
+              </div>
+            </div>
             <Segmented
+              className="w-full"
               ariaLabel={L('Dasar dividen', 'Dividend basis')}
               value={basis}
               onChange={setBasis}
@@ -594,12 +633,8 @@ export function DividendTab({ isActive }: DividendTabProps) {
                 adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">Rp</span>}
               />
             </Field>
-          </div>
-
-          {/* Pajak & fee */}
-          <div className="space-y-3">
             <Field label={L('Pajak dividen', 'Dividend tax')}>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {([
                   { id: 'final10', rate: '10%', sub: L('Individu, tidak reinvestasi', 'Individual, not reinvested') },
                   { id: 'reinvest', rate: '0%', sub: L('Individu, reinvestasi ≥3 thn', 'Individual, reinvested ≥3 yrs') },
@@ -616,7 +651,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                     }`}
                   >
                     <span className={`block text-xs font-black ${taxPreset === opt.id ? 'text-emerald-400' : 'text-white'}`}>{opt.rate}</span>
-                    <span className="block text-[9px] leading-tight text-slate-400 mt-0.5">{opt.sub}</span>
+                    <span className="block text-[10px] leading-tight text-slate-400 mt-0.5">{opt.sub}</span>
                   </button>
                 ))}
               </div>
@@ -637,22 +672,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                 adornment={<span className="flex items-center pr-1 text-xs text-slate-500">%</span>}
               />
             )}
-            <Field label={L('Fee beli broker', 'Broker buy fee')} htmlFor={`${fieldId}-fee`}>
-              <StepperInput
-                id={`${fieldId}-fee`}
-                type="text"
-                inputMode="decimal"
-                value={buyFeeStr}
-                onChange={(e) => setBuyFeeStr(sanitizeNumber(e.target.value))}
-                onStep={(dir) => setBuyFeeStr((prev) => stepDecimal(prev, dir, 0.01, 0, 5, language))}
-                canDecrement={buyFee > 0}
-                decrementLabel={`${t('calculator.decrease')} fee`}
-                incrementLabel={`${t('calculator.increase')} fee`}
-                inputClassName="font-bold text-white"
-                adornment={<span className="flex items-center pr-1 text-xs text-slate-500">%</span>}
-              />
-            </Field>
-          </div>
+          </section>
         </div>
       </Card>
 
