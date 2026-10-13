@@ -19,7 +19,8 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
 import { Flash } from '@/components/shared/motion';
-import { getAutoRejectionBounds, isValidIdxPrice, minAraDays, minArbDays, roundToNearestIdxTick, ticksBetween } from '@/lib/calculator';
+import { StepperInput } from '@/components/stepper-input';
+import { getAutoRejectionBounds, isValidIdxPrice, minAraDays, minArbDays, roundToNearestIdxTick, stepIdxPrice, ticksBetween } from '@/lib/calculator';
 import { formatNumberForInput, formatPercent, parseFormattedNumber, type Language } from '@/lib/format';
 import {
   applyPercent,
@@ -36,11 +37,15 @@ type DirectionMode = Extract<Mode, 'apply' | 'reverse'>;
 type Tone = 'up' | 'down' | 'flat' | 'neutral';
 type Translate = (key: string) => string;
 
+/** Besar langkah tombol −/+: harga ikut fraksi BEI, persen dan angka lain ±1. */
+type StepKind = 'price' | 'percent' | 'unit';
+
 interface FieldSpec {
   labelKey: string;
   placeholder: string;
   suffix?: string;
   allowNegative: boolean;
+  step: StepKind;
 }
 
 interface ModeSpec {
@@ -56,36 +61,36 @@ const MODES: ModeSpec[] = [
     id: 'change',
     labelKey: 'percentage.modeChange',
     hintKey: 'percentage.hintChange',
-    a: { labelKey: 'percentage.fieldFrom', placeholder: '45', allowNegative: true },
-    b: { labelKey: 'percentage.fieldTo', placeholder: '67', allowNegative: true },
+    a: { labelKey: 'percentage.fieldFrom', placeholder: '45', allowNegative: true, step: 'price' },
+    b: { labelKey: 'percentage.fieldTo', placeholder: '67', allowNegative: true, step: 'price' },
   },
   {
     id: 'apply',
     labelKey: 'percentage.modeApply',
     hintKey: 'percentage.hintApply',
-    a: { labelKey: 'percentage.fieldBase', placeholder: '1000', allowNegative: true },
-    b: { labelKey: 'percentage.fieldPercent', placeholder: '25', suffix: '%', allowNegative: false },
+    a: { labelKey: 'percentage.fieldBase', placeholder: '1000', allowNegative: true, step: 'price' },
+    b: { labelKey: 'percentage.fieldPercent', placeholder: '25', suffix: '%', allowNegative: false, step: 'percent' },
   },
   {
     id: 'of',
     labelKey: 'percentage.modeOf',
     hintKey: 'percentage.hintOf',
-    a: { labelKey: 'percentage.fieldPercent', placeholder: '20', suffix: '%', allowNegative: true },
-    b: { labelKey: 'percentage.fieldTotal', placeholder: '500', allowNegative: true },
+    a: { labelKey: 'percentage.fieldPercent', placeholder: '20', suffix: '%', allowNegative: true, step: 'percent' },
+    b: { labelKey: 'percentage.fieldTotal', placeholder: '500', allowNegative: true, step: 'unit' },
   },
   {
     id: 'what',
     labelKey: 'percentage.modeWhat',
     hintKey: 'percentage.hintWhat',
-    a: { labelKey: 'percentage.fieldPart', placeholder: '45', allowNegative: true },
-    b: { labelKey: 'percentage.fieldTotal', placeholder: '67', allowNegative: true },
+    a: { labelKey: 'percentage.fieldPart', placeholder: '45', allowNegative: true, step: 'unit' },
+    b: { labelKey: 'percentage.fieldTotal', placeholder: '67', allowNegative: true, step: 'unit' },
   },
   {
     id: 'reverse',
     labelKey: 'percentage.modeReverse',
     hintKey: 'percentage.hintReverse',
-    a: { labelKey: 'percentage.fieldFinal', placeholder: '120', allowNegative: true },
-    b: { labelKey: 'percentage.fieldPercent', placeholder: '20', suffix: '%', allowNegative: false },
+    a: { labelKey: 'percentage.fieldFinal', placeholder: '120', allowNegative: true, step: 'price' },
+    b: { labelKey: 'percentage.fieldPercent', placeholder: '20', suffix: '%', allowNegative: false, step: 'percent' },
   },
 ];
 
@@ -149,13 +154,33 @@ const sanitize = (raw: string, allowNegative: boolean): string => {
 function formatOnBlur(raw: string, language: Language): string {
   const n = toNumber(raw);
   if (n === null) return '';
+  return formatStable(n, language) ?? raw;
+}
+
+/** Format angka sehingga `parseFormattedNumber` membacanya kembali sama persis (null bila tidak bisa). */
+function formatStable(n: number, language: Language): string | null {
   const grouped = formatNumberForInput(n, { maxFractionDigits: 4, language });
   if (parseFormattedNumber(grouped) === n) return grouped;
   const padded = new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US', {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
   }).format(n);
-  return parseFormattedNumber(padded) === n ? padded : raw;
+  return parseFormattedNumber(padded) === n ? padded : null;
+}
+
+/**
+ * Satu langkah tombol −/+. Harga bulat ≥ 1 naik/turun satu fraksi BEI (mis. 500 → 505 / 498);
+ * nilai pecahan, nol, atau negatif bergeser ±1. Field tanpa nilai negatif berhenti di 0.
+ */
+function stepField(raw: string, dir: 1 | -1, spec: FieldSpec, language: Language): string {
+  const n = toNumber(raw) ?? 0;
+  let next =
+    spec.step === 'price' && Number.isInteger(n) && n >= 1 && !(dir < 0 && n === 1)
+      ? stepIdxPrice(n, dir)
+      : Math.round((n + dir) * 10_000) / 10_000;
+  if (!spec.allowNegative) next = Math.max(0, next);
+  next += 0; // hindari -0
+  return formatStable(next, language) ?? String(next);
 }
 
 // ---------------------------------------------------------------------------
@@ -417,29 +442,30 @@ interface NumberFieldProps {
 
 function NumberField({ spec, label, value, language, onChange }: NumberFieldProps) {
   const id = React.useId();
+  const { t } = useLanguage();
+  const n = toNumber(value);
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </label>
-      <div className="relative">
-        <input
-          id={id}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={value}
-          placeholder={spec.placeholder}
-          onChange={(e) => onChange(sanitize(e.target.value, spec.allowNegative))}
-          onBlur={() => onChange(formatOnBlur(value, language))}
-          className={`w-full glass-input pl-4 ${spec.suffix ? 'pr-9' : 'pr-4'} py-2.5 text-sm font-extrabold text-white bg-black/25 focus:bg-background`}
-        />
-        {spec.suffix && (
-          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 pointer-events-none">
-            {spec.suffix}
-          </span>
-        )}
-      </div>
+      <StepperInput
+        id={id}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        value={value}
+        placeholder={spec.placeholder}
+        onChange={(e) => onChange(sanitize(e.target.value, spec.allowNegative))}
+        onBlur={() => onChange(formatOnBlur(value, language))}
+        onStep={(dir) => onChange(stepField(value, dir, spec, language))}
+        canDecrement={spec.allowNegative || (n ?? 0) > 0}
+        decrementLabel={`${t('calculator.decrease')} ${label}`}
+        incrementLabel={`${t('calculator.increase')} ${label}`}
+        adornment={spec.suffix ? <span className="flex items-center pr-1 text-xs font-bold text-slate-500">{spec.suffix}</span> : undefined}
+        className="bg-black/25"
+        inputClassName="text-sm font-extrabold text-white py-3"
+      />
     </div>
   );
 }

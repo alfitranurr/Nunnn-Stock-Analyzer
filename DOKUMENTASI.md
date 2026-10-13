@@ -438,6 +438,7 @@ Ada dua mode: **Rencana Trading** (default) dan **Investasi Jangka Panjang**. He
 
 **Fitur pendukung:**
 - Tombol tukar (khusus mode Perubahan) dan toggle Naik/Turun (mode Naik/Turun dan Nilai Awal).
+- Tombol **−/+** di setiap isian ([`StepperInput`](src/components/stepper-input.tsx), bisa ditahan dan panah ↑/↓ keyboard). Besar langkah per jenis isian (`step` di `FieldSpec`): harga (Dari/Ke, Nilai dasar, Nilai akhir) naik/turun satu fraksi BEI lewat `stepIdxPrice` (500 → 505 / 498, 2.000 → 2.010 / 1.995); persen dan angka lain (Bagian/Total) ±1; nilai pecahan atau < 1 bergeser ±1. Isian persen di mode Naik/Turun dan Nilai Awal berhenti di 0.
 - Preset 5/10/20/25/50%.
 - Hasil langsung tampil saat mengetik, dengan `aria-live`.
 - Catatan pemulihan saat turun, misalnya "Turun 50% butuh naik 100%".
@@ -1406,7 +1407,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 |---|---|---|
 | Komponen logo emiten dengan fallback (FormEmitenLogo, ResultsEmitenLogo, HistoryEmitenLogo) | 3× | [`components/company-logo.tsx`](src/components/company-logo.tsx) (sudah dipakai Dividen, E-IPO, Portofolio) |
 | `formatIDR` lokal, padahal sudah ada di [format.ts:86](src/lib/format.ts#L86) | 1× (compounding versi singkat Juta/Miliar); halaman lain sudah pakai `@/lib/format` | `@/lib/format` (tambahkan opsi format singkat) |
-| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding, Dividen, E-IPO & Portofolio | Pakai juga di Persentase |
+| Tombol −/+ angka | Sudah satu komponen [`StepperInput`](src/components/stepper-input.tsx), dipakai Avg Down, Compounding, Persentase, Dividen, E-IPO & Portofolio | Selesai |
 | Komponen UI kalkulator (Card, Field, Segmented, Stat) | [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) dipakai Dividen, E-IPO, Portofolio & Admin; Compounding masih punya versi lokal | `shared/calc-ui.tsx` |
 | Rantai fallback Gemini → Groq → OpenAI | ✅ satu: [lib/llm.ts](src/lib/llm.ts) (`c1b5571`) | — |
 | Parser RSS | ✅ satu: [lib/news-feed.ts](src/lib/news-feed.ts) (`c1b5571`) | — |
