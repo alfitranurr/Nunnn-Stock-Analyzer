@@ -1,5 +1,5 @@
 import { cleanCompanyName } from '@/lib/utils';
-import { fetchChartQuote, fetchQuotesWithIntraday, fetchSparkQuotes, type YahooQuote } from '@/lib/yahoo';
+import { fetchChartQuote, fetchQuotesWithIntraday, fetchSparkQuotes, repairMissedSessions, type YahooQuote } from '@/lib/yahoo';
 import type { IndexQuote, MarketDataProvider, StockQuote } from './types';
 
 function toStockQuote(ticker: string, q: YahooQuote, intraday: boolean): StockQuote {
@@ -27,6 +27,8 @@ export const yahooProvider: MarketDataProvider = {
     const raw = intraday
       ? await fetchQuotesWithIntraday(symbols, '5m')
       : await fetchSparkQuotes(symbols, { range: '5d', interval: '1d' });
+    // Bar harian Yahoo kadang melewatkan satu sesi; acuan diperbaiki dari bar per jam.
+    await repairMissedSessions(raw);
 
     const quotes = new Map<string, StockQuote>();
     for (const q of raw.values()) {

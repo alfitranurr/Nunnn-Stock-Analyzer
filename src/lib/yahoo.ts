@@ -3,6 +3,7 @@
  * Dipakai oleh provider data BEI (lib/market-data/yahoo-provider.ts) dan route global-markets.
  */
 
+import { getAutoRejectionBounds } from '@/lib/calculator';
 import { getRefreshGeneration } from '@/lib/refresh-generation';
 
 export const YAHOO_UA =
@@ -20,6 +21,10 @@ export interface YahooQuote {
   volume: number;
   marketTime: number | null; // Epoch detik transaksi terakhir
   closes: number[]; // Harga penutupan per interval (untuk sparkline)
+  /** Tanggal bursa (YYYY-MM-DD) bar yang dipakai sebagai acuan `previousClose` (null bila dari meta). */
+  previousCloseDate: string | null;
+  /** Tanggal bursa transaksi terakhir. */
+  sessionDate: string | null;
 }
 
 export interface YahooChartQuote extends YahooQuote {
@@ -71,25 +76,34 @@ interface ChartResponse {
  * mengosongkan (`null`) bar sesi yang baru selesai, sehingga bar sebelumnya
  * keliru dianggap sesi terakhir dan acuan bergeser satu hari (BBCA −2,02% padahal −0,82%).
  */
-function splitSessions(series: YahooSeries): { previousClose: number | null; sessionCloses: number[] } | null {
-  const timestamps = series.timestamp;
-  const rawCloses = series.indicators?.quote?.[0]?.close;
-  if (!timestamps?.length || !rawCloses?.length) return null;
-  const offsetMs = (series.meta?.gmtoffset ?? 0) * 1000;
-  const dateOf = (sec: number) => new Date(sec * 1000 + offsetMs).toISOString().slice(0, 10);
+/** Tanggal bursa (YYYY-MM-DD, zona waktu exchange) dari epoch detik. */
+const exchangeDate = (series: YahooSeries, sec: number) =>
+  new Date((sec + (series.meta?.gmtoffset ?? 0)) * 1000).toISOString().slice(0, 10);
 
+/** Bar yang berisi angka penutupan, beserta tanggal bursanya. */
+function closePoints(series: YahooSeries): Array<{ date: string; close: number }> {
+  const timestamps = series.timestamp ?? [];
+  const rawCloses = series.indicators?.quote?.[0]?.close ?? [];
   const points: Array<{ date: string; close: number }> = [];
   timestamps.forEach((t, i) => {
     const close = rawCloses[i];
-    if (typeof close === 'number') points.push({ date: dateOf(t), close });
+    if (typeof close === 'number') points.push({ date: exchangeDate(series, t), close });
   });
+  return points;
+}
+
+function splitSessions(series: YahooSeries): { previousClose: number | null; previousCloseDate: string | null; latestDate: string; sessionCloses: number[] } | null {
+  const points = closePoints(series);
   if (points.length === 0) return null;
 
   const marketTime = series.meta?.regularMarketTime;
-  const latestDate = marketTime ? dateOf(marketTime) : points[points.length - 1].date;
+  const latestDate = marketTime ? exchangeDate(series, marketTime) : points[points.length - 1].date;
   const earlier = points.filter((p) => p.date < latestDate);
+  const previous = earlier.length > 0 ? earlier[earlier.length - 1] : null;
   return {
-    previousClose: earlier.length > 0 ? earlier[earlier.length - 1].close : null,
+    previousClose: previous?.close ?? null,
+    previousCloseDate: previous?.date ?? null,
+    latestDate,
     sessionCloses: points.filter((p) => p.date === latestDate).map((p) => p.close),
   };
 }
@@ -115,24 +129,32 @@ function toQuote(symbol: string, series: YahooSeries | undefined): YahooQuote | 
     volume: meta.regularMarketVolume ?? 0,
     marketTime: meta.regularMarketTime ?? null,
     closes,
+    previousCloseDate: sessions?.previousClose != null ? sessions.previousCloseDate : null,
+    sessionDate: sessions?.latestDate ?? (meta.regularMarketTime ? exchangeDate(series, meta.regularMarketTime) : null),
   };
 }
+
+type SparkOptions = { range?: string; interval?: string; batchSize?: number; parallel?: number; timeoutMs?: number };
 
 /**
  * Ambil kutipan banyak simbol lewat Spark API (maks 20 simbol per request),
  * dijalankan dalam gelombang paralel. Simbol yang gagal dilewati.
  */
-export async function fetchSparkQuotes(
-  symbols: string[],
-  {
-    range = '1d',
-    interval = '1d',
-    batchSize = 20,
-    parallel = 5,
-    timeoutMs = DEFAULT_TIMEOUT_MS,
-  }: { range?: string; interval?: string; batchSize?: number; parallel?: number; timeoutMs?: number } = {}
-): Promise<Map<string, YahooQuote>> {
+export async function fetchSparkQuotes(symbols: string[], options: SparkOptions = {}): Promise<Map<string, YahooQuote>> {
   const quotes = new Map<string, YahooQuote>();
+  for (const [symbol, series] of await fetchSparkSeries(symbols, options)) {
+    const quote = toQuote(symbol, series);
+    if (quote) quotes.set(symbol, quote);
+  }
+  return quotes;
+}
+
+/** Deret mentah Spark API per simbol. */
+async function fetchSparkSeries(
+  symbols: string[],
+  { range = '1d', interval = '1d', batchSize = 20, parallel = 5, timeoutMs = DEFAULT_TIMEOUT_MS }: SparkOptions = {}
+): Promise<Map<string, YahooSeries>> {
+  const out = new Map<string, YahooSeries>();
   const batches: string[][] = [];
   for (let i = 0; i < symbols.length; i += batchSize) {
     batches.push(symbols.slice(i, i + batchSize));
@@ -150,8 +172,8 @@ export async function fetchSparkQuotes(
           if (!res.ok) return;
           const data: SparkResponse = await res.json();
           for (const result of data.spark?.result ?? []) {
-            const quote = toQuote(result.symbol, result.response?.[0]);
-            if (quote) quotes.set(result.symbol, quote);
+            const series = result.response?.[0];
+            if (series) out.set(result.symbol, series);
           }
         } catch {
           // Batch gagal (timeout/jaringan) dilewati; batch lain tetap dipakai.
@@ -160,7 +182,7 @@ export async function fetchSparkQuotes(
     );
   }
 
-  return quotes;
+  return out;
 }
 
 /**
@@ -392,4 +414,78 @@ export function createTtlCache<T>(ttlMs: number, maxEntries = 100, options?: { t
       throw err;
     }
   };
+}
+
+const calendarCache = createTtlCache<string[]>(60_000, 1);
+
+/**
+ * Tanggal sesi bursa BEI terbaru (urut naik), dari bar harian IHSG ditambah tanggal transaksi
+ * terakhirnya (bar sesi yang baru selesai kadang masih null). Cache 60 detik.
+ */
+export async function getIdxSessionCalendar(): Promise<string[]> {
+  try {
+    const { value } = await calendarCache('jkse', async () => {
+      const series = (await fetchSparkSeries(['^JKSE'], { range: '10d', interval: '1d' })).get('^JKSE');
+      if (!series) throw new Error('IHSG calendar unavailable');
+      const dates = new Set(closePoints(series).map((p) => p.date));
+      const marketTime = series.meta?.regularMarketTime;
+      if (marketTime) dates.add(exchangeDate(series, marketTime));
+      return [...dates].sort();
+    });
+    return value;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Bar harian Yahoo untuk saham kadang hilang satu sesi (mis. Senin 12 Okt 2026 tidak ada di Spark
+ * untuk semua saham, padahal IHSG & bar per jam lengkap). Akibatnya acuan perubahan memakai penutupan
+ * 2 sesi lalu (CUAN −14,3% dari Jumat, padahal ±0% dari Senin). Fungsi ini mendeteksi celah itu lewat
+ * kalender sesi IHSG lalu mengambil penutupan sesi yang hilang dari bar 60 menit. Nilai pengganti
+ * hanya dipakai bila masih dalam batas auto rejection dari acuan lama (mencegah harga basi intraday).
+ * Mengubah `quotes` di tempat; mengembalikan jumlah kutipan yang diperbaiki.
+ */
+export async function repairMissedSessions(quotes: Map<string, YahooQuote>): Promise<number> {
+  const calendar = await getIdxSessionCalendar();
+  if (calendar.length < 2) return 0;
+  const latest = calendar[calendar.length - 1];
+  const previousSession = calendar[calendar.length - 2];
+
+  const gaps = [...quotes.values()].filter(
+    (q) => q.sessionDate === latest && q.previousCloseDate !== null && q.previousCloseDate < previousSession
+  );
+  if (gaps.length === 0) return 0;
+
+  const hourly = await fetchSparkSeries(
+    gaps.map((q) => q.symbol),
+    { range: '5d', interval: '60m' }
+  );
+  let repaired = 0;
+  for (const q of gaps) {
+    const series = hourly.get(q.symbol);
+    if (!series) continue;
+    const from = q.previousCloseDate!;
+    const missed = closePoints(series).filter((p) => p.date > from && p.date < latest);
+    if (missed.length === 0) continue; // Tidak ditransaksikan di sesi itu (mis. suspensi): acuan lama sudah benar.
+    const last = missed[missed.length - 1];
+
+    // Batas wajar: auto rejection berantai sebanyak sesi yang terlewat.
+    const sessions = calendar.filter((d) => d > from && d <= last.date).length || 1;
+    let upper = q.previousClose;
+    let lower = q.previousClose;
+    for (let i = 0; i < sessions; i++) {
+      upper = getAutoRejectionBounds(upper).upper;
+      lower = getAutoRejectionBounds(lower).lower;
+    }
+    if (!(last.close >= lower * 0.999 && last.close <= upper * 1.001)) continue;
+
+    q.previousClose = last.close;
+    q.previousCloseDate = last.date;
+    q.change = q.price - last.close;
+    q.changePercent = last.close > 0 ? (q.change / last.close) * 100 : 0;
+    repaired++;
+  }
+  if (repaired > 0) console.info(`[yahoo] acuan ${repaired}/${gaps.length} saham diperbaiki dari bar 60m (sesi ${previousSession} hilang di bar harian)`);
+  return repaired;
 }
