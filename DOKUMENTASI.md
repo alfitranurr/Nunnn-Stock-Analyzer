@@ -1389,7 +1389,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `1096531` | 2026-10-11 | — | Watchlist belum mengikuti format terbaru: harga tanpa desimal, tombol urutan tanpa keterangan/arah, kartu Terlemah menyebut saham 0% (GOTO) dengan warna merah |
 | `e2de25a` | 2026-10-11 | — | Simulasi listing E-IPO hanya sampai ARA 3 hari dan ARB 1 hari, tanpa bisa diatur |
 | `912aef4` | 2026-10-11 | — | Belum ada pelacakan target & performa bulanan berbasis portofolio (pengguna memakai spreadsheet terpisah dengan sel #DIV/0! dan −100% untuk bulan kosong) |
-| (commit ini) | 2026-10-13 | — | Bar harian Yahoo melewatkan sesi 12 Okt untuk semua saham sehingga perubahan hari ini dihitung dari penutupan Jumat (CUAN −14,29% padahal +0,76%); portofolio dan movers berbeda dari Stockbit |
+| `f32820c` | 2026-10-13 | — | Bar harian Yahoo melewatkan sesi 12 Okt untuk semua saham sehingga perubahan hari ini dihitung dari penutupan Jumat (CUAN −14,29% padahal +0,76%); portofolio dan movers berbeda dari Stockbit |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
 **Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
