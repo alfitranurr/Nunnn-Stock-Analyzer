@@ -21,7 +21,10 @@ import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/li
 import { getAutoRejectionStatus, stepIdxPrice } from '@/lib/calculator';
 import { WATCHLIST_MAX, isTargetReached, useWatchlist, type WatchlistEntry, type WatchlistTargetKind } from '@/lib/watchlist-store';
 
-type SortMode = 'manual' | 'gain' | 'loss' | 'value' | 'az';
+type SortMode = 'manual' | 'change' | 'value' | 'az';
+type SortDir = 'asc' | 'desc';
+/** Arah awal saat sebuah urutan dipilih: angka terbesar dulu, kode A–Z. */
+const DEFAULT_DIR: Record<SortMode, SortDir> = { manual: 'asc', change: 'desc', value: 'desc', az: 'asc' };
 
 const SUGGESTIONS = ['BBCA', 'BBRI', 'BMRI', 'TLKM', 'ASII', 'ANTM', 'GOTO', 'ADRO'];
 
@@ -56,6 +59,21 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
   const [refreshing, setRefreshing] = React.useState(false);
   const [quoteError, setQuoteError] = React.useState(false);
   const [sort, setSort] = React.useState<SortMode>('manual');
+  const [sortDir, setSortDir] = React.useState<SortDir>('asc');
+  // Tekan pilihan yang sama sekali lagi untuk membalik arah (↓ ⇄ ↑); urutan manual tidak dibalik.
+  const chooseSort = (m: SortMode) => {
+    if (m === sort) {
+      if (m !== 'manual') setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setSort(m);
+      setSortDir(DEFAULT_DIR[m]);
+    }
+  };
+  const sortArrow = (m: SortMode) => {
+    const dir = sort === m ? sortDir : DEFAULT_DIR[m];
+    return m === 'az' ? (dir === 'asc' ? 'A–Z' : 'Z–A') : dir === 'desc' ? '↓' : '↑';
+  };
+  const ariaSort = (m: SortMode) => (sort === m ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined);
   const [editing, setEditing] = React.useState<string | null>(null);
   const [toast, setToast] = React.useState<string | null>(null);
 
@@ -118,11 +136,12 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
   });
 
   const sorted = [...rows];
-  const num = (v: number | null, fallback: number) => (v === null ? fallback : v);
-  if (sort === 'gain') sorted.sort((a, b) => num(b.changePct, -Infinity) - num(a.changePct, -Infinity));
-  else if (sort === 'loss') sorted.sort((a, b) => num(a.changePct, Infinity) - num(b.changePct, Infinity));
-  else if (sort === 'value') sorted.sort((a, b) => num(b.value, -1) - num(a.value, -1));
-  else if (sort === 'az') sorted.sort((a, b) => a.entry.symbol.localeCompare(b.entry.symbol));
+  const sign = sortDir === 'asc' ? 1 : -1;
+  // Nilai kosong (harga belum ada) selalu di bawah, apa pun arahnya.
+  const byNum = (a: number | null, b: number | null) => (a === null ? (b === null ? 0 : 1) : b === null ? -1 : sign * (a - b));
+  if (sort === 'change') sorted.sort((a, b) => byNum(a.changePct, b.changePct));
+  else if (sort === 'value') sorted.sort((a, b) => byNum(a.value, b.value));
+  else if (sort === 'az') sorted.sort((a, b) => sign * a.entry.symbol.localeCompare(b.entry.symbol));
 
   const priced = rows.filter((r) => r.changePct !== null);
   const up = priced.filter((r) => (r.changePct ?? 0) > 0).length;
@@ -302,14 +321,25 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
               <Segmented
                 ariaLabel={L('Urutkan watchlist', 'Sort watchlist')}
                 value={sort}
-                onChange={setSort}
+                onChange={chooseSort}
                 className="w-full lg:w-[460px]"
                 options={[
                   { value: 'manual', label: <><span className="sm:hidden">{L('Saya', 'Mine')}</span><span className="hidden sm:inline">{L('Urutan saya', 'My order')}</span></>, title: L('Urutan yang kamu atur dengan tombol ▲▼ di tiap baris', 'The order you set with the ▲▼ buttons on each row') },
-                  { value: 'gain', label: L('Naik ↓', 'Gainers ↓'), title: L('Kenaikan hari ini terbesar di atas', 'Biggest gain today first') },
-                  { value: 'loss', label: L('Turun ↓', 'Losers ↓'), title: L('Penurunan hari ini terdalam di atas', 'Biggest drop today first') },
-                  { value: 'value', label: L('Nilai ↓', 'Value ↓'), title: L('Nilai transaksi terbesar di atas', 'Largest traded value first') },
-                  { value: 'az', label: <><span className="sm:hidden">A–Z</span><span className="hidden sm:inline">{L('Kode A–Z', 'Ticker A–Z')}</span></>, title: L('Urut abjad kode saham', 'Alphabetical by ticker') },
+                  {
+                    value: 'change',
+                    label: <><span className="sm:hidden">% {sortArrow('change')}</span><span className="hidden sm:inline">{L('Perubahan', 'Change')} {sortArrow('change')}</span></>,
+                    title: (sort === 'change' && sortDir === 'asc' ? L('Penurunan hari ini terdalam di atas', 'Biggest drop today first') : L('Kenaikan hari ini terbesar di atas', 'Biggest gain today first')) + L(' · tekan lagi untuk membalik urutan', ' · press again to reverse'),
+                  },
+                  {
+                    value: 'value',
+                    label: `${L('Nilai', 'Value')} ${sortArrow('value')}`,
+                    title: (sort === 'value' && sortDir === 'asc' ? L('Nilai transaksi terkecil di atas', 'Smallest traded value first') : L('Nilai transaksi terbesar di atas', 'Largest traded value first')) + L(' · tekan lagi untuk membalik urutan', ' · press again to reverse'),
+                  },
+                  {
+                    value: 'az',
+                    label: <><span className="sm:hidden">{sortArrow('az')}</span><span className="hidden sm:inline">{L('Kode', 'Ticker')} {sortArrow('az')}</span></>,
+                    title: L('Urut abjad kode saham', 'Alphabetical by ticker') + L(' · tekan lagi untuk membalik urutan', ' · press again to reverse'),
+                  },
                 ]}
               />
             </div>
@@ -338,19 +368,19 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    <th className={`py-2.5 px-3 ${sort === 'az' ? 'text-emerald-400' : ''}`} aria-sort={sort === 'az' ? 'ascending' : undefined}>{L('Saham', 'Stock')}{sort === 'az' ? ' A–Z' : ''}</th>
+                    <th className={`py-2.5 px-3 ${sort === 'az' ? 'text-emerald-400' : ''}`} aria-sort={ariaSort('az')}>{L('Saham', 'Stock')}{sort === 'az' ? ` ${sortArrow('az')}` : ''}</th>
                     <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
-                    <th className={`py-2.5 px-3 text-right ${sort === 'gain' || sort === 'loss' ? 'text-emerald-400' : ''}`} aria-sort={sort === 'gain' ? 'descending' : sort === 'loss' ? 'ascending' : undefined}>
-                      {L('Perubahan', 'Change')}{sort === 'gain' ? ' ↓' : sort === 'loss' ? ' ↑' : ''}
+                    <th className={`py-2.5 px-3 text-right ${sort === 'change' ? 'text-emerald-400' : ''}`} aria-sort={ariaSort('change')}>
+                      {L('Perubahan', 'Change')}{sort === 'change' ? ` ${sortArrow('change')}` : ''}
                     </th>
                     <th className="py-2.5 px-3">{L('Intraday', 'Intraday')}</th>
                     <th className="py-2.5 px-3">{L('Rentang hari ini', 'Day range')}</th>
                     <th
                       className={`py-2.5 px-3 text-right ${sort === 'value' ? 'text-emerald-400' : ''}`}
-                      aria-sort={sort === 'value' ? 'descending' : undefined}
+                      aria-sort={ariaSort('value')}
                       title={L('Perkiraan: harga terakhir × volume', 'Estimate: last price × volume')}
                     >
-                      {L('Nilai transaksi ≈', 'Traded value ≈')}{sort === 'value' ? ' ↓' : ''}
+                      {L('Nilai transaksi ≈', 'Traded value ≈')}{sort === 'value' ? ` ${sortArrow('value')}` : ''}
                     </th>
                     <th className="py-2.5 px-3">{L('Harga incaran', 'Target')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Aksi', 'Actions')}</th>

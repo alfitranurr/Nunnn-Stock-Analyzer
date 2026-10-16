@@ -279,7 +279,7 @@ Urutan dari atas:
   - Pencarian untuk menambah langsung di halaman; saran saham saat kosong.
   - Per saham: harga, perubahan Rp & %, grafik intraday dengan garis penutupan kemarin, rentang hari ini (dari bar 5 menit) dengan penanda posisi harga, nilai transaksi, badge ARA/ARB (batas sesuai tanggal), tombol Analisis & Hapus.
   - **Harga incaran** per saham: "Beli di bawah" atau "Jual di atas", dengan jarak ke target; baris disorot dan muncul banner saat tercapai.
-  - Urutan berlabel **Urutkan berdasarkan** (sejak `1096531`): Urutan saya (digeser dengan ▲▼), Naik ↓, Turun ↓, Nilai ↓, Kode A–Z, beserta tooltip; label diringkas di HP (Saya, A–Z). Kolom tabel yang dipakai mengurutkan diberi warna dan panah (`aria-sort`). Desktop tabel, HP kartu.
+  - Urutan berlabel **Urutkan berdasarkan** (sejak `1096531`): Urutan saya (digeser dengan ▲▼), Perubahan, Nilai, Kode, beserta tooltip; label diringkas di HP (Saya, %, A–Z). Sejak 17 Okt 2026 setiap pilihan bisa **ditekan dua kali untuk membalik arah**: Perubahan ↓ (naik terbesar dulu) ⇄ ↑ (turun terdalam dulu; menggantikan pilihan Naik/Turun terpisah), Nilai ↓ ⇄ ↑, Kode A–Z ⇄ Z–A. Memilih urutan lain kembali ke arah awalnya. Saham tanpa harga selalu di bawah. Kolom tabel yang dipakai mengurutkan diberi warna dan panah (`aria-sort`). Desktop tabel, HP kartu.
   - Format angka mengikuti Portofolio: harga, perubahan, rentang hari ini, dan harga incaran dalam Rupiah 2 desimal; nilai transaksi tetap ringkas (2 desimal) dengan tanda ≈ karena merupakan perkiraan harga × volume (nilai persis di tooltip).
 - Harga dari `/api/quotes`, di-refresh tiap 30 detik saat jam bursa. Perubahan yang tidak lolos pengecekan kewajaran ditandai "data meragukan".
 - Penyimpanan: selalu localStorage `nunnn_stock_watchlist`; bila login ke Supabase, disinkron ke tabel `user_watchlists` ([connectWatchlistToUser](src/lib/watchlist-store.ts)). Versi cloud menang saat login; bila cloud kosong, daftar lokal diunggah. Harga incaran ikut tersimpan di item JSON yang sama.
@@ -589,7 +589,7 @@ Dibangun ulang di `3b89457`. Data dibaca/ditulis lewat [lib/portfolio-store.ts](
 - Tombol **Mulai ulang jurnal** (dengan konfirmasi) dan kotak **Aturan trading pribadi** (tersimpan di browser). Di HP kolom Bulan menempel saat tabel digeser.
 - **Penyimpanan:** tabel Supabase `portfolio_monthly` ([migrasi 000012](supabase/migrations/20261011000012_portfolio_monthly.sql)) untuk akun cloud; localStorage `nunnn_stock_portfolio_monthly_{uid}` di mode lokal. Bila tabel belum ada, jurnal disimpan di browser dan muncul petunjuk menjalankan migrasi.
 
-**Urutan daftar saham:** kontrol berlabel **Urutkan berdasarkan** dengan arah yang jelas: Nilai ↓ (nilai pasar terbesar dulu), P/L % ↓, Hari ini ↓, Kode A–Z, beserta tooltip. Kolom tabel yang sedang dipakai mengurutkan diberi warna dan panah (`aria-sort`).
+**Urutan daftar saham:** kontrol berlabel **Urutkan berdasarkan** dengan arah yang jelas: Nilai ↓ (nilai pasar terbesar dulu), P/L % ↓, Hari ini ↓, Kode A–Z, beserta tooltip. Sejak 17 Okt 2026 pilihan yang sama bisa ditekan lagi untuk membalik arah (↓ ⇄ ↑, A–Z ⇄ Z–A), misalnya P/L % ↑ untuk melihat rugi terdalam di atas; saham tanpa harga selalu di bawah. Kolom tabel yang sedang dipakai mengurutkan diberi warna dan panah (`aria-sort`).
 
 **Ringkasan (5 kartu):** nilai portofolio (saham + kas bila diisi), modal, floating P/L (Rp & %), P/L hari ini (perubahan meragukan tidak dihitung), dan estimasi dividen 12 bulan (dividen kotor TTM × lembar, dari `/api/dividend/summary`) beserta yield on cost.
 

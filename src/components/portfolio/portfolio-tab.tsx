@@ -33,6 +33,9 @@ interface PortfolioTabProps {
 }
 
 type SortKey = 'value' | 'pl' | 'today' | 'ticker';
+type SortDir = 'asc' | 'desc';
+/** Arah awal saat sebuah urutan dipilih: angka terbesar dulu, kode A–Z. */
+const DEFAULT_DIR: Record<SortKey, SortDir> = { value: 'desc', pl: 'desc', today: 'desc', ticker: 'asc' };
 
 const ALLOCATION_COLORS = ['bg-emerald-400', 'bg-sky-400', 'bg-amber-400', 'bg-violet-400', 'bg-rose-400', 'bg-teal-300'];
 const DIVIDEND_BATCH = 20;
@@ -75,6 +78,15 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
   const divRetryRef = React.useRef(0);
   const [refreshing, setRefreshing] = React.useState(false);
   const [sortKey, setSortKey] = React.useState<SortKey>('value');
+  const [sortDir, setSortDir] = React.useState<SortDir>('desc');
+  // Tekan pilihan yang sama sekali lagi untuk membalik arah (↓ ⇄ ↑).
+  const chooseSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
+    else {
+      setSortKey(k);
+      setSortDir(DEFAULT_DIR[k]);
+    }
+  };
   const [modal, setModal] = React.useState<HoldingModalMode | null>(null);
   const [toDelete, setToDelete] = React.useState<Holding | null>(null);
   const [editingCash, setEditingCash] = React.useState(false);
@@ -194,13 +206,15 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
 
   const sorted = React.useMemo(() => {
     const copy = [...rows];
-    const num = (v: number | null) => (v === null ? -Infinity : v);
-    if (sortKey === 'ticker') copy.sort((a, b) => a.h.ticker.localeCompare(b.h.ticker));
-    else if (sortKey === 'pl') copy.sort((a, b) => num(b.plPct) - num(a.plPct));
-    else if (sortKey === 'today') copy.sort((a, b) => num(b.todayPct) - num(a.todayPct));
-    else copy.sort((a, b) => b.value - a.value);
+    const sign = sortDir === 'asc' ? 1 : -1;
+    // Nilai kosong (harga belum ada) selalu di bawah, apa pun arahnya.
+    const byNum = (a: number | null, b: number | null) => (a === null ? (b === null ? 0 : 1) : b === null ? -1 : sign * (a - b));
+    if (sortKey === 'ticker') copy.sort((a, b) => sign * a.h.ticker.localeCompare(b.h.ticker));
+    else if (sortKey === 'pl') copy.sort((a, b) => byNum(a.plPct, b.plPct));
+    else if (sortKey === 'today') copy.sort((a, b) => byNum(a.todayPct, b.todayPct));
+    else copy.sort((a, b) => byNum(a.value, b.value));
     return copy;
-  }, [rows, sortKey]);
+  }, [rows, sortKey, sortDir]);
 
   const totalValue = rows.reduce((s, r) => s + r.value, 0);
   const totalCost = rows.reduce((s, r) => s + r.cost, 0);
@@ -393,7 +407,13 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
 
   // Kolom tabel yang sedang dipakai untuk mengurutkan diberi warna & panah.
   const sortedCol = (k: SortKey) => (sortKey === k ? 'text-emerald-400' : '');
-  const sortMark = (k: SortKey) => (sortKey === k ? (k === 'ticker' ? ' A–Z' : ' ↓') : '');
+  const sortArrow = (k: SortKey) => {
+    const dir = sortKey === k ? sortDir : DEFAULT_DIR[k];
+    return k === 'ticker' ? (dir === 'asc' ? 'A–Z' : 'Z–A') : dir === 'desc' ? '↓' : '↑';
+  };
+  const sortMark = (k: SortKey) => (sortKey === k ? ` ${sortArrow(k)}` : '');
+  const ariaSort = (k: SortKey) => (sortKey === k ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined);
+  const flipHint = L(' · tekan lagi untuk membalik urutan', ' · press again to reverse');
   const tone = (v: number | null) => (v === null || v === 0 ? 'text-slate-300' : v > 0 ? 'text-emerald-400' : 'text-rose-400');
 
   if (!user) {
@@ -634,12 +654,28 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
               <Segmented
                 ariaLabel={L('Urutkan daftar saham', 'Sort holdings')}
                 value={sortKey}
-                onChange={setSortKey}
+                onChange={chooseSort}
                 options={[
-                  { value: 'value', label: L('Nilai ↓', 'Value ↓'), title: L('Nilai pasar terbesar di atas', 'Largest market value first') },
-                  { value: 'pl', label: 'P/L % ↓', title: L('Persentase untung terbesar di atas, rugi terdalam di bawah', 'Highest P/L % first, deepest loss last') },
-                  { value: 'today', label: L('Hari ini ↓', 'Today ↓'), title: L('Kenaikan hari ini terbesar di atas', 'Biggest gain today first') },
-                  { value: 'ticker', label: L('Kode A–Z', 'Ticker A–Z'), title: L('Urut abjad kode saham', 'Alphabetical by ticker') },
+                  {
+                    value: 'value',
+                    label: `${L('Nilai', 'Value')} ${sortArrow('value')}`,
+                    title: (sortKey === 'value' && sortDir === 'asc' ? L('Nilai pasar terkecil di atas', 'Smallest market value first') : L('Nilai pasar terbesar di atas', 'Largest market value first')) + flipHint,
+                  },
+                  {
+                    value: 'pl',
+                    label: `P/L % ${sortArrow('pl')}`,
+                    title: (sortKey === 'pl' && sortDir === 'asc' ? L('Rugi terdalam di atas', 'Deepest loss first') : L('Persentase untung terbesar di atas', 'Highest P/L % first')) + flipHint,
+                  },
+                  {
+                    value: 'today',
+                    label: `${L('Hari ini', 'Today')} ${sortArrow('today')}`,
+                    title: (sortKey === 'today' && sortDir === 'asc' ? L('Penurunan hari ini terdalam di atas', 'Biggest drop today first') : L('Kenaikan hari ini terbesar di atas', 'Biggest gain today first')) + flipHint,
+                  },
+                  {
+                    value: 'ticker',
+                    label: `${L('Kode', 'Ticker')} ${sortArrow('ticker')}`,
+                    title: L('Urut abjad kode saham', 'Alphabetical by ticker') + flipHint,
+                  },
                 ]}
               />
             </div>
@@ -691,12 +727,12 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    <th className={`py-2.5 px-3 ${sortedCol('ticker')}`} aria-sort={sortKey === 'ticker' ? 'ascending' : undefined}>{L('Saham', 'Stock')}{sortMark('ticker')}</th>
+                    <th className={`py-2.5 px-3 ${sortedCol('ticker')}`} aria-sort={ariaSort('ticker')}>{L('Saham', 'Stock')}{sortMark('ticker')}</th>
                     <th className="py-2.5 px-3 text-right">Lot</th>
                     <th className="py-2.5 px-3 text-right">{L('Avg', 'Avg')}</th>
-                    <th className={`py-2.5 px-3 text-right ${sortedCol('today')}`} aria-sort={sortKey === 'today' ? 'descending' : undefined}>{L('Harga', 'Price')}{sortMark('today')}</th>
-                    <th className={`py-2.5 px-3 text-right ${sortedCol('value')}`} aria-sort={sortKey === 'value' ? 'descending' : undefined}>{L('Nilai pasar', 'Market value')}{sortMark('value')}</th>
-                    <th className={`py-2.5 px-3 text-right ${sortedCol('pl')}`} aria-sort={sortKey === 'pl' ? 'descending' : undefined}>{L('Floating P/L', 'Floating P/L')}{sortMark('pl')}</th>
+                    <th className={`py-2.5 px-3 text-right ${sortedCol('today')}`} aria-sort={ariaSort('today')}>{L('Harga', 'Price')}{sortMark('today')}</th>
+                    <th className={`py-2.5 px-3 text-right ${sortedCol('value')}`} aria-sort={ariaSort('value')}>{L('Nilai pasar', 'Market value')}{sortMark('value')}</th>
+                    <th className={`py-2.5 px-3 text-right ${sortedCol('pl')}`} aria-sort={ariaSort('pl')}>{L('Floating P/L', 'Floating P/L')}{sortMark('pl')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Div. 12 bln', 'Div. 12m')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Aksi', 'Actions')}</th>
                   </tr>
