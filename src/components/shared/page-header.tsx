@@ -32,7 +32,7 @@ export function PageHeader({ icon: Icon, eyebrow, title, description, actions, c
       <div className="absolute -bottom-16 left-1/3 w-56 h-56 rounded-full bg-sky-500/[0.05] blur-[80px] pointer-events-none animate-float [animation-delay:-4s]" aria-hidden />
       <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <motion.div
-          className="space-y-2 min-w-0"
+          className="space-y-2 min-w-0 flex-1"
           initial="hidden"
           animate="show"
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
@@ -42,7 +42,7 @@ export function PageHeader({ icon: Icon, eyebrow, title, description, actions, c
             <span>{eyebrow}</span>
           </motion.div>
           <motion.h1 variants={ITEM} className="text-2xl md:text-3xl font-black tracking-tight text-white">{title}</motion.h1>
-          {description && <motion.div variants={ITEM} className="text-xs md:text-sm text-slate-400 leading-relaxed max-w-3xl">{description}</motion.div>}
+          {description && <motion.div variants={ITEM} className="text-xs md:text-sm text-slate-400 leading-relaxed">{description}</motion.div>}
         </motion.div>
         {actions && <div className="flex items-center gap-2 w-full md:w-auto shrink-0">{actions}</div>}
       </div>
