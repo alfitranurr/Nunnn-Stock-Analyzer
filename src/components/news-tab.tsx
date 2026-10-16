@@ -82,10 +82,14 @@ interface FeedResponse {
 
 const PAGE_SIZE = 12;
 const CLIENT_CACHE_MS = 5 * 60_000;
-const TABS: Tab[] = ['foryou', 'saham', 'global', 'makro', 'komoditas'];
+const TABS: Tab[] = ['foryou', 'saham', 'msci', 'insider', 'korporasi', 'regulasi', 'global', 'makro', 'komoditas'];
 const TAB_KEY: Record<Tab, string> = {
   foryou: 'news.tabForYou',
   saham: 'news.tabSaham',
+  msci: 'news.tabMsci',
+  insider: 'news.tabInsider',
+  korporasi: 'news.tabKorporasi',
+  regulasi: 'news.tabRegulasi',
   global: 'news.tabGlobal',
   makro: 'news.tabMakro',
   komoditas: 'news.tabKomoditas',
@@ -609,7 +613,11 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
           </button>
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" role="tablist">
+        {/* Di HP tab digeser ke samping; tepi kanan memudar sebagai tanda masih ada tab lain. */}
+        <div
+          className="flex gap-1.5 overflow-x-auto pb-1 pr-6 sm:pr-0 [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_88%,transparent)] lg:[mask-image:none]"
+          role="tablist"
+        >
           {TABS.map((id) => {
             const active = !activeQuery && tab === id;
             return (
@@ -618,9 +626,10 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => {
+                onClick={(e) => {
                   setTab(id);
                   clearSearch();
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 }}
                 className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap ${
                   active

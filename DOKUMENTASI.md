@@ -290,7 +290,14 @@ Data hanya diambil saat tab Berita dibuka (`isActive`), dan hasil per kategori d
 
 **Navigasi:**
 - Pencarian berita atau kode saham (maks 100 karakter), tombol hapus, dan tombol refresh.
-- Tab **Untuk Anda** (berita saham di watchlist), **Saham Indonesia**, **Pasar Global**, **Makro & Kebijakan**, **Komoditas**. Kategori lama `foreign`/`domestik`/`politik` di API dialihkan ke kategori baru.
+- Tab **Untuk Anda** (berita saham di watchlist), **Saham Indonesia**, **MSCI & Indeks**, **Insider**, **Aksi Korporasi**, **Regulasi Bursa**, **Pasar Global**, **Makro & Kebijakan**, **Komoditas**. Kategori lama `foreign`/`domestik`/`politik` di API dialihkan ke kategori baru.
+- Empat kategori ditambahkan 17 Okt 2026 (kueri di `CATEGORY_QUERIES`, [news.ts](src/lib/news.ts)); jumlah berita diuji dari media tepercaya dalam 7 hari:
+  - **MSCI & Indeks** (`msci`): MSCI, FTSE Russell, klasifikasi pasar (Emerging/Frontier/Standalone), rebalancing, free float. 85 berita; saat itu didominasi usulan MSCI menurunkan Indonesia ke Standalone Market.
+  - **Insider** (`insider`): direksi/komisaris/pengendali membeli atau menjual saham dan perubahan kepemilikan besar (data KSEI). 57 berita, mis. AMMN, ASII, BRMS, BYAN, MPIX.
+  - **Aksi Korporasi** (`korporasi`): rights issue, buyback, stock split, tender offer, private placement, dividen. Berita emiten AS (Nasdaq/Wall Street) dan harga buyback emas Antam dikecualikan. 44 berita.
+  - **Regulasi Bursa** (`regulasi`): suspensi, UMA, papan pemantauan khusus/FCA, delisting, go private, trading halt; delisting kripto/Nasdaq dikecualikan. 46 berita.
+- Di HP deretan tab digeser ke samping: tepi kanannya memudar sebagai tanda masih ada tab lain, dan tab yang diklik bergeser ke tengah.
+- Data insider terstruktur seperti Stockbit (investor, aksi, lembar, broker, persentase) bersumber dari laporan KSEI pemegang saham di atas 5% yang dipublikasikan di halaman Pengumuman idx.co.id. Halaman itu diproteksi Cloudflare (403 "Just a moment..." untuk akses server), dan KSEI tidak menyediakan feed langsung, jadi belum diambil otomatis.
 - Tab Untuk Anda tanpa watchlist menampilkan ajakan "Buka Watchlist".
 
 **Feed** (`/api/news`, Google News RSS 7 hari terakhir):

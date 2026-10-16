@@ -11,13 +11,21 @@ export interface NewsItem {
   tickers: string[]; // Kode saham BEI yang disebut di judul
 }
 
-export type NewsCategory = 'saham' | 'global' | 'makro' | 'komoditas';
+export type NewsCategory = 'saham' | 'msci' | 'insider' | 'korporasi' | 'regulasi' | 'global' | 'makro' | 'komoditas';
 
-export const NEWS_CATEGORIES: NewsCategory[] = ['saham', 'global', 'makro', 'komoditas'];
+export const NEWS_CATEGORIES: NewsCategory[] = ['saham', 'msci', 'insider', 'korporasi', 'regulasi', 'global', 'makro', 'komoditas'];
 
 /** Kueri Google News per kategori (Bahasa Indonesia, 7 hari terakhir ditambahkan oleh route). */
 export const CATEGORY_QUERIES: Record<NewsCategory, string> = {
   saham: 'saham OR IHSG OR emiten OR "Bursa Efek Indonesia"',
+  // Klasifikasi pasar & indeks global (MSCI/FTSE): status Emerging/Frontier/Standalone, rebalancing, free float.
+  msci: '(MSCI OR "FTSE Russell" OR "FTSE Global" OR "klasifikasi pasar" OR "standalone market" OR "frontier market" OR "emerging market" OR "rebalancing indeks" OR "free float") -kripto',
+  // Transaksi orang dalam & perubahan kepemilikan besar (laporan KSEI >5%/>1%, direksi/komisaris/pengendali).
+  insider: '("kepemilikan saham" OR "di atas 5%" OR "data KSEI" OR "pemegang saham utama" OR "borong saham" OR "akumulasi saham" OR "lepas saham" OR "jual saham" OR "tambah kepemilikan") (KSEI OR direktur OR komisaris OR pengendali OR "pemegang saham") -kripto -Nasdaq',
+  // Aksi korporasi emiten BEI; buyback emas Antam & aksi emiten AS dikecualikan.
+  korporasi: '("aksi korporasi" OR "rights issue" OR "right issue" OR buyback OR "stock split" OR "tender offer" OR "private placement" OR "pembagian dividen" OR "cum dividen") saham -Nasdaq -"Wall Street" -"harga buyback" -kripto -Antam',
+  // Pengawasan BEI: suspensi, UMA, papan pemantauan khusus/FCA, delisting, trading halt.
+  regulasi: '("suspensi saham" OR "unusual market activity" OR UMA OR "papan pemantauan khusus" OR "full call auction" OR delisting OR "go private" OR "trading halt") BEI -Nasdaq -Binance -kripto',
   global: '"Wall Street" OR "bursa Asia" OR "The Fed" OR Nasdaq OR "S&P 500" OR "pasar global"',
   makro: '"Bank Indonesia" OR "BI Rate" OR inflasi OR APBN OR rupiah OR OJK OR "neraca perdagangan" OR "kebijakan fiskal"',
   komoditas: '"harga batu bara" OR "harga nikel" OR "harga emas" OR "harga minyak" OR CPO OR komoditas',
