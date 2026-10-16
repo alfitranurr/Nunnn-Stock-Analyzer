@@ -18,12 +18,16 @@ import {
   FileText,
   Eye,
   Flame,
+  Bookmark,
+  BookmarkCheck,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 import type { AppUser } from '@/lib/types';
 import type { NewsCategory, NewsItem } from '@/lib/news';
 import { useWatchlist } from '@/lib/watchlist-store';
+import { SAVED_NEWS_MAX, useSavedNews } from '@/lib/saved-news-store';
 import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { formatNumberLocale } from '@/lib/format';
@@ -39,7 +43,7 @@ interface NewsTabProps {
   isActive: boolean;
 }
 
-type Tab = 'foryou' | NewsCategory;
+type Tab = 'foryou' | 'saved' | NewsCategory;
 
 type Sentiment = 'positive' | 'negative' | 'neutral';
 
@@ -82,9 +86,10 @@ interface FeedResponse {
 
 const PAGE_SIZE = 12;
 const CLIENT_CACHE_MS = 5 * 60_000;
-const TABS: Tab[] = ['foryou', 'saham', 'msci', 'insider', 'korporasi', 'regulasi', 'global', 'makro', 'komoditas'];
+const TABS: Tab[] = ['foryou', 'saved', 'saham', 'msci', 'insider', 'korporasi', 'regulasi', 'global', 'makro', 'komoditas'];
 const TAB_KEY: Record<Tab, string> = {
   foryou: 'news.tabForYou',
+  saved: 'news.tabSaved',
   saham: 'news.tabSaham',
   msci: 'news.tabMsci',
   insider: 'news.tabInsider',
@@ -169,6 +174,8 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
   const isId = language === 'id';
   const L = (id: string, en: string) => (isId ? id : en);
   const watchlist = useWatchlist();
+  const saved = useSavedNews();
+  const [saveNotice, setSaveNotice] = React.useState<string | null>(null);
 
   const [tab, setTab] = React.useState<Tab>('saham');
   const [searchInput, setSearchInput] = React.useState('');
@@ -186,6 +193,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
   const cacheRef = React.useRef(new Map<string, { at: number; data: FeedResponse }>());
 
   const watchSymbols = watchlist.entries.map((e) => e.symbol).sort().join(',');
+  const showingSaved = !activeQuery && tab === 'saved';
   const feedKey = activeQuery
     ? `q:${activeQuery.toLowerCase()}`
     : tab === 'foryou'
@@ -195,6 +203,11 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
   const loadFeed = React.useCallback(async (force = false) => {
     setVisibleCount(PAGE_SIZE);
+    // Tab Tersimpan dibaca dari store lokal/cloud, tidak dari Google News.
+    if (!activeQuery && tab === 'saved') {
+      setStatus('ready');
+      return;
+    }
     if (needsWatchlist) {
       setItems([]);
       setFilteredUntrusted(0);
@@ -256,20 +269,44 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
     return () => clearInterval(interval);
   }, [isActive]);
 
-  const visible = items.slice(0, visibleCount);
+  // Berita tersimpan diurutkan menurut tanggal terbit agar pengelompokan per hari tetap rapi.
+  const savedSorted = React.useMemo(
+    () => [...saved.items].sort((a, b) => (Date.parse(b.pubDate) || 0) - (Date.parse(a.pubDate) || 0)),
+    [saved.items]
+  );
+  const feedItems: NewsItem[] = showingSaved ? savedSorted : items;
+  const visible = feedItems.slice(0, visibleCount);
+
+  // Pesan singkat setelah menyimpan/menghapus.
+  React.useEffect(() => {
+    if (!saveNotice) return;
+    const timer = setTimeout(() => setSaveNotice(null), 2200);
+    return () => clearTimeout(timer);
+  }, [saveNotice]);
+
+  const toggleSaved = (item: NewsItem) => {
+    if (saved.has(item.id)) {
+      saved.remove(item.id);
+      setSaveNotice(L('Dihapus dari Tersimpan', 'Removed from Saved'));
+    } else if (saved.save(item)) {
+      setSaveNotice(L('Berita disimpan. Buka tab Tersimpan untuk membacanya lagi.', 'Saved. Open the Saved tab to read it later.'));
+    } else {
+      setSaveNotice(L(`Maksimal ${SAVED_NEWS_MAX} berita tersimpan. Hapus beberapa dulu.`, `Up to ${SAVED_NEWS_MAX} saved stories. Remove some first.`));
+    }
+  };
 
   // ─── Sorotan feed: emiten paling banyak diberitakan & rangkuman sentimen AI yang sudah dibuka ───
   const highlights = React.useMemo(() => {
     const counts = new Map<string, number>();
-    for (const item of items) for (const tk of new Set(item.tickers)) counts.set(tk, (counts.get(tk) ?? 0) + 1);
+    for (const item of feedItems) for (const tk of new Set(item.tickers)) counts.set(tk, (counts.get(tk) ?? 0) + 1);
     const top = [...counts.entries()].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 6);
-    const sources = new Set(items.map((i) => i.source)).size;
+    const sources = new Set(feedItems.map((i) => i.source)).size;
     const sentiments = { positive: 0, negative: 0, neutral: 0 };
     for (const a of Object.values(analyses)) {
       if (a?.status === 'ready' && a.data.mode === 'ai' && a.data.sentiment) sentiments[a.data.sentiment] += 1;
     }
     return { top, sources, sentiments, analyzed: sentiments.positive + sentiments.negative + sentiments.neutral };
-  }, [items, analyses]);
+  }, [feedItems, analyses]);
 
   // Harga saham yang disebut di berita yang tampil + saham terdampak hasil analisis AI.
   const quoteSymbols = React.useMemo(() => {
@@ -629,7 +666,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                 onClick={(e) => {
                   setTab(id);
                   clearSearch();
-                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 }}
                 className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap ${
                   active
@@ -638,9 +675,13 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                 }`}
               >
                 {id === 'foryou' && <Star className={`h-3.5 w-3.5 ${active ? 'fill-white' : 'text-amber-400'}`} />}
+                {id === 'saved' && <Bookmark className={`h-3.5 w-3.5 ${active ? 'fill-white' : 'text-sky-400'}`} />}
                 {t(TAB_KEY[id])}
                 {id === 'foryou' && watchlist.entries.length > 0 && (
                   <span className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-500'}`}>{watchlist.entries.length}</span>
+                )}
+                {id === 'saved' && saved.items.length > 0 && (
+                  <span className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-500'}`}>{saved.items.length}</span>
                 )}
               </button>
             );
@@ -658,7 +699,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
       </div>
 
       {/* Sorotan feed */}
-      {status === 'ready' && items.length > 0 && (highlights.top.length > 0 || highlights.analyzed > 0) && (
+      {status === 'ready' && feedItems.length > 0 && (highlights.top.length > 0 || highlights.analyzed > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -698,7 +739,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
             </div>
           )}
           <p className="text-[10px] text-slate-500">
-            {L(`${items.length} berita dari ${highlights.sources} media`, `${items.length} stories from ${highlights.sources} outlets`)}
+            {L(`${feedItems.length} berita dari ${highlights.sources} media`, `${feedItems.length} stories from ${highlights.sources} outlets`)}
             {highlights.analyzed > 0 &&
               L(
                 ` · ${highlights.analyzed} dianalisis AI: ${highlights.sentiments.positive} positif, ${highlights.sentiments.negative} negatif, ${highlights.sentiments.neutral} netral`,
@@ -739,7 +780,18 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
             {L('Buka Watchlist', 'Open Watchlist')}
           </button>
         </div>
-      ) : items.length === 0 ? (
+      ) : showingSaved && feedItems.length === 0 ? (
+        <div className="border border-dashed border-border-color bg-card-bg rounded-2xl p-10 text-center flex flex-col items-center gap-3">
+          <Bookmark className="w-8 h-8 text-sky-400" />
+          <h3 className="text-base font-bold text-white">{L('Belum ada berita tersimpan', 'No saved stories yet')}</h3>
+          <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+            {L(
+              'Tekan Simpan di kartu berita mana pun untuk menyimpannya di sini, termasuk berita yang sudah lewat 7 hari.',
+              'Press Save on any story to keep it here, including stories older than 7 days.'
+            )}
+          </p>
+        </div>
+      ) : feedItems.length === 0 ? (
         <div className="border border-border-color bg-card-bg rounded-2xl p-10 text-center flex flex-col items-center gap-3">
           <Newspaper className="w-8 h-8 text-emerald-400" />
           <h3 className="text-base font-bold text-white">{t('news.noNews')}</h3>
@@ -762,6 +814,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
               {group.items.map((item) => {
                 const state = analyses[item.id];
                 const isOpen = !!expanded[item.id];
+                const isSaved = saved.has(item.id);
                 const sentiment = state?.status === 'ready' && state.data.mode === 'ai' ? SENTIMENT_STYLE[state.data.sentiment ?? 'neutral'] : null;
                 return (
                   <motion.article
@@ -795,11 +848,26 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                         {item.tickers.map((tk) => (
                           <TickerChip key={tk} ticker={tk} quote={quotes[tk]} language={language} onSelect={onSelectTicker} />
                         ))}
+                        <div className="ml-auto flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleSaved(item)}
+                          aria-pressed={isSaved}
+                          title={isSaved ? L('Hapus dari Tersimpan', 'Remove from Saved') : L('Simpan berita ini', 'Save this story')}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 cursor-pointer border transition-colors ${
+                            isSaved
+                              ? 'bg-sky-500/15 border-sky-500/35 text-sky-300'
+                              : 'bg-input-bg border-border-color hover:border-sky-500/30 text-slate-300 hover:text-white'
+                          }`}
+                        >
+                          {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5 text-sky-400" />}
+                          <span className="hidden min-[400px]:inline">{isSaved ? L('Tersimpan', 'Saved') : L('Simpan', 'Save')}</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => toggleAnalysis(item)}
                           aria-expanded={isOpen}
-                          className={`ml-auto px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 cursor-pointer border transition-colors ${
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 cursor-pointer border transition-colors ${
                             isOpen
                               ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-400'
                               : 'bg-input-bg border-border-color hover:border-emerald-500/30 text-slate-300 hover:text-white'
@@ -810,6 +878,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                           {t('news.aiSummary')}
                           {user ? (isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />) : <Lock className="w-3 h-3 text-slate-400" />}
                         </button>
+                        </div>
                       </div>
                     </div>
 
@@ -832,24 +901,48 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
             </section>
           ))}
 
-          {visibleCount < items.length && (
+          {visibleCount < feedItems.length && (
             <button
               type="button"
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
               className="w-full py-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 cursor-pointer"
             >
-              {L(`Muat lebih banyak (${items.length - visibleCount} lagi)`, `Load more (${items.length - visibleCount} more)`)}
+              {L(`Muat lebih banyak (${feedItems.length - visibleCount} lagi)`, `Load more (${feedItems.length - visibleCount} more)`)}
             </button>
           )}
 
           <p className="text-[10px] text-slate-500 text-center">
-            {L('Sumber: Google News · berita 7 hari terakhir', 'Source: Google News · last 7 days')}
-            {filteredUntrusted > 0 && L(
+            {showingSaved
+              ? L(
+                  `${feedItems.length}/${SAVED_NEWS_MAX} berita tersimpan · ${user && !user.isMock ? 'tersinkron ke akun Anda' : 'tersimpan di browser ini'}`,
+                  `${feedItems.length}/${SAVED_NEWS_MAX} saved stories · ${user && !user.isMock ? 'synced to your account' : 'stored in this browser'}`
+                )
+              : L('Sumber: Google News · berita 7 hari terakhir', 'Source: Google News · last 7 days')}
+            {!showingSaved && filteredUntrusted > 0 && L(
               ` · ${filteredUntrusted} berita dari media di luar daftar kurasi disembunyikan`,
               ` · ${filteredUntrusted} articles from outlets outside the curated list are hidden`
             )}
           </p>
         </div>
+      )}
+
+      {/* Portal ke body: elemen ber-transform (animasi) di atasnya membuat `fixed` tidak menempel ke layar. */}
+      {typeof document !== 'undefined' && createPortal(
+      <AnimatePresence>
+        {saveNotice && (
+          <motion.div
+            role="status"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl border border-sky-500/30 bg-[#0f1a22]/95 backdrop-blur text-xs font-semibold text-sky-100 shadow-xl flex items-center gap-2 max-w-[calc(100vw-32px)]"
+          >
+            <BookmarkCheck className="h-4 w-4 text-sky-400 shrink-0" />
+            {saveNotice}
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
       )}
     </div>
   );

@@ -299,6 +299,7 @@ Data hanya diambil saat tab Berita dibuka (`isActive`), dan hasil per kategori d
 - Di HP deretan tab digeser ke samping: tepi kanannya memudar sebagai tanda masih ada tab lain, dan tab yang diklik bergeser ke tengah.
 - Data insider terstruktur seperti Stockbit (investor, aksi, lembar, broker, persentase) bersumber dari laporan KSEI pemegang saham di atas 5% yang dipublikasikan di halaman Pengumuman idx.co.id. Halaman itu diproteksi Cloudflare (403 "Just a moment..." untuk akses server), dan KSEI tidak menyediakan feed langsung, jadi belum diambil otomatis.
 - Tab Untuk Anda tanpa watchlist menampilkan ajakan "Buka Watchlist".
+- **Simpan berita** ([saved-news-store.ts](src/lib/saved-news-store.ts)): tombol **Simpan** (ikon bookmark) di setiap kartu, di sebelah Analisis AI (di layar < 400px hanya ikon). Berita tersimpan tampil di tab **Tersimpan** (dengan jumlah), dikelompokkan per tanggal terbit, tetap ada walau sudah lewat 7 hari. Menyimpan/menghapus memunculkan notifikasi singkat. Maks 200 berita. Pola penyimpanannya sama dengan watchlist: selalu di localStorage, dan bila login ke Supabase disinkronkan ke tabel `user_saved_news` ([migrasi 000013](supabase/migrations/20261017000013_user_saved_news.sql)); data cloud menang saat login. Tanpa login, berita tersimpan di browser.
 
 **Feed** (`/api/news`, Google News RSS 7 hari terakhir):
 - Judul dibersihkan dari akhiran " - Nama Media", berita duplikat dan konten video dibuang, nama sumber berupa URL diganti domainnya.
@@ -994,6 +995,7 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | `ipo_plans` | price, total_lots, oversubscription (≥ 0 sejak migrasi 000008), total_subscribers, retail_ratio 0–100 (desimal, untuk rasio pemesan ritel), personal_order_lots, retail_demand_pct & queue_pct ([migrasi 000008](supabase/migrations/20261008000008_ipo_plans_allocation_inputs.sql)) | ipo/ipo-tab. Bila migrasi 000008 belum dijalankan, simpan otomatis memakai kolom lama |
 | `user_approvals` | email, approved, is_admin, approved_by, updated_at | page.tsx, auth-modal, admin-panel, `requireUser` (server). Produksi sempat memakai tabel versi lama tanpa fungsi admin; diperbaiki 8 Okt 2026 dengan [000009](supabase/migrations/20261008000009_repair_production_schema.sql) (idempotent, setara 000004–000008) dan [000010](supabase/migrations/20261008000010_harden_claim_first_admin.sql) (`claim_first_admin` wajib login, jalur insert tidak lagi dipaksa pending, fungsi admin dicabut dari anon). Diverifikasi: pemanggilan anonim ditolak `permission denied`, baris uji terhapus |
 | `portfolio_monthly` | user_id + month (PK, tanggal 1), start_value, end_value, first_recorded_at, updated_at ([migrasi 000012](supabase/migrations/20261011000012_portfolio_monthly.sql)) | jurnal Target & Performa di Portofolio (`912aef4`) |
+| `user_saved_news` | user_id (PK), items jsonb (array, maks 200), updated_at ([migrasi 000013](supabase/migrations/20261017000013_user_saved_news.sql)) | saved-news-store, tab Tersimpan di Berita |
 | `user_watchlists` | user_id (PK), items jsonb (array, maks 20), updated_at ([migrasi 000007](supabase/migrations/20261007000007_create_user_watchlists.sql)) | watchlist-store. Ada di produksi sejak 000009 (8 Okt 2026) |
 | `app_settings` | key (PK), value jsonb, updated_at, updated_by ([migrasi 000011](supabase/migrations/20261008000011_app_settings.sql)). **Pengecualian aturan pemilik baris:** semua orang boleh membaca; tidak ada policy tulis, perubahan hanya lewat RPC `admin_set_app_setting(p_key, p_value)` (SECURITY DEFINER, wajib login + `is_admin()`, key yang diizinkan: `idx_listed_official`) | listing-coverage (angka emiten resmi BEI), route `/api/admin/listed-official` |
 
@@ -1032,6 +1034,7 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `nunnn_stock_trading_rules_{uid}` | localStorage | Catatan aturan trading pribadi |
 | `nunnn_stock_analysis_recent` | localStorage | Maks 6 kode saham terakhir yang dianalisis |
 | `nunnn_stock_analysis_ai` | localStorage | Sakelar Sentimen AI (`0` = mati; default menyala) |
+| `nunnn_stock_saved_news` | localStorage | Berita tersimpan (maks 200, `NewsItem` + `savedAt`); cadangan lokal dari `user_saved_news` |
 | `nunnn_stock_watchlist` | localStorage | Watchlist (maks 20, `{symbol, name, target?: {price, kind: 'buy' \| 'sell'}}`); cadangan lokal dari `user_watchlists` |
 | `nunnn_stock_portfolio_holdings_{uid}` / `_cash_{uid}` | localStorage | Portofolio lokal ([portfolio-store](src/lib/portfolio-store.ts)) |
 | `nunnn_stock_mock_user` | localStorage | Sesi user demo |

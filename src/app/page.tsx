@@ -8,6 +8,7 @@ import { ResultsDisplay } from '@/components/results-display';
 import { HomeDashboard } from '@/components/home/home-dashboard';
 import { WatchlistPage } from '@/components/watchlist/watchlist-page';
 import { connectWatchlistToUser } from '@/lib/watchlist-store';
+import { connectSavedNewsToUser } from '@/lib/saved-news-store';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio/portfolio-tab';
@@ -516,9 +517,11 @@ export default function Dashboard() {
   }, [setCurrentTab]);
 
 
-  // Sinkronkan watchlist dengan akun Supabase (fallback ke browser).
+  // Sinkronkan watchlist & berita tersimpan dengan akun Supabase (fallback ke browser).
   React.useEffect(() => {
-    void connectWatchlistToUser(user && !user.isMock ? user.id : null);
+    const userId = user && !user.isMock ? user.id : null;
+    void connectWatchlistToUser(userId);
+    void connectSavedNewsToUser(userId);
   }, [user]);
 
   const handleAnalyzeFromPortfolio = (ticker: string) => {
