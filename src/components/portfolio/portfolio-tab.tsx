@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, ArrowDownRight, ArrowUpDown, ArrowUpRight, Briefcase, Calculator, Edit3, Lightbulb, LineChart, Lock, PieChart, Plus, RefreshCw, Trash2, UserPlus, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowDownRight, ArrowUpDown, ArrowUpRight, Briefcase, Calculator, Edit3, HandCoins, Lightbulb, LineChart, Lock, PieChart, Plus, RefreshCw, Trash2, UserPlus, Wallet } from 'lucide-react';
 import { AnimatedNumber, GrowBar, Stagger, StaggerItem } from '@/components/shared/motion';
 import { StepperInput } from '@/components/stepper-input';
 import { CompanyLogo } from '@/components/company-logo';
@@ -21,6 +21,9 @@ import { deleteHolding, loadPortfolio, saveCash, saveHolding, type Holding, type
 import { Badge, Card, CardTitle, Segmented, Stat, fmtInput, formatDate, pct, pick, rp2 as rp, sanitizeNumber, stepMagnitude } from '@/components/shared/calc-ui';
 import { HoldingModal, type HoldingModalMode, type HoldingSubmit } from './holding-modal';
 import { PerformanceJournal, usePortfolioJournal } from './performance-journal';
+import { SellModal, type SellSubmit } from './sell-modal';
+import { TransactionHistory } from './transaction-history';
+import { addTransaction, deleteTransaction, loadTransactions, sellBreakdown, type PortfolioTransaction, type TransactionSource } from '@/lib/portfolio-transactions';
 
 interface PortfolioTabProps {
   user: AppUser | null;
@@ -92,7 +95,13 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
   const [editingCash, setEditingCash] = React.useState(false);
   const [cashStr, setCashStr] = React.useState('');
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [view, setView] = React.useState<'holdings' | 'journal'>('holdings');
+  const [view, setView] = React.useState<'holdings' | 'journal' | 'history'>('holdings');
+  const [selling, setSelling] = React.useState<Holding | null>(null);
+  const [txs, setTxs] = React.useState<PortfolioTransaction[]>([]);
+  const [txSource, setTxSource] = React.useState<TransactionSource>('local');
+  const [txWarning, setTxWarning] = React.useState<string | null>(null);
+  const [txLoaded, setTxLoaded] = React.useState(false);
+  const [txToDelete, setTxToDelete] = React.useState<PortfolioTransaction | null>(null);
   const [confirmResetJournal, setConfirmResetJournal] = React.useState(false);
 
   const { trading } = useIdxSessionState(isActive);
@@ -104,8 +113,12 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
 
   const loadData = async () => {
     if (!user) return;
-    const next = await loadPortfolio(user);
+    const [next, tx] = await Promise.all([loadPortfolio(user), loadTransactions(user)]);
     setData(next);
+    setTxs(tx.list);
+    setTxSource(tx.source);
+    setTxWarning(tx.warning);
+    setTxLoaded(true);
     setLoading(false);
   };
 
@@ -242,9 +255,21 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
     showToast(message);
   };
 
+  /** Catat transaksi; kegagalan (mis. tabel belum ada) tidak membatalkan perubahan posisi. */
+  const recordTx = async (tx: Parameters<typeof addTransaction>[2]) => {
+    if (!user) return;
+    try {
+      await addTransaction(user, txSource, tx);
+    } catch (err) {
+      showToast(L(`Posisi tersimpan, tetapi riwayat gagal dicatat: ${err instanceof Error ? err.message : err}`, `Position saved, but the history record failed: ${err instanceof Error ? err.message : err}`), 'error');
+    }
+  };
+
   const submitHolding = async (payload: HoldingSubmit) => {
     if (!user || !data) return;
-    await saveHolding(user, data.source, payload);
+    const { trade, ...holding } = payload;
+    await saveHolding(user, data.source, holding);
+    if (trade) await recordTx({ ticker: payload.ticker, side: 'buy', lot: trade.lot, price: trade.price, feePct: null, avgCost: null, realizedPl: null });
     setModal(null);
     await afterChange(payload.id ? L(`Posisi ${payload.ticker} diperbarui.`, `${payload.ticker} position updated.`) : L(`${payload.ticker} ditambahkan.`, `${payload.ticker} added.`));
   };
@@ -262,6 +287,37 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
     try {
       await deleteHolding(user, data.source, target.id);
       await afterChange(L(`${target.ticker} dihapus dari portofolio.`, `${target.ticker} removed from the portfolio.`));
+    } catch (err) {
+      showToast(L(`Gagal menghapus: ${err instanceof Error ? err.message : err}`, `Failed to delete: ${err instanceof Error ? err.message : err}`), 'error');
+    }
+  };
+
+  const submitSell = async ({ holding, lot, price, feePct, addToCash }: SellSubmit) => {
+    if (!user || !data) return;
+    const b = sellBreakdown(lot, price, holding.avg_price, feePct);
+    if (lot >= holding.lot) await deleteHolding(user, data.source, holding.id);
+    else await saveHolding(user, data.source, { ...holding, lot: holding.lot - lot });
+    await recordTx({ ticker: holding.ticker, side: 'sell', lot, price, feePct, avgCost: holding.avg_price, realizedPl: Math.round(b.realized * 100) / 100 });
+    if (addToCash && data.cash !== null) {
+      try {
+        await saveCash(user, data.source, data.cash + b.net);
+      } catch (err) {
+        showToast(L(`Penjualan tercatat, tetapi kas gagal diperbarui: ${err instanceof Error ? err.message : err}`, `Sale recorded, but cash failed to update: ${err instanceof Error ? err.message : err}`), 'error');
+      }
+    }
+    setSelling(null);
+    const plTxt = `${b.realized >= 0 ? '+' : '−'}${rp(Math.abs(b.realized), language)}`;
+    await afterChange(L(`${lot} lot ${holding.ticker} terjual. Realized P/L ${plTxt}.`, `${lot} lots of ${holding.ticker} sold. Realized P/L ${plTxt}.`));
+  };
+
+  const confirmDeleteTx = async () => {
+    const target = txToDelete;
+    setTxToDelete(null);
+    if (!user || !target) return;
+    try {
+      await deleteTransaction(user, txSource, target.id);
+      await loadData();
+      showToast(L('Catatan transaksi dihapus.', 'Transaction record deleted.'));
     } catch (err) {
       showToast(L(`Gagal menghapus: ${err instanceof Error ? err.message : err}`, `Failed to delete: ${err instanceof Error ? err.message : err}`), 'error');
     }
@@ -519,12 +575,17 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
         ariaLabel={L('Tampilan portofolio', 'Portfolio view')}
         value={view}
         onChange={setView}
-        className="w-full sm:w-96"
+        className="w-full sm:w-[34rem]"
         options={[
           { value: 'holdings', label: L('Kepemilikan', 'Holdings') },
-          { value: 'journal', label: L('Target & Performa', 'Target & Performance') },
+          { value: 'journal', label: <><span className="sm:hidden">{L('Target', 'Target')}</span><span className="hidden sm:inline">{L('Target & Performa', 'Target & Performance')}</span></> },
+          { value: 'history', label: <><span className="sm:hidden">{L('Riwayat', 'History')}</span><span className="hidden sm:inline">{L('Riwayat & Realized', 'History & Realized')}</span></> },
         ]}
       />
+
+      {view === 'history' && (
+        <TransactionHistory language={language} list={txs} loaded={txLoaded} source={txSource} warning={txWarning} onDelete={setTxToDelete} />
+      )}
 
       {view === 'journal' && user && (
         <PerformanceJournal
@@ -774,6 +835,9 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                           <button type="button" onClick={() => onAvgDownClick(r.h.ticker, r.h.lot, r.h.avg_price)} className={`${actionBtn} bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20`} title="Avg Down" aria-label={`Avg Down ${r.h.ticker}`}>
                             <Calculator className="h-4 w-4" />
                           </button>
+                          <button type="button" onClick={() => setSelling(r.h)} className={`${actionBtn} bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/25`} title={L('Jual', 'Sell')} aria-label={L(`Jual ${r.h.ticker}`, `Sell ${r.h.ticker}`)}>
+                            <HandCoins className="h-4 w-4" />
+                          </button>
                           <button type="button" onClick={() => setModal({ kind: 'edit', holding: r.h })} className={`${actionBtn} bg-white/5 hover:bg-white/10 text-slate-300 border-white/10`} title={L('Ubah', 'Edit')} aria-label={L(`Ubah ${r.h.ticker}`, `Edit ${r.h.ticker}`)}>
                             <Edit3 className="h-4 w-4" />
                           </button>
@@ -817,9 +881,10 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                     <span className="text-[10px] uppercase font-bold text-slate-500 pt-0.5">{L('Dividen 12 bln', 'Dividends 12m')}</span>
                     <span className="text-right font-bold">{dividendCell(r)}</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
+                  <div className="grid grid-cols-5 gap-1.5 mt-3 pt-3 border-t border-white/5">
                     <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-teal-500/10 text-teal-400 border-teal-500/20`}><LineChart className="h-3.5 w-3.5" />{L('Analisis', 'Analyze')}</button>
                     <button type="button" onClick={() => onAvgDownClick(r.h.ticker, r.h.lot, r.h.avg_price)} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border-emerald-500/20`}><Calculator className="h-3.5 w-3.5" />Avg</button>
+                    <button type="button" onClick={() => setSelling(r.h)} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-amber-500/10 text-amber-300 border-amber-500/25`}><HandCoins className="h-3.5 w-3.5" />{L('Jual', 'Sell')}</button>
                     <button type="button" onClick={() => setModal({ kind: 'edit', holding: r.h })} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-white/5 text-slate-300 border-white/10`}><Edit3 className="h-3.5 w-3.5" />{L('Ubah', 'Edit')}</button>
                     <button type="button" onClick={() => setToDelete(r.h)} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-rose-500/10 text-rose-400 border-rose-500/20`}><Trash2 className="h-3.5 w-3.5" />{L('Hapus', 'Delete')}</button>
                   </div>
@@ -841,6 +906,28 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       )}
 
       <HoldingModal language={language} mode={modal} holdings={holdings} onClose={() => setModal(null)} onSubmit={submitHolding} />
+      <SellModal
+        language={language}
+        holding={selling}
+        marketPrice={selling ? rows.find((r) => r.h.id === selling.id)?.price ?? null : null}
+        cash={cash}
+        onClose={() => setSelling(null)}
+        onSubmit={submitSell}
+      />
+
+      <ConfirmModal
+        isOpen={txToDelete !== null}
+        onClose={() => setTxToDelete(null)}
+        onConfirm={() => void confirmDeleteTx()}
+        title={L('Hapus catatan transaksi?', 'Delete transaction record?')}
+        message={L(
+          `Catatan ${txToDelete?.side === 'sell' ? 'jual' : 'beli'} ${txToDelete?.lot ?? 0} lot ${txToDelete?.ticker ?? ''} dihapus dari riwayat. Posisi dan kas tidak berubah.`,
+          `The ${txToDelete?.side ?? ''} record of ${txToDelete?.lot ?? 0} lots ${txToDelete?.ticker ?? ''} is removed from history. Positions and cash stay unchanged.`
+        )}
+        confirmText={L('Ya, hapus', 'Yes, delete')}
+        cancelText={L('Batal', 'Cancel')}
+        type="danger"
+      />
 
       <ConfirmModal
         isOpen={confirmResetJournal}
