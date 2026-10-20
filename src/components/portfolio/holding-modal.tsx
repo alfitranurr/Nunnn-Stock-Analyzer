@@ -22,8 +22,6 @@ export interface HoldingSubmit {
   company_name?: string;
   lot: number;
   avg_price: number;
-  /** Pembelian baru (tambah / beli lagi) untuk riwayat transaksi; tidak diisi saat mengubah posisi. */
-  trade?: { lot: number; price: number };
 }
 
 interface HoldingModalProps {
@@ -109,9 +107,9 @@ function HoldingForm({ language, mode, holdings, onClose, onSubmit }: Omit<Holdi
       if (editing) {
         await onSubmit({ id: editing.id, ticker: editing.ticker, company_name: editing.company_name, lot, avg_price: price });
       } else if (existing && merged) {
-        await onSubmit({ id: existing.id, ticker, company_name: existing.company_name || knownName, lot: merged.lot, avg_price: Math.round(merged.avg * 100) / 100, trade: { lot, price } });
+        await onSubmit({ id: existing.id, ticker, company_name: existing.company_name || knownName, lot: merged.lot, avg_price: Math.round(merged.avg * 100) / 100 });
       } else {
-        await onSubmit({ ticker, company_name: knownName, lot, avg_price: price, trade: { lot, price } });
+        await onSubmit({ ticker, company_name: knownName, lot, avg_price: price });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

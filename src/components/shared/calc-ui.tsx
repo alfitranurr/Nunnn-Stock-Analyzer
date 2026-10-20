@@ -186,10 +186,9 @@ export function Stat({
   );
 }
 
-export function Badge({ children, tone = 'slate' }: { children: React.ReactNode; tone?: 'emerald' | 'amber' | 'slate' | 'sky' | 'rose' }) {
+export function Badge({ children, tone = 'slate' }: { children: React.ReactNode; tone?: 'emerald' | 'amber' | 'slate' | 'sky' }) {
   const cls = {
     emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-    rose: 'bg-rose-500/15 text-rose-400 border-rose-500/25',
     amber: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
     sky: 'bg-sky-500/15 text-sky-400 border-sky-500/25',
     slate: 'bg-white/5 text-slate-400 border-white/10',

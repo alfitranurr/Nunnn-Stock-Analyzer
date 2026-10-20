@@ -594,14 +594,6 @@ Dibangun ulang di `3b89457`. Data dibaca/ditulis lewat [lib/portfolio-store.ts](
 - Tombol **Mulai ulang jurnal** (dengan konfirmasi) dan kotak **Aturan trading pribadi** (tersimpan di browser). Di HP kolom Bulan menempel saat tabel digeser.
 - **Penyimpanan:** tabel Supabase `portfolio_monthly` ([migrasi 000012](supabase/migrations/20261011000012_portfolio_monthly.sql)) untuk akun cloud; localStorage `nunnn_stock_portfolio_monthly_{uid}` di mode lokal. Bila tabel belum ada, jurnal disimpan di browser dan muncul petunjuk menjalankan migrasi.
 
-**Jual & tab Riwayat & Realized** (20 Okt 2026; [sell-modal.tsx](src/components/portfolio/sell-modal.tsx), [transaction-history.tsx](src/components/portfolio/transaction-history.tsx), [lib/portfolio-transactions.ts](src/lib/portfolio-transactions.ts)):
-- Tombol **Jual** (ikon koin, amber) di setiap baris/kartu saham. Isian: lot dijual (tombol cepat 25%/50%/Semua, maks lot dimiliki), harga jual (default harga pasar, langkah fraksi BEI), fee jual (default 0,25% termasuk PPh final 0,1%). Pratinjau: nilai jual, fee, hasil bersih, modal (lot × 100 × harga rata-rata), **realized P/L** (Rp & %), sisa posisi. Opsi **Tambahkan hasil bersih ke kas RDN** (muncul bila kas sudah diatur; default aktif).
-- Setelah jual: posisi berkurang dengan harga rata-rata tetap, atau terhapus bila semua lot dijual; transaksi jual dicatat; kas bertambah sebesar hasil bersih bila dipilih.
-- Tambah saham / beli lagi otomatis mencatat transaksi beli (lot & harga beli). Mengubah posisi (Edit) tidak dicatat sebagai transaksi.
-- Tab ketiga **Riwayat & Realized**: realized bulan ini & tahun ini (WIB), total realized, win rate (jual untung vs rugi), dan daftar transaksi (Beli/Jual, waktu WIB, lot @ harga, nilai, avg saat jual, realized). Catatan bisa dihapus tanpa mengubah posisi/kas.
-- Diverifikasi di mode lokal: jual 100 lot GTSI @95 (avg 313,74, fee 0,25%) → nilai Rp950.000, fee Rp2.375, bersih Rp947.625, realized −Rp2.189.775 (−69,80%), kas Rp1.558 → Rp949.183, sisa 376 lot; beli lagi CUAN 10 lot @500 → 42 lot @742,16 + catatan beli.
-- **Penyimpanan:** tabel `portfolio_transactions` ([migrasi 000014](supabase/migrations/20261020000014_portfolio_transactions.sql)) untuk akun cloud; localStorage `nunnn_stock_portfolio_tx_{uid}` di mode lokal atau bila tabel belum ada (muncul petunjuk migrasi). Gagal mencatat riwayat tidak membatalkan perubahan posisi (muncul toast).
-
 **Urutan daftar saham:** kontrol berlabel **Urutkan berdasarkan** dengan arah yang jelas: Nilai ↓ (nilai pasar terbesar dulu), P/L % ↓, Hari ini ↓, Kode A–Z, beserta tooltip. Sejak 17 Okt 2026 pilihan yang sama bisa ditekan lagi untuk membalik arah (↓ ⇄ ↑, A–Z ⇄ Z–A), misalnya P/L % ↑ untuk melihat rugi terdalam di atas; saham tanpa harga selalu di bawah. Kolom tabel yang sedang dipakai mengurutkan diberi warna dan panah (`aria-sort`).
 
 **Ringkasan (5 kartu):** nilai portofolio (saham + kas bila diisi), modal, floating P/L (Rp & %), P/L hari ini (perubahan meragukan tidak dihitung), dan estimasi dividen 12 bulan (dividen kotor TTM × lembar, dari `/api/dividend/summary`) beserta yield on cost.
@@ -1011,7 +1003,6 @@ Semua tabel memakai RLS dengan aturan "pemilik baris sendiri" (`auth.uid() = use
 | `compounding_plans` | initial_amount, contribution_amount/frequency, annual_return_rate, compounding_frequency, duration_years/months, inflation_rate, tax_rate | compounding-tab (rencana trading memakai ulang kolom-kolom ini, lihat di bawah) |
 | `ipo_plans` | price, total_lots, oversubscription (≥ 0 sejak migrasi 000008), total_subscribers, retail_ratio 0–100 (desimal, untuk rasio pemesan ritel), personal_order_lots, retail_demand_pct & queue_pct ([migrasi 000008](supabase/migrations/20261008000008_ipo_plans_allocation_inputs.sql)) | ipo/ipo-tab. Bila migrasi 000008 belum dijalankan, simpan otomatis memakai kolom lama |
 | `user_approvals` | email, approved, is_admin, approved_by, updated_at | page.tsx, auth-modal, admin-panel, `requireUser` (server). Produksi sempat memakai tabel versi lama tanpa fungsi admin; diperbaiki 8 Okt 2026 dengan [000009](supabase/migrations/20261008000009_repair_production_schema.sql) (idempotent, setara 000004–000008) dan [000010](supabase/migrations/20261008000010_harden_claim_first_admin.sql) (`claim_first_admin` wajib login, jalur insert tidak lagi dipaksa pending, fungsi admin dicabut dari anon). Diverifikasi: pemanggilan anonim ditolak `permission denied`, baris uji terhapus |
-| `portfolio_transactions` | id, user_id, ticker, side (buy/sell), lot, price, fee_pct, avg_cost, realized_pl, traded_at ([migrasi 000014](supabase/migrations/20261020000014_portfolio_transactions.sql)) | tombol Jual & tab Riwayat & Realized di Portofolio |
 | `portfolio_monthly` | user_id + month (PK, tanggal 1), start_value, end_value, first_recorded_at, updated_at ([migrasi 000012](supabase/migrations/20261011000012_portfolio_monthly.sql)) | jurnal Target & Performa di Portofolio (`912aef4`) |
 | `user_saved_news` | user_id (PK), items jsonb (array, maks 200), updated_at ([migrasi 000013](supabase/migrations/20261017000013_user_saved_news.sql)) | saved-news-store, tab Tersimpan di Berita |
 | `user_watchlists` | user_id (PK), items jsonb (array, maks 20), updated_at ([migrasi 000007](supabase/migrations/20261007000007_create_user_watchlists.sql)) | watchlist-store. Ada di produksi sejak 000009 (8 Okt 2026) |
@@ -1048,8 +1039,6 @@ Rencana trading harian lama (`trading_daily`) tetap kompatibel.
 | `nunnn_stock_ipo_plans` | localStorage | Simulasi E-IPO tersimpan (mode lokal) |
 | `nunnn_stock_percentage_history` | localStorage | 5 riwayat persentase |
 | `nunnn_stock_portfolio_monthly_{uid}` | localStorage | Jurnal bulanan Portofolio (mode lokal / cadangan) |
-| `nunnn_stock_portfolio_tx_{uid}` | localStorage | Riwayat transaksi Portofolio (mode lokal / cadangan) |
-| `nunnn_stock_alert_notify` / `nunnn_stock_alerts_fired` | localStorage | Notifikasi browser alert harga incaran (on/off) / alert yang sudah tampil hari ini |
 | `nunnn_stock_journal_rates_{uid}` | localStorage | 4 target % per bulan di tab Target & Performa |
 | `nunnn_stock_trading_rules_{uid}` | localStorage | Catatan aturan trading pribadi |
 | `nunnn_stock_analysis_recent` | localStorage | Maks 6 kode saham terakhir yang dianalisis |
