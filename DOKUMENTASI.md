@@ -594,6 +594,8 @@ Dibangun ulang di `3b89457`. Data dibaca/ditulis lewat [lib/portfolio-store.ts](
 - Tombol **Mulai ulang jurnal** (dengan konfirmasi) dan kotak **Aturan trading pribadi** (tersimpan di browser). Di HP kolom Bulan menempel saat tabel digeser.
 - **Penyimpanan:** tabel Supabase `portfolio_monthly` ([migrasi 000012](supabase/migrations/20261011000012_portfolio_monthly.sql)) untuk akun cloud; localStorage `nunnn_stock_portfolio_monthly_{uid}` di mode lokal. Bila tabel belum ada, jurnal disimpan di browser dan muncul petunjuk menjalankan migrasi.
 
+Fitur Jual + tab Riwayat & Realized (`e48a7ff`, 20 Okt 2026) dibatalkan di `3c13479` atas permintaan pengguna: Portofolio fokus pada kepemilikan dan performanya (posisi diubah lewat Ubah/Hapus). Migrasi 000014 ikut dihapus sebelum dijalankan.
+
 **Urutan daftar saham:** kontrol berlabel **Urutkan berdasarkan** dengan arah yang jelas: Nilai ↓ (nilai pasar terbesar dulu), P/L % ↓, Hari ini ↓, Kode A–Z, beserta tooltip. Sejak 17 Okt 2026 pilihan yang sama bisa ditekan lagi untuk membalik arah (↓ ⇄ ↑, A–Z ⇄ Z–A), misalnya P/L % ↑ untuk melihat rugi terdalam di atas; saham tanpa harga selalu di bawah. Kolom tabel yang sedang dipakai mengurutkan diberi warna dan panah (`aria-sort`).
 
 **Ringkasan (5 kartu):** nilai portofolio (saham + kas bila diisi), modal, floating P/L (Rp & %), P/L hari ini (perubahan meragukan tidak dihitung), dan estimasi dividen 12 bulan (dividen kotor TTM × lembar, dari `/api/dividend/summary`) beserta yield on cost.
