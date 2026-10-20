@@ -19,6 +19,7 @@ import { fetchQuotes, type QuoteItem } from '@/lib/quotes';
 import { IDX_TICKERS } from '@/lib/tickers';
 import { formatIDRCompact, formatNumberLocale, parseFormattedNumber } from '@/lib/format';
 import { getAutoRejectionStatus, stepIdxPrice } from '@/lib/calculator';
+import { PriceAlertSettings } from './price-alerts';
 import { WATCHLIST_MAX, isTargetReached, useWatchlist, type WatchlistEntry, type WatchlistTargetKind } from '@/lib/watchlist-store';
 
 type SortMode = 'manual' | 'change' | 'value' | 'az';
@@ -291,6 +292,8 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
           />
         </div>
       )}
+
+      {entries.length > 0 && <PriceAlertSettings language={language} targetCount={entries.filter((e) => e.target).length} />}
 
       {reached.length > 0 && (
         <div role="status" className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">

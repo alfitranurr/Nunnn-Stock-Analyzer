@@ -9,6 +9,7 @@ import { HomeDashboard } from '@/components/home/home-dashboard';
 import { WatchlistPage } from '@/components/watchlist/watchlist-page';
 import { connectWatchlistToUser } from '@/lib/watchlist-store';
 import { connectSavedNewsToUser } from '@/lib/saved-news-store';
+import { PriceAlertWatcher } from '@/components/watchlist/price-alerts';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio/portfolio-tab';
@@ -662,6 +663,9 @@ export default function Dashboard() {
     <div className="flex h-dvh overflow-hidden">
       {/* Background decoration elements */}
       <div className="mesh-bg" />
+
+      {/* Alert harga incaran Watchlist (berjalan di halaman mana pun saat jam bursa) */}
+      <PriceAlertWatcher language={language} onAlert={(message) => showToast(message, 'info')} />
 
       <Sidebar 
         currentTab={currentTab} 
