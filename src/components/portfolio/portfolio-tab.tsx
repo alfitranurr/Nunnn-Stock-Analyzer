@@ -379,8 +379,8 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
     if (r.divFailed) {
       return (
         <span className={`inline-flex flex-col ${align === 'right' ? 'items-end' : 'items-start'}`}>
-          <span className="text-[10px] font-bold text-amber-400">{L('gagal dimuat', 'failed to load')}</span>
-          <button type="button" onClick={() => void loadDividends(divFailed)} className="text-[10px] font-bold text-slate-400 hover:text-white underline cursor-pointer">
+          <span className="text-[11px] font-bold text-amber-400">{L('gagal dimuat', 'failed to load')}</span>
+          <button type="button" onClick={() => void loadDividends(divFailed)} className="text-[11px] font-bold text-slate-400 hover:text-white underline cursor-pointer">
             {L('coba lagi', 'retry')}
           </button>
         </span>
@@ -391,14 +391,14 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       return (
         <span className="block">
           <span className="block text-amber-300">{rp(r.dividendYear, language)}</span>
-          {lastLine && <span className="block text-[10px] font-sans font-semibold text-slate-500">{lastLine}</span>}
+          {lastLine && <span className="block text-[11px] font-sans font-semibold text-slate-500">{lastLine}</span>}
         </span>
       );
     }
     return (
       <span className="block" title={L('Tidak ada dividen dalam 12 bulan terakhir', 'No dividends in the last 12 months')}>
         <span className="block text-slate-600">—</span>
-        <span className="block text-[10px] font-sans font-semibold text-slate-500">
+        <span className="block text-[11px] font-sans font-semibold text-slate-500">
           {r.div.lastExDate ? L(`terakhir ${formatDate(r.div.lastExDate, language)}`, `last ${formatDate(r.div.lastExDate, language)}`) : L('belum pernah', 'never paid')}
         </span>
       </span>
@@ -426,7 +426,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
             <h2 className="text-lg font-black text-white">{t('portfolio.portfolioLocked')}</h2>
             <p className="text-sm text-slate-400 leading-relaxed">{t('portfolio.portfolioLockedDesc')}</p>
           </div>
-          <button type="button" onClick={onSignInClick} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold flex items-center gap-2 cursor-pointer">
+          <button type="button" onClick={onSignInClick} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold flex items-center gap-2 cursor-pointer">
             <UserPlus className="h-4 w-4" /> {t('portfolio.loginButton')}
           </button>
         </Card>
@@ -448,7 +448,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
         )}
         actions={
           <>
-            <button type="button" onClick={() => setModal({ kind: 'add' })} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer">
+            <button type="button" onClick={() => setModal({ kind: 'add' })} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold cursor-pointer">
               <Plus className="h-4 w-4" /> {L('Tambah saham', 'Add stock')}
             </button>
             <button
@@ -543,10 +543,10 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       {insights.length > 0 && (
         <Card className="py-4 sm:py-5">
           <div className="flex items-center justify-between gap-3 mb-3.5">
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-2">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-2">
               <Lightbulb className="h-4 w-4" /> {L('Wawasan portofolio', 'Portfolio insights')}
             </h2>
-            <span className="hidden sm:inline text-[10px] font-semibold text-slate-500">{L(`${insights.length} wawasan · dari posisi & harga terkini`, `${insights.length} insights · from positions & latest prices`)}</span>
+            <span className="hidden sm:inline text-[11px] font-semibold text-slate-500">{L(`${insights.length} wawasan · dari posisi & harga terkini`, `${insights.length} insights · from positions & latest prices`)}</span>
           </div>
           <Stagger
             className={`grid grid-cols-1 gap-3 ${
@@ -571,7 +571,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                     <it.icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1 flex flex-col">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{it.title}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{it.title}</span>
                     <span className={`text-sm font-black tabular-nums mt-0.5 ${toneCls.value}`}>{it.value}</span>
                     <p className="text-[11px] text-slate-400 leading-snug mt-1">{it.text}</p>
                     {it.action && (
@@ -597,7 +597,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           <div className="flex items-center gap-3">
             <span className="p-2 rounded-xl bg-sky-500/10 border border-sky-500/20"><Wallet className="h-4 w-4 text-sky-400" /></span>
             <div>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">{L('Kas RDN (opsional)', 'RDN cash (optional)')}</span>
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">{L('Kas RDN (opsional)', 'RDN cash (optional)')}</span>
               <span className="block text-sm font-black text-white">{cash !== null ? rp(cash, language) : L('Belum diatur', 'Not set')}</span>
             </div>
           </div>
@@ -616,7 +616,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                 className="flex-1 sm:w-56"
                 inputClassName="font-bold text-white"
               />
-              <button type="button" onClick={() => void submitCash()} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer">{L('Simpan', 'Save')}</button>
+              <button type="button" onClick={() => void submitCash()} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold cursor-pointer">{L('Simpan', 'Save')}</button>
               <button type="button" onClick={() => setEditingCash(false)} className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold cursor-pointer">{L('Batal', 'Cancel')}</button>
             </div>
           ) : (
@@ -648,7 +648,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           }
           right={rows.length > 1 ? (
             <div className="self-start flex flex-col items-start sm:items-end gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <ArrowUpDown className="h-3 w-3" /> {L('Urutkan berdasarkan', 'Sort by')}
               </span>
               <Segmented
@@ -693,7 +693,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
               <p className="text-sm font-bold text-white">{L('Portofolio masih kosong', 'Your portfolio is empty')}</p>
               <p className="text-xs text-slate-400 mt-1">{L('Tambahkan saham yang Anda pegang untuk mulai memantau.', 'Add the stocks you hold to start tracking.')}</p>
             </div>
-            <button type="button" onClick={() => setModal({ kind: 'add' })} className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+            <button type="button" onClick={() => setModal({ kind: 'add' })} className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <Plus className="h-4 w-4" /> {L('Tambah saham', 'Add stock')}
             </button>
           </div>
@@ -709,7 +709,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                 ))}
                 {allocation.rest > 0 && <GrowBar pct={allocation.rest} className="bg-slate-500" />}
               </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] font-bold text-slate-400">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] font-bold text-slate-400">
                 {allocation.shown.map((r, i) => (
                   <span key={r.h.id} className="flex items-center gap-1.5">
                     <span className={`h-2 w-2 rounded-full ${ALLOCATION_COLORS[i]}`} />
@@ -726,7 +726,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
             <div className="hidden lg:block overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                     <th className={`py-2.5 px-3 ${sortedCol('ticker')}`} aria-sort={ariaSort('ticker')}>{L('Saham', 'Stock')}{sortMark('ticker')}</th>
                     <th className="py-2.5 px-3 text-right">Lot</th>
                     <th className="py-2.5 px-3 text-right">{L('Avg', 'Avg')}</th>
@@ -745,25 +745,25 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                           <CompanyLogo symbol={r.h.ticker} size={34} />
                           <div className="min-w-0">
                             <span className="block font-black text-white">{r.h.ticker}</span>
-                            <span className="block text-[10px] text-slate-500 truncate max-w-[160px]">{cleanCompanyName(r.h.company_name) || '—'}</span>
+                            <span className="block text-[11px] text-slate-500 truncate max-w-[160px]">{cleanCompanyName(r.h.company_name) || '—'}</span>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-3 text-right tabular-nums">
                         {n0(r.h.lot)}
-                        <span className="block text-[10px] text-slate-500">{pct(r.weight, language, 2)}</span>
+                        <span className="block text-[11px] text-slate-500">{pct(r.weight, language, 2)}</span>
                       </td>
                       <td className="py-3 px-3 text-right font-mono">{rp(r.h.avg_price, language)}</td>
                       <td className="py-3 px-3 text-right font-mono">
                         {r.price !== null ? rp(r.price, language) : '—'}
-                        <span className={`block text-[10px] ${tone(r.todayPct)}`}>
+                        <span className={`block text-[11px] ${tone(r.todayPct)}`}>
                           {r.todayPct !== null ? signedPct(r.todayPct) : r.quote?.suspect ? L('data meragukan', 'suspect data') : ''}
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right font-mono font-bold text-white">{rp(r.value, language)}</td>
                       <td className={`py-3 px-3 text-right font-mono font-bold ${tone(r.pl)}`}>
                         {r.pl !== null ? signed(r.pl) : '—'}
-                        <span className="block text-[10px]">{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
+                        <span className="block text-[11px]">{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
                       </td>
                       <td className="py-3 px-3 text-right font-mono">{dividendCell(r)}</td>
                       <td className="py-3 px-3">
@@ -796,38 +796,38 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                     <div className="flex items-center gap-2.5 min-w-0">
                       <CompanyLogo symbol={r.h.ticker} size={38} />
                       <div className="min-w-0">
-                        <span className="block font-black text-white">{r.h.ticker} <span className="text-[10px] font-bold text-slate-500">{pct(r.weight, language, 2)}</span></span>
-                        <span className="block text-[10px] text-slate-500 truncate">{cleanCompanyName(r.h.company_name) || '—'}</span>
+                        <span className="block font-black text-white">{r.h.ticker} <span className="text-[11px] font-bold text-slate-500">{pct(r.weight, language, 2)}</span></span>
+                        <span className="block text-[11px] text-slate-500 truncate">{cleanCompanyName(r.h.company_name) || '—'}</span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <span className={`block text-sm font-black tabular-nums ${tone(r.pl)}`}>{r.pl !== null ? signed(r.pl) : '—'}</span>
-                      <span className={`block text-[10px] font-bold ${tone(r.pl)}`}>{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
+                      <span className={`block text-[11px] font-bold ${tone(r.pl)}`}>{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
                     </div>
                   </div>
                   <dl className="grid grid-cols-3 gap-2 mt-3 text-[11px]">
-                    <div><dt className="text-[9px] uppercase font-bold text-slate-500">Lot · Avg</dt><dd className="font-bold text-slate-200">{n0(r.h.lot)} · {rp(r.h.avg_price, language)}</dd></div>
+                    <div><dt className="text-[10px] uppercase font-bold text-slate-500">Lot · Avg</dt><dd className="font-bold text-slate-200">{n0(r.h.lot)} · {rp(r.h.avg_price, language)}</dd></div>
                     <div>
-                      <dt className="text-[9px] uppercase font-bold text-slate-500">{L('Harga', 'Price')}</dt>
+                      <dt className="text-[10px] uppercase font-bold text-slate-500">{L('Harga', 'Price')}</dt>
                       <dd className="font-bold text-slate-200">{r.price !== null ? rp(r.price, language) : '—'} <span className={tone(r.todayPct)}>{r.todayPct !== null ? signedPct(r.todayPct) : ''}</span></dd>
                     </div>
-                    <div><dt className="text-[9px] uppercase font-bold text-slate-500">{L('Nilai', 'Value')}</dt><dd className="font-bold text-white">{rp(r.value, language)}</dd></div>
+                    <div><dt className="text-[10px] uppercase font-bold text-slate-500">{L('Nilai', 'Value')}</dt><dd className="font-bold text-white">{rp(r.value, language)}</dd></div>
                   </dl>
                   <div className="flex items-start justify-between gap-3 mt-2.5 pt-2.5 border-t border-white/5 text-[11px]">
-                    <span className="text-[9px] uppercase font-bold text-slate-500 pt-0.5">{L('Dividen 12 bln', 'Dividends 12m')}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 pt-0.5">{L('Dividen 12 bln', 'Dividends 12m')}</span>
                     <span className="text-right font-bold">{dividendCell(r)}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
-                    <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} gap-1 py-1.5 text-[10px] font-bold bg-teal-500/10 text-teal-400 border-teal-500/20`}><LineChart className="h-3.5 w-3.5" />{L('Analisis', 'Analyze')}</button>
-                    <button type="button" onClick={() => onAvgDownClick(r.h.ticker, r.h.lot, r.h.avg_price)} className={`${actionBtn} gap-1 py-1.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border-emerald-500/20`}><Calculator className="h-3.5 w-3.5" />Avg</button>
-                    <button type="button" onClick={() => setModal({ kind: 'edit', holding: r.h })} className={`${actionBtn} gap-1 py-1.5 text-[10px] font-bold bg-white/5 text-slate-300 border-white/10`}><Edit3 className="h-3.5 w-3.5" />{L('Ubah', 'Edit')}</button>
-                    <button type="button" onClick={() => setToDelete(r.h)} className={`${actionBtn} gap-1 py-1.5 text-[10px] font-bold bg-rose-500/10 text-rose-400 border-rose-500/20`}><Trash2 className="h-3.5 w-3.5" />{L('Hapus', 'Delete')}</button>
+                    <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-teal-500/10 text-teal-400 border-teal-500/20`}><LineChart className="h-3.5 w-3.5" />{L('Analisis', 'Analyze')}</button>
+                    <button type="button" onClick={() => onAvgDownClick(r.h.ticker, r.h.lot, r.h.avg_price)} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border-emerald-500/20`}><Calculator className="h-3.5 w-3.5" />Avg</button>
+                    <button type="button" onClick={() => setModal({ kind: 'edit', holding: r.h })} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-white/5 text-slate-300 border-white/10`}><Edit3 className="h-3.5 w-3.5" />{L('Ubah', 'Edit')}</button>
+                    <button type="button" onClick={() => setToDelete(r.h)} className={`${actionBtn} gap-1 py-1.5 text-[11px] font-bold bg-rose-500/10 text-rose-400 border-rose-500/20`}><Trash2 className="h-3.5 w-3.5" />{L('Hapus', 'Delete')}</button>
                   </div>
                 </li>
               ))}
             </ul>
 
-            <p className="text-[10px] text-slate-500 mt-4 leading-relaxed">
+            <p className="text-[11px] text-slate-500 mt-4 leading-relaxed">
               {missingPrices > 0 && <><Badge tone="amber">{L(`${missingPrices} tanpa harga`, `${missingPrices} without price`)}</Badge>{' '}</>}
               {L(
                 'Floating P/L belum dipotong fee jual & PPh final 0,1%. Saham tanpa harga dinilai di harga rata-rata dan tidak dihitung ke P/L. Dividen 12 bln = dividen kotor per lembar 12 bulan terakhir × jumlah lembar sekarang.',

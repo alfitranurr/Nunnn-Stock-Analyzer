@@ -465,7 +465,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
           disabled={isSelf || busy}
           onClick={() => (u.approved ? setToSuspend(u) : void toggleApproval(u, true))}
           className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-            u.approved ? 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10' : 'border-emerald-500/40 bg-emerald-500 text-white hover:bg-emerald-400'
+            u.approved ? 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10' : 'border-emerald-500/40 bg-emerald-500 text-slate-950 hover:bg-emerald-400'
           }`}
         >
           {busy ? '…' : u.approved ? L('Tangguhkan', 'Suspend') : L('Setujui', 'Approve')}
@@ -596,7 +596,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                   type="button"
                   onClick={() => setConfirmBulk(true)}
                   disabled={busyEmail !== null}
-                  className="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                  className="px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
                 >
                   <UserCheck className="h-4 w-4" /> {L(`Setujui semua (${pendingCount})`, `Approve all (${pendingCount})`)}
                 </button>
@@ -617,7 +617,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                 <div className="hidden md:block overflow-x-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                      <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                         <th className="py-2.5 px-3">Email</th>
                         <th className="py-2.5 px-3">{L('Terdaftar (WIB)', 'Registered (WIB)')}</th>
                         <th className="py-2.5 px-3">Status</th>
@@ -644,7 +644,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                         {statusBadge(u)}
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-3">
-                        <span className="text-[10px] text-slate-500">{fmtDate(u.created_at)}</span>
+                        <span className="text-[11px] text-slate-500">{fmtDate(u.created_at)}</span>
                         {rowActions(u)}
                       </div>
                     </li>
@@ -653,7 +653,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
               </>
             )}
             {!cloud && (
-              <p className="text-[10px] text-slate-500 mt-4">{L('Mode demo: pengguna tersimpan di browser ini, tanggal daftar tidak dicatat.', 'Demo mode: users are stored in this browser; registration dates are not recorded.')}</p>
+              <p className="text-[11px] text-slate-500 mt-4">{L('Mode demo: pengguna tersimpan di browser ini, tanggal daftar tidak dicatat.', 'Demo mode: users are stored in this browser; registration dates are not recorded.')}</p>
             )}
           </Card>
         </>
@@ -698,7 +698,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
             {coverage && (
               <div className="mt-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
                 <div className="flex items-center justify-between gap-3 mb-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                     <BuildingIcon className="h-3.5 w-3.5 text-emerald-400" /> {L('Cakupan emiten BEI', 'IDX listing coverage')}
                   </span>
                   {!officialForm && (
@@ -725,21 +725,21 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
 
                 {officialForm && (
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-[8rem_10rem_minmax(0,1fr)_auto] gap-2 items-end">
-                    <label className="text-[10px] font-bold text-slate-400 flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-slate-400 flex flex-col gap-1">
                       {L('Jumlah emiten', 'Listed count')}
                       <input inputMode="numeric" value={officialForm.count} onChange={(e) => setOfficialForm({ ...officialForm, count: e.target.value.replace(/[^0-9]/g, '') })} className="px-3 py-2 rounded-xl bg-input-bg border border-border-color text-sm text-white font-bold" />
                     </label>
-                    <label className="text-[10px] font-bold text-slate-400 flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-slate-400 flex flex-col gap-1">
                       {L('Per tanggal', 'As of')}
                       <input type="date" value={officialForm.asOf} onChange={(e) => setOfficialForm({ ...officialForm, asOf: e.target.value })} className="px-3 py-2 rounded-xl bg-input-bg border border-border-color text-sm text-white" />
                     </label>
-                    <label className="text-[10px] font-bold text-slate-400 flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-slate-400 flex flex-col gap-1">
                       {L('Sumber', 'Source')}
                       <input value={officialForm.source} maxLength={120} placeholder={L('mis. idx.co.id / ANTARA News', 'e.g. idx.co.id / ANTARA News')} onChange={(e) => setOfficialForm({ ...officialForm, source: e.target.value })} className="px-3 py-2 rounded-xl bg-input-bg border border-border-color text-sm text-white" />
                     </label>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setOfficialForm(null)} className="px-3 py-2 rounded-xl border border-white/10 text-xs font-bold text-slate-300 cursor-pointer">{L('Batal', 'Cancel')}</button>
-                      <button type="button" onClick={() => void saveOfficial()} disabled={savingOfficial || !officialForm.count || !officialForm.asOf} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-50">
+                      <button type="button" onClick={() => void saveOfficial()} disabled={savingOfficial || !officialForm.count || !officialForm.asOf} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold cursor-pointer disabled:opacity-50">
                         {savingOfficial ? L('Menyimpan…', 'Saving…') : L('Simpan', 'Save')}
                       </button>
                     </div>
@@ -753,7 +753,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                     </summary>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {coverage.suspended.map((s) => (
-                        <span key={s.symbol} title={s.name} className="px-2 py-0.5 rounded-md border border-amber-500/25 bg-amber-500/10 text-[10px] font-bold text-amber-300">
+                        <span key={s.symbol} title={s.name} className="px-2 py-0.5 rounded-md border border-amber-500/25 bg-amber-500/10 text-[11px] font-bold text-amber-300">
                           {s.symbol}
                           {s.lastTrade && <span className="text-amber-200/60 font-semibold"> · {s.lastTrade}</span>}
                         </span>
@@ -761,7 +761,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                     </div>
                   </details>
                 )}
-                <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
                   {L(
                     'Situs BEI (idx.co.id) memblokir akses otomatis, jadi daftar resmi tidak bisa diambil langsung. Emiten aktif diambil dari TradingView, suspensi dideteksi dari kode lama yang masih punya data harga di Yahoo (dengan tanggal transaksi terakhir). Jumlah resmi diisi admin dan ikut tampil di Beranda.',
                     "IDX's site (idx.co.id) blocks automated access, so the official list can't be fetched directly. Active stocks come from TradingView; suspensions are detected from old codes that still have Yahoo prices (with last trade date). The official count is set by admin and shown on Home."
@@ -775,13 +775,13 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
             )}
             {universe && universe.newSymbols.length > 0 && (
               <div className="mt-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{L('Emiten baru yang kini ikut dipantau', 'Newly tracked stocks')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{L('Emiten baru yang kini ikut dipantau', 'Newly tracked stocks')}</span>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {universe.newSymbols.map((sym) => <Badge key={sym} tone="sky">{sym}</Badge>)}
                 </div>
               </div>
             )}
-            <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+            <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
               {L(
                 'Tombol "Perbarui data" di sidebar (akun admin) membuat semua cache data (harga, scan pasar, pasar global, berita, dividen, fundamental, teknikal, daftar emiten) kedaluwarsa di SEMUA server — server lain mengetahuinya paling lambat ±10 detik lewat penanda refresh bersama — lalu halaman yang sedang terbuka di browser ini (termasuk tab lain) langsung mengambil data baru. Pengunjung lain mendapat data baru pada pembaruan berikutnya. Data lama disimpan sebagai cadangan bila sumber sedang gagal. Hasil AI tidak dibuang karena tetap valid untuk berita yang sama (hemat token). Data Yahoo gratis tetap tertunda; harga real-time penuh butuh feed data berlisensi BEI.',
                 'The sidebar "Refresh data" button (admin account) expires every data cache (prices, market scan, global markets, news, dividends, fundamentals, technicals, stock list) on ALL servers — others learn about it within ~10 s via a shared refresh marker — then pages open in this browser (including other tabs) fetch new data immediately. Other visitors get new data on their next update. Old data is kept as a fallback if a source is failing. AI results are kept since they stay valid for the same news (saves tokens). Free Yahoo data stays delayed; true real-time prices need a licensed IDX data feed.'
@@ -831,8 +831,8 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                           <span className="text-xs font-bold text-white">{p.label}</span>
                           {r && r.status !== 'ok' && <Badge tone="amber">{r.status === 'missing' ? L('Belum ada', 'Missing') : L('Error', 'Error')}</Badge>}
                         </div>
-                        <span className="block text-[10px] font-mono text-slate-500 break-all">{p.migration}</span>
-                        {r?.detail && <span className="block text-[10px] text-slate-400 mt-0.5 break-words">{r.detail}</span>}
+                        <span className="block text-[11px] font-mono text-slate-500 break-all">{p.migration}</span>
+                        {r?.detail && <span className="block text-[11px] text-slate-400 mt-0.5 break-words">{r.detail}</span>}
                       </div>
                     </li>
                   );
@@ -851,7 +851,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                   )}
                 </div>
               )}
-              <p className="text-[10px] text-slate-500 mt-3">
+              <p className="text-[11px] text-slate-500 mt-3">
                 {L('Migrasi 000005 (RLS insert) dan 000006 (perbaikan claim_first_admin) tidak bisa diperiksa dari aplikasi; keduanya sudah termasuk di file perbaikan 000009.', 'Migrations 000005 (insert RLS) and 000006 (claim_first_admin fix) cannot be checked from the app; both are included in repair file 000009.')}
               </p>
             </Card>

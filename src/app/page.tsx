@@ -838,7 +838,7 @@ export default function Dashboard() {
           </div>
 
           {/* Footer branding */}
-          <div className="max-w-xs mx-auto w-full text-center text-[10px] text-slate-500 pt-3 pb-1 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5 no-print mt-auto shrink-0">
+          <div className="max-w-xs mx-auto w-full text-center text-[11px] text-slate-500 pt-3 pb-1 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5 no-print mt-auto shrink-0">
             <span>© 2026 Al Fitra Nur Ramadhani. All rights reserved.</span>
           </div>
 
@@ -916,7 +916,7 @@ export default function Dashboard() {
             whileTap={{ scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
             onClick={scrollToTop}
-            className={`fixed right-6 md:right-8 z-40 p-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/25 cursor-pointer transition-all duration-300 border border-emerald-400/30 flex items-center justify-center backdrop-blur-md group ${
+            className={`fixed right-6 md:right-8 z-40 p-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-xl shadow-emerald-500/25 cursor-pointer transition-all duration-300 border border-emerald-400/30 flex items-center justify-center backdrop-blur-md group ${
               toast ? 'bottom-24 md:bottom-26' : 'bottom-6 md:bottom-8'
             }`}
             title={language === 'id' ? 'Kembali ke atas' : 'Scroll to top'}

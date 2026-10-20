@@ -105,7 +105,7 @@ export function DripProjection(props: DripProjectionProps) {
             decrementLabel={`${t('calculator.decrease')} ${L('tahun', 'years')}`}
             incrementLabel={`${t('calculator.increase')} ${L('tahun', 'years')}`}
             inputClassName="font-bold text-white"
-            adornment={<span className="flex items-center pr-1 text-[10px] font-semibold text-slate-500">{L('tahun', 'years')}</span>}
+            adornment={<span className="flex items-center pr-1 text-[11px] font-semibold text-slate-500">{L('tahun', 'years')}</span>}
           />
         </Field>
         <Field
@@ -183,7 +183,7 @@ export function DripProjection(props: DripProjectionProps) {
           </div>
 
           <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-[10px] font-bold">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-[11px] font-bold">
               <span className="text-slate-500">{L('Nilai total portofolio', 'Total portfolio value')} · {L('maks', 'max')} {formatIDRCompact(maxV, language, 1)}</span>
               <span className="flex items-center gap-3">
                 <span className="flex items-center gap-1 text-emerald-400"><span className="h-0.5 w-4 bg-emerald-400 rounded" />DRIP</span>
@@ -201,7 +201,7 @@ export function DripProjection(props: DripProjectionProps) {
               <path d={path('plain')} fill="none" stroke="rgb(148 163 184)" strokeWidth="2" strokeDasharray="6 5" vectorEffect="non-scaling-stroke" />
               <path d={path('drip')} fill="none" stroke="rgb(52 211 153)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
             </svg>
-            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+            <div className="flex justify-between text-[11px] text-slate-500 mt-1">
               <span>{L('Sekarang', 'Now')}</span>
               <span>{L(`Tahun ${Math.ceil(years / 2)}`, `Year ${Math.ceil(years / 2)}`)}</span>
               <span>{L(`Tahun ${years}`, `Year ${years}`)}</span>
@@ -222,7 +222,7 @@ export function DripProjection(props: DripProjectionProps) {
             <div className="overflow-x-auto custom-scrollbar mt-2">
               <table className="w-full min-w-[720px] text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                     <th className="py-2.5 px-3">{L('Thn', 'Yr')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
                     <th className="py-2.5 px-3 text-right">DPS</th>
@@ -251,7 +251,7 @@ export function DripProjection(props: DripProjectionProps) {
             </div>
           )}
 
-          <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+          <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
             {L(
               'Asumsi: harga & dividen tumbuh konstan sesuai input, jadwal pembayaran mengikuti pola 12 bulan terakhir, tanpa pajak atas capital gain. Proyeksi bukan jaminan hasil.',
               'Assumptions: price and dividend grow at the constant rates above, payouts follow the last 12-month pattern, no capital-gain tax. Projections are not guarantees.'

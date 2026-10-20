@@ -105,11 +105,11 @@ export function CardTitle({ icon, title, subtitle, right }: { icon: React.ReactN
 export function Field({ label, htmlFor, children, hint }: { label: React.ReactNode; htmlFor?: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <label htmlFor={htmlFor} className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between gap-2">
+      <label htmlFor={htmlFor} className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between gap-2">
         {label}
       </label>
       {children}
-      {hint && <div className="text-[10px] text-slate-500 leading-snug">{hint}</div>}
+      {hint && <div className="text-[11px] text-slate-500 leading-snug">{hint}</div>}
     </div>
   );
 }
@@ -139,7 +139,7 @@ export function Segmented<T extends string>({
           aria-pressed={value === opt.value}
           className={cn(
             'flex-1 py-2 px-2 rounded-lg transition-all text-center whitespace-nowrap disabled:opacity-35 disabled:cursor-not-allowed',
-            value === opt.value ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-white cursor-pointer'
+            value === opt.value ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white cursor-pointer'
           )}
         >
           {opt.label}
@@ -174,7 +174,7 @@ export function Stat({
 }) {
   return (
     <div className={cn('p-3.5 rounded-2xl border min-w-0 transition-colors duration-500', TONES[tone], className)}>
-      <span className="text-[10px] font-bold uppercase tracking-wider block opacity-90">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wider block opacity-90">{label}</span>
       <div
         className={cn('text-[15px] min-[400px]:text-base sm:text-lg font-black text-white tracking-tight mt-1 tabular-nums truncate', valueClassName)}
         title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
@@ -193,5 +193,5 @@ export function Badge({ children, tone = 'slate' }: { children: React.ReactNode;
     sky: 'bg-sky-500/15 text-sky-400 border-sky-500/25',
     slate: 'bg-white/5 text-slate-400 border-white/10',
   }[tone];
-  return <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wide border whitespace-nowrap', cls)}>{children}</span>;
+  return <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide border whitespace-nowrap', cls)}>{children}</span>;
 }

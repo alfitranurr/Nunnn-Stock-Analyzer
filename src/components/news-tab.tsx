@@ -141,7 +141,7 @@ function TickerChip({
   const isId = language === 'id';
   const up = (quote?.change ?? 0) >= 0;
   return (
-    <span className="inline-flex items-stretch rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden text-[10px] font-bold">
+    <span className="inline-flex items-stretch rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden text-[11px] font-bold">
       <button
         type="button"
         onClick={() => onSelect(ticker)}
@@ -493,7 +493,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
     return (
       <div className="space-y-4">
         {/* Label analisis */}
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
           <span className={`px-2 py-0.5 rounded-md border ${sentiment.cls}`}>
             {sentiment[language]}
             {a.confidence && <span className="font-medium opacity-80"> · {CONFIDENCE_LABEL[a.confidence][language]}</span>}
@@ -521,7 +521,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
         {a.keyPoints && a.keyPoints.length > 0 && (
           <div className="space-y-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{L('Poin Penting', 'Key Points')}</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">{L('Poin Penting', 'Key Points')}</span>
             <ul className="space-y-1.5">
               {a.keyPoints.map((point, i) => (
                 <li key={i} className="flex gap-2 text-xs text-slate-300 leading-relaxed">
@@ -535,11 +535,11 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
         {((a.affectedTickers?.length ?? 0) > 0 || (a.relatedThemes?.length ?? 0) > 0) && (
           <div className="space-y-2.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{L('Saham Terdampak', 'Affected Stocks')}</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">{L('Saham Terdampak', 'Affected Stocks')}</span>
 
             {a.affectedTickers && a.affectedTickers.length > 0 && (
               <div className="space-y-1">
-                <span className="text-[10px] font-semibold text-slate-400">{L('Disebut di berita', 'Mentioned in the article')}</span>
+                <span className="text-[11px] font-semibold text-slate-400">{L('Disebut di berita', 'Mentioned in the article')}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {a.affectedTickers.map((tk) => (
                     <TickerChip key={tk} ticker={tk} quote={quotes[tk]} language={language} onSelect={onSelectTicker} />
@@ -550,14 +550,14 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
             {a.relatedThemes && a.relatedThemes.length > 0 && (
               <div className="space-y-2">
-                <span className="text-[10px] font-semibold text-slate-400">{L('Berpotensi terdampak (per sektor)', 'Potentially affected (by sector)')}</span>
+                <span className="text-[11px] font-semibold text-slate-400">{L('Berpotensi terdampak (per sektor)', 'Potentially affected (by sector)')}</span>
                 {a.relatedThemes.map((theme) => {
                   const effect = EFFECT_STYLE[theme.effect];
                   return (
                     <div key={theme.theme} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-[11px] font-bold text-slate-200">{isId ? theme.label_id : theme.label_en}</span>
-                        <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${effect.cls}`}>{effect[language]}</span>
+                        <span className={`px-1.5 py-0.5 rounded border text-[11px] font-bold ${effect.cls}`}>{effect[language]}</span>
                       </div>
                       {theme.reason && <p className="text-[11px] text-slate-400 leading-relaxed">{theme.reason}</p>}
                       <div className="flex flex-wrap gap-1.5">
@@ -568,7 +568,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                     </div>
                   );
                 })}
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[11px] text-slate-500">
                   {L(
                     'Emiten per sektor diambil dari peta tema terkurasi (urut dari yang terbesar), bukan rekomendasi.',
                     'Stocks per sector come from a curated theme map (largest first), not recommendations.'
@@ -581,7 +581,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
         {a.watchPoints && a.watchPoints.length > 0 && (
           <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
               <Eye className="h-3 w-3 text-emerald-400" />
               {L('Yang Perlu Dipantau', 'What to Watch')}
             </span>
@@ -594,7 +594,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5">
-          <p className="text-[10px] text-slate-500 leading-relaxed">{t('news.aiDisclaimer')}</p>
+          <p className="text-[11px] text-slate-500 leading-relaxed">{t('news.aiDisclaimer')}</p>
           <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:underline shrink-0">
             {t('news.readSource')} <ExternalLink className="h-3 w-3" />
           </a>
@@ -670,18 +670,18 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                 }}
                 className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap ${
                   active
-                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-md'
+                    ? 'bg-emerald-500 border-emerald-500 text-slate-950 shadow-md'
                     : 'border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                {id === 'foryou' && <Star className={`h-3.5 w-3.5 ${active ? 'fill-white' : 'text-amber-400'}`} />}
-                {id === 'saved' && <Bookmark className={`h-3.5 w-3.5 ${active ? 'fill-white' : 'text-sky-400'}`} />}
+                {id === 'foryou' && <Star className={`h-3.5 w-3.5 ${active ? 'fill-slate-950' : 'text-amber-400'}`} />}
+                {id === 'saved' && <Bookmark className={`h-3.5 w-3.5 ${active ? 'fill-slate-950' : 'text-sky-400'}`} />}
                 {t(TAB_KEY[id])}
                 {id === 'foryou' && watchlist.entries.length > 0 && (
-                  <span className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-500'}`}>{watchlist.entries.length}</span>
+                  <span className={`text-[11px] ${active ? 'text-slate-950/70' : 'text-slate-500'}`}>{watchlist.entries.length}</span>
                 )}
                 {id === 'saved' && saved.items.length > 0 && (
-                  <span className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-500'}`}>{saved.items.length}</span>
+                  <span className={`text-[11px] ${active ? 'text-slate-950/70' : 'text-slate-500'}`}>{saved.items.length}</span>
                 )}
               </button>
             );
@@ -708,7 +708,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
         >
           {highlights.top.length > 0 && (
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 flex items-center gap-1 shrink-0">
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-amber-400 flex items-center gap-1 shrink-0">
                 <Flame className="h-3.5 w-3.5" /> {L('Paling diberitakan', 'Most covered')}
               </span>
               <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-0.5 min-w-0">
@@ -723,7 +723,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                         setActiveQuery(tk);
                       }}
                       title={L(`Tampilkan berita ${tk}`, `Show ${tk} news`)}
-                      className="shrink-0 px-2 py-1 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-amber-500/10 hover:border-amber-500/30 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="shrink-0 px-2 py-1 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-amber-500/10 hover:border-amber-500/30 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <span className="text-white">{tk}</span>
                       <span className="text-slate-500">×{count}</span>
@@ -738,7 +738,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
               </div>
             </div>
           )}
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[11px] text-slate-500">
             {L(`${feedItems.length} berita dari ${highlights.sources} media`, `${feedItems.length} stories from ${highlights.sources} outlets`)}
             {highlights.analyzed > 0 &&
               L(
@@ -751,9 +751,9 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
       {/* Feed */}
       {status === 'error' ? (
-        <div className="border border-red-500/20 bg-red-500/10 p-4 rounded-xl flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-red-200 space-y-2">
+        <div className="border border-rose-500/20 bg-rose-500/10 p-4 rounded-xl flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-rose-200 space-y-2">
             <p>{L('Gagal memuat berita. Periksa koneksi lalu coba lagi.', 'Failed to load the news. Check your connection and try again.')}</p>
             <button type="button" onClick={() => loadFeed(true)} className="font-bold text-emerald-400 hover:underline cursor-pointer">
               {L('Coba lagi', 'Try again')}
@@ -776,7 +776,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
           <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
             {L('Tambahkan saham ke watchlist, dan tab ini akan menampilkan berita khusus saham-saham tersebut.', 'Add stocks to your watchlist and this tab will show news about those stocks.')}
           </p>
-          <button type="button" onClick={onOpenWatchlist} className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold cursor-pointer">
+          <button type="button" onClick={onOpenWatchlist} className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold cursor-pointer">
             {L('Buka Watchlist', 'Open Watchlist')}
           </button>
         </div>
@@ -810,7 +810,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
         <div className="space-y-5">
           {groups.map((group) => (
             <section key={group.label} className="space-y-2.5">
-              <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{group.label}</h2>
+              <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">{group.label}</h2>
               {group.items.map((item) => {
                 const state = analyses[item.id];
                 const isOpen = !!expanded[item.id];
@@ -840,7 +840,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                           <time dateTime={item.pubDate}>{relativeTime(item.pubDate)}</time>
                         </span>
                         {sentiment && (
-                          <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${sentiment.cls}`}>{sentiment[language]}</span>
+                          <span className={`px-1.5 py-0.5 rounded border text-[11px] font-bold ${sentiment.cls}`}>{sentiment[language]}</span>
                         )}
                       </div>
 
@@ -911,7 +911,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
             </button>
           )}
 
-          <p className="text-[10px] text-slate-500 text-center">
+          <p className="text-[11px] text-slate-500 text-center">
             {showingSaved
               ? L(
                   `${feedItems.length}/${SAVED_NEWS_MAX} berita tersimpan · ${user && !user.isMock ? 'tersinkron ke akun Anda' : 'tersimpan di browser ini'}`,

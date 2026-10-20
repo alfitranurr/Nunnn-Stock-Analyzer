@@ -72,7 +72,7 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
       <CardShell className="lg:col-span-2 flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">
               {isId ? 'IHSG · Indeks Harga Saham Gabungan' : 'IHSG · Jakarta Composite Index'}
             </span>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-1">
@@ -83,7 +83,7 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-[10px] tabular-nums">
+          <div className="grid grid-cols-3 gap-4 text-[11px] tabular-nums">
             <div>
               <span className="text-slate-500 block">{isId ? 'Tutup Kemarin' : 'Prev Close'}</span>
               <span className="text-slate-200 font-semibold">{num(ihsg.previousClose)}</span>
@@ -102,14 +102,14 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
         {ihsg.intraday.length > 1 ? (
           <Sparkline values={ihsg.intraday} baseline={ihsg.previousClose} width={600} height={64} className="w-full" strokeWidth={2} filled />
         ) : (
-          <div className="h-16 flex items-center justify-center text-[10px] text-slate-600">
+          <div className="h-16 flex items-center justify-center text-[11px] text-slate-600">
             {isId ? 'Grafik intraday belum tersedia' : 'Intraday chart not available yet'}
           </div>
         )}
 
         {/* Rentang 52 minggu */}
         <div className="space-y-1">
-          <div className="flex justify-between text-[10px] text-slate-500 tabular-nums">
+          <div className="flex justify-between text-[11px] text-slate-500 tabular-nums">
             <span>{isId ? '52 mgg rendah' : '52w low'} {num(ihsg.yearLow)}</span>
             <span>{isId ? '52 mgg tinggi' : '52w high'} {num(ihsg.yearHigh)}</span>
           </div>
@@ -126,25 +126,25 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
       {/* Breadth */}
       <CardShell className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5 text-emerald-400" />
             {isId ? 'Breadth Pasar' : 'Market Breadth'}
           </span>
-          <span className={`text-[10px] font-bold ${breadthTone.cls}`}>{breadthTone[language]}</span>
+          <span className={`text-[11px] font-bold ${breadthTone.cls}`}>{breadthTone[language]}</span>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center tabular-nums">
           <div>
             <span className="text-xl font-black text-emerald-400 block">{num(breadth.advancers, 0)}</span>
-            <span className="text-[10px] text-slate-500">{isId ? 'Naik' : 'Up'}</span>
+            <span className="text-[11px] text-slate-500">{isId ? 'Naik' : 'Up'}</span>
           </div>
           <div>
             <span className="text-xl font-black text-slate-300 block">{num(breadth.unchanged, 0)}</span>
-            <span className="text-[10px] text-slate-500">{isId ? 'Tetap' : 'Flat'}</span>
+            <span className="text-[11px] text-slate-500">{isId ? 'Tetap' : 'Flat'}</span>
           </div>
           <div>
             <span className="text-xl font-black text-rose-400 block">{num(breadth.decliners, 0)}</span>
-            <span className="text-[10px] text-slate-500">{isId ? 'Turun' : 'Down'}</span>
+            <span className="text-[11px] text-slate-500">{isId ? 'Turun' : 'Down'}</span>
           </div>
         </div>
 
@@ -154,7 +154,7 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
           <GrowBar pct={pct(breadth.decliners)} className="bg-rose-500" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-[10px] tabular-nums">
+        <div className="grid grid-cols-2 gap-2 text-[11px] tabular-nums">
           <div className="px-2.5 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 flex justify-between">
             <span className="text-slate-400">ARA</span>
             <span className="font-bold text-emerald-400">{num(breadth.ara, 0)}</span>
@@ -165,14 +165,14 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
           </div>
         </div>
 
-        <p className="text-[10px] text-slate-500 mt-auto">
+        <p className="text-[11px] text-slate-500 mt-auto">
           {isId ? 'Nilai transaksi' : 'Turnover'} ≈ <strong className="text-slate-300">{formatIDRCompact(breadth.totalValue, language)}</strong>
           {' · '}
           {num(data.totalScanned, 0)} {isId ? 'saham dipantau' : 'stocks tracked'}
         </p>
         {data.dataQuality.excludedCount > 0 && (
           <p
-            className="text-[10px] text-amber-400/80"
+            className="text-[11px] text-amber-400/80"
             title={data.dataQuality.excluded
               .map((e) => `${e.symbol}: ${(ISSUE_LABEL[e.issue] ?? { id: e.issue, en: e.issue })[language]}`)
               .join(', ')}

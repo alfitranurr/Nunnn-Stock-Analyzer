@@ -347,7 +347,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
       <Card className="space-y-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-stretch">
           <div className="lg:col-span-2 flex flex-col gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{L('1. Pilih saham', '1. Choose a stock')}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{L('1. Pilih saham', '1. Choose a stock')}</span>
             <QuickSearchTicker language={language} onSelectTicker={selectTicker} />
           </div>
           <div className="lg:col-span-3 flex items-center gap-3 p-3 rounded-2xl bg-input-bg border border-border-color min-w-0">
@@ -366,7 +366,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                   ? `${livePrice.change > 0 ? '+' : ''}${formatNumberLocale(livePrice.change, language)} (${livePrice.changePercent > 0 ? '+' : ''}${pct(livePrice.changePercent, language)})`
                   : quoteFailed ? L('Harga gagal dimuat', 'Price unavailable') : ''}
               </div>
-              <div className="text-[9px] text-slate-500">
+              <div className="text-[10px] text-slate-500">
                 {livePrice ? `${L('Update', 'Updated')} ${formatWibTime(livePrice.at)} WIB · ${L('tertunda', 'delayed')}` : ''}
               </div>
             </div>
@@ -387,7 +387,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
         </div>
 
         <div className="pt-3 border-t border-white/10">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
             {L('Saham dividen populer · yield 12 bln di harga sekarang', 'Popular dividend stocks · 12-month yield at current price')}
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -401,11 +401,11 @@ export function DividendTab({ isActive }: DividendTabProps) {
                   onClick={() => selectTicker(s)}
                   aria-pressed={active}
                   className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                    active ? 'bg-emerald-500 text-white border-emerald-400 shadow-md' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+                    active ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <span>{s}</span>
-                  {y !== undefined && <span className={active ? 'text-white/80' : 'text-emerald-400'}>{pct(y, language, 1)}</span>}
+                  {y !== undefined && <span className={active ? 'text-slate-950/70' : 'text-emerald-400'}>{pct(y, language, 1)}</span>}
                 </button>
               );
             })}
@@ -476,7 +476,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
               <span className="h-7 w-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><ShoppingCart className="h-3.5 w-3.5 text-emerald-400" /></span>
               <div className="min-w-0">
                 <h3 className="text-xs font-black text-white leading-tight">{L('Posisi beli', 'Position')}</h3>
-                <p className="text-[10px] text-slate-500 leading-tight">{L('Berapa yang dibeli dan di harga berapa', 'How much you buy and at what price')}</p>
+                <p className="text-[11px] text-slate-500 leading-tight">{L('Berapa yang dibeli dan di harga berapa', 'How much you buy and at what price')}</p>
               </div>
             </div>
             <Segmented
@@ -510,7 +510,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                     decrementLabel={`${t('calculator.decrease')} ${L('modal', 'capital')}`}
                     incrementLabel={`${t('calculator.increase')} ${L('modal', 'capital')}`}
                     inputClassName="font-extrabold text-white"
-                    adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">Rp</span>}
+                    adornment={<span className="flex items-center pr-1 text-[11px] font-bold text-slate-500">Rp</span>}
                   />
                 </Field>
               ) : (
@@ -530,7 +530,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                     decrementLabel={`${t('calculator.decrease')} lot`}
                     incrementLabel={`${t('calculator.increase')} lot`}
                     inputClassName="font-extrabold text-white"
-                    adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">lot</span>}
+                    adornment={<span className="flex items-center pr-1 text-[11px] font-bold text-slate-500">lot</span>}
                   />
                 </Field>
               )}
@@ -564,7 +564,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                   decrementLabel={`${t('calculator.decrease')} ${L('harga', 'price')}`}
                   incrementLabel={`${t('calculator.increase')} ${L('harga', 'price')}`}
                   inputClassName="font-extrabold text-white"
-                  adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">Rp</span>}
+                  adornment={<span className="flex items-center pr-1 text-[11px] font-bold text-slate-500">Rp</span>}
                 />
               </Field>
               <Field label={L('Fee beli broker', 'Broker buy fee')} htmlFor={`${fieldId}-fee`}>
@@ -584,7 +584,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
               </Field>
               <Field label={L('Total dibeli', 'Total bought')}>
                 <div className="glass-input bg-white/[0.02] flex items-center justify-between gap-2 px-3 py-2.5">
-                  <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap">{formatNumberLocale(sim.shares, language)} {L('lembar', 'shares')}</span>
+                  <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">{formatNumberLocale(sim.shares, language)} {L('lembar', 'shares')}</span>
                   <span className="text-xs font-extrabold text-white tabular-nums truncate">{rp(sim.totalCostRp, language)}</span>
                 </div>
               </Field>
@@ -597,7 +597,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
               <span className="h-7 w-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0"><Receipt className="h-3.5 w-3.5 text-emerald-400" /></span>
               <div className="min-w-0">
                 <h3 className="text-xs font-black text-white leading-tight">{L('Dividen & pajak', 'Dividend & tax')}</h3>
-                <p className="text-[10px] text-slate-500 leading-tight">{L('Dasar dividen per lembar dan tarif pajaknya', 'Dividend basis per share and its tax rate')}</p>
+                <p className="text-[11px] text-slate-500 leading-tight">{L('Dasar dividen per lembar dan tarif pajaknya', 'Dividend basis per share and its tax rate')}</p>
               </div>
             </div>
             <Segmented
@@ -630,7 +630,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                 decrementLabel={`${t('calculator.decrease')} ${L('dividen', 'dividend')}`}
                 incrementLabel={`${t('calculator.increase')} ${L('dividen', 'dividend')}`}
                 inputClassName="font-extrabold text-emerald-400"
-                adornment={<span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">Rp</span>}
+                adornment={<span className="flex items-center pr-1 text-[11px] font-bold text-slate-500">Rp</span>}
               />
             </Field>
             <Field label={L('Pajak dividen', 'Dividend tax')}>
@@ -651,7 +651,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                     }`}
                   >
                     <span className={`block text-xs font-black ${taxPreset === opt.id ? 'text-emerald-400' : 'text-white'}`}>{opt.rate}</span>
-                    <span className="block text-[10px] leading-tight text-slate-400 mt-0.5">{opt.sub}</span>
+                    <span className="block text-[11px] leading-tight text-slate-400 mt-0.5">{opt.sub}</span>
                   </button>
                 ))}
               </div>
@@ -682,7 +682,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="p-5 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-card-bg to-[#121619] relative overflow-hidden">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">{L('Dividen bersih / tahun', 'Net dividend / year')}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">{L('Dividen bersih / tahun', 'Net dividend / year')}</span>
             <div className="text-3xl md:text-4xl font-black text-emerald-400 tracking-tight mt-1 tabular-nums break-all">
               <AnimatedNumber value={sim.netAnnualRp} format={(v) => rp(v, language)} fromZero />
             </div>
@@ -707,7 +707,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
 
           <div className="p-5 rounded-3xl border border-white/10 bg-white/[0.02]">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400">{L('Pembagian berikutnya', 'Next payout')}</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">{L('Pembagian berikutnya', 'Next payout')}</span>
               {nextPayment && <Badge tone={nextPayment.confirmed ? 'sky' : 'amber'}>{nextPayment.confirmed ? L('Terjadwal', 'Scheduled') : L('Perkiraan', 'Estimate')}</Badge>}
             </div>
             {nextPayment && todayIso ? (
@@ -718,7 +718,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                   <dt className="text-slate-400">{L('Batas beli (cum) ≈', 'Last buy (cum) ≈')}</dt>
                   <dd className="text-right font-bold text-white">
                     {formatDate(nextPayment.cumDate, language)}
-                    <span className="block text-[10px] font-semibold text-slate-500">
+                    <span className="block text-[11px] font-semibold text-slate-500">
                       {(() => {
                         const d = daysBetween(todayIso, nextPayment.cumDate);
                         return d > 0 ? L(`${d} hari lagi`, `in ${d} days`) : d === 0 ? L('hari ini', 'today') : L('sudah lewat', 'passed');
@@ -739,7 +739,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
           </div>
 
           <div className="p-5 rounded-3xl border border-white/10 bg-white/[0.02]">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">{L('Yield', 'Yield')}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">{L('Yield', 'Yield')}</span>
             <div className="text-2xl font-black text-white mt-1 tabular-nums">{pct(sim.netYieldOnCostPct, language)}</div>
             <p className="text-[11px] text-slate-400">{L('bersih terhadap modal terpakai (yield on cost)', 'net on capital used (yield on cost)')}</p>
             <dl className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-y-1.5 text-[11px]">
@@ -777,7 +777,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                     className={`p-1.5 sm:p-2 rounded-xl border text-center min-w-0 ${c.count > 0 ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-white/[0.02] border-white/5'}`}
                     title={c.count > 0 ? `${formatMonth(c.key, language, true)}: ${rp(c.net, language)}` : undefined}
                   >
-                    <span className={`block text-[9px] sm:text-[10px] font-bold uppercase whitespace-nowrap ${c.count > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>{formatMonth(c.key, language, true)}</span>
+                    <span className={`block text-[10px] sm:text-[11px] font-bold uppercase whitespace-nowrap ${c.count > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>{formatMonth(c.key, language, true)}</span>
                     <div className="h-6 sm:h-8 flex items-end justify-center mt-1">
                       {c.count > 0 && (
                         <motion.div
@@ -788,7 +788,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                         />
                       )}
                     </div>
-                    <span className={`block text-[9px] sm:text-[10px] font-bold tabular-nums truncate mt-1 ${c.count > 0 ? 'text-white' : 'text-slate-600'}`}>
+                    <span className={`block text-[10px] sm:text-[11px] font-bold tabular-nums truncate mt-1 ${c.count > 0 ? 'text-white' : 'text-slate-600'}`}>
                       {c.count > 0 ? formatIDRCompact(c.net, language, 1).replace('Rp ', '') : '–'}
                     </span>
                   </div>
@@ -804,11 +804,11 @@ export function DividendTab({ isActive }: DividendTabProps) {
                       <span className="font-black text-emerald-400 tabular-nums">{rp(p.netRp, language)}</span>
                     </div>
                     <dl className="grid grid-cols-3 gap-2 mt-2">
-                      <div><dt className="text-[9px] uppercase font-bold text-slate-500">{L('Batas beli', 'Last buy')}</dt><dd className="font-bold text-white">{formatDate(p.cumDate, language)}</dd></div>
-                      <div><dt className="text-[9px] uppercase font-bold text-slate-500">Ex date</dt><dd className="text-slate-300">{formatDate(p.exDate, language)}</dd></div>
-                      <div><dt className="text-[9px] uppercase font-bold text-slate-500">{L('Cair ≈', 'Paid ≈')}</dt><dd className="text-slate-300">{formatDate(p.payDate, language)}</dd></div>
+                      <div><dt className="text-[10px] uppercase font-bold text-slate-500">{L('Batas beli', 'Last buy')}</dt><dd className="font-bold text-white">{formatDate(p.cumDate, language)}</dd></div>
+                      <div><dt className="text-[10px] uppercase font-bold text-slate-500">Ex date</dt><dd className="text-slate-300">{formatDate(p.exDate, language)}</dd></div>
+                      <div><dt className="text-[10px] uppercase font-bold text-slate-500">{L('Cair ≈', 'Paid ≈')}</dt><dd className="text-slate-300">{formatDate(p.payDate, language)}</dd></div>
                     </dl>
-                    <p className="text-[10px] text-slate-500 mt-1.5">{L(`${rpShare(p.dps, language)} / lembar`, `${rpShare(p.dps, language)} / share`)}</p>
+                    <p className="text-[11px] text-slate-500 mt-1.5">{L(`${rpShare(p.dps, language)} / lembar`, `${rpShare(p.dps, language)} / share`)}</p>
                   </li>
                 ))}
               </ul>
@@ -816,7 +816,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
               <div className="hidden sm:block overflow-x-auto custom-scrollbar mt-3">
                 <table className="w-full min-w-[640px] text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                    <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                       <th className="py-2.5 px-3">Status</th>
                       <th className="py-2.5 px-3">{L('Batas beli (cum) ≈', 'Last buy (cum) ≈')}</th>
                       <th className="py-2.5 px-3">Ex date</th>
@@ -839,7 +839,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
                   </tbody>
                 </table>
               </div>
-              <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
+              <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
                 {L(
                   `Total 12 bulan ke depan: ${rp(scheduleNet, language)}. Tanggal perkiraan mengikuti pola pembagian 12 bulan terakhir, nominalnya diskalakan ke dividen tahunan yang dipilih dengan proporsi interim/final aslinya. Pastikan dengan pengumuman resmi emiten.`,
                   `Next 12 months total: ${rp(scheduleNet, language)}. Estimated dates follow the last 12-month payout pattern; amounts are scaled to the chosen annual dividend using the actual interim/final proportions. Confirm with the issuer's official announcement.`

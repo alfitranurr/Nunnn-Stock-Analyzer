@@ -53,7 +53,7 @@ export function ConfirmModal({
       case 'warning':
         return 'bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_12px_rgba(217,119,6,0.2)] hover:shadow-[0_0_16px_rgba(217,119,6,0.4)]';
       default:
-        return 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.2)]';
+        return 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.2)]';
     }
   };
 

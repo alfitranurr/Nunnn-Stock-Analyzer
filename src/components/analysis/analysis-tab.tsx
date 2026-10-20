@@ -268,7 +268,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
             <h2 className="text-lg font-black text-white">{L('Masuk untuk membuka analisis', 'Sign in to unlock analysis')}</h2>
             <p className="text-sm text-slate-400 leading-relaxed">{L('Analisis Saham Pro memakai kuota data dan AI, jadi hanya tersedia untuk akun terdaftar.', 'Pro Stock Analysis uses data and AI quota, so it is available to registered accounts only.')}</p>
           </div>
-          <button type="button" onClick={onSignInClick} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold flex items-center gap-2 cursor-pointer">
+          <button type="button" onClick={onSignInClick} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold flex items-center gap-2 cursor-pointer">
             <UserPlus className="h-4 w-4" /> {L('Masuk / Daftar', 'Sign in / Register')}
           </button>
         </Card>
@@ -281,7 +281,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
 
   const chipRow = (label: string, items: string[]) => (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 shrink-0 w-16">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 shrink-0 w-16">{label}</span>
       <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 min-w-0">
         {items.map((s) => (
           <button
@@ -297,7 +297,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
               if (!q || q.suspect || q.changePercent === null || !Number.isFinite(q.changePercent)) return null;
               const c = q.changePercent;
               return (
-                <span className={`text-[10px] font-bold tabular-nums ${c > 0 ? 'text-emerald-400' : c < 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                <span className={`text-[11px] font-bold tabular-nums ${c > 0 ? 'text-emerald-400' : c < 0 ? 'text-rose-400' : 'text-slate-500'}`}>
                   {c > 0 ? '+' : ''}{formatNumberLocale(c, language, 1)}%
                 </span>
               );
@@ -356,7 +356,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
             type="button"
             onClick={analyze}
             disabled={!selected || busy}
-            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed min-w-44"
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed min-w-44"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : reanalyze ? <RotateCw className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {busy ? L('Menganalisis…', 'Analyzing…') : reanalyze ? L('Analisis ulang', 'Analyze again') : selected ? L(`Analisis ${selected}`, `Analyze ${selected}`) : L('Analisis', 'Analyze')}
@@ -364,7 +364,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
         </div>
       </div>
 
-      <p className="text-[10px] text-slate-500 mt-2.5 leading-relaxed">
+      <p className="text-[11px] text-slate-500 mt-2.5 leading-relaxed">
         {aiOn
           ? L(
               'Sentimen AI memakai kuota AI hanya saat tombol Analisis ditekan. Hasilnya disimpan ±30 menit, jadi analisis ulang saham yang sama dengan berita yang sama tidak memakai kuota lagi.',
@@ -527,7 +527,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
           )}
         </div>
         {td && (
-          <p className="text-[10px] text-slate-500 mt-3">
+          <p className="text-[11px] text-slate-500 mt-3">
             {L('Data per', 'Data as of')} {asOf} WIB · {td.source.label}
             {td.source.delayed ? L(' · bisa tertunda hingga ~10 menit', ' · may be delayed up to ~10 minutes') : ''}
             {limits && q

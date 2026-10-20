@@ -37,7 +37,7 @@ export function PageHeader({ icon: Icon, eyebrow, title, description, actions, c
           animate="show"
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
         >
-          <motion.div variants={ITEM} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+          <motion.div variants={ITEM} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-extrabold uppercase tracking-widest text-emerald-400">
             <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
             <span>{eyebrow}</span>
           </motion.div>

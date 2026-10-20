@@ -39,12 +39,12 @@ function HistoryChart({ language, points }: { language: Lang; points: FinancialP
       <div className="flex gap-2 sm:gap-4 px-1 mt-1.5">
         {points.map((p) => (
           <div key={p.date} className="flex-1 min-w-0 text-center">
-            <span className="block text-[10px] font-bold text-slate-400">{p.label}</span>
-            <span className={`block text-[9px] tabular-nums ${(p.netIncome ?? 0) < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{p.netIncome !== null ? formatIDRCompact(p.netIncome, language) : '—'}</span>
+            <span className="block text-[11px] font-bold text-slate-400">{p.label}</span>
+            <span className={`block text-[10px] tabular-nums ${(p.netIncome ?? 0) < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{p.netIncome !== null ? formatIDRCompact(p.netIncome, language) : '—'}</span>
           </div>
         ))}
       </div>
-      <div className="flex gap-4 mt-3 text-[10px] font-bold text-slate-400">
+      <div className="flex gap-4 mt-3 text-[11px] font-bold text-slate-400">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-violet-400" />{L('Pendapatan', 'Revenue')}</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-emerald-400" />{L('Laba bersih', 'Net income')}</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-rose-400" />{L('Rugi bersih', 'Net loss')}</span>
@@ -108,7 +108,7 @@ export function FundamentalsPanel({ language, data }: { language: Lang; data: Fu
         <HistoryChart language={language} points={data.history[period]} />
       </div>
 
-      <p className="text-[10px] text-slate-500 mt-4">
+      <p className="text-[11px] text-slate-500 mt-4">
         {L('Sumber', 'Sources')}: {[data.sources.metrics && `${L('rasio', 'ratios')} ${data.sources.metrics}`, data.sources.history && `${L('riwayat laporan', 'statements')} ${data.sources.history}`].filter(Boolean).join(' · ') || '—'}.{' '}
         {L('Rasio TTM = 12 bulan terakhir; nilai bisa berbeda tipis dengan laporan resmi emiten.', 'TTM = trailing 12 months; values may differ slightly from official filings.')}
       </p>

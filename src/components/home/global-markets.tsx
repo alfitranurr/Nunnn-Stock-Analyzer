@@ -56,7 +56,7 @@ export function GlobalMarkets({ language, isActive }: GlobalMarketsProps) {
     <section aria-label={isId ? 'Pasar global & makro' : 'Global markets & macro'}>
       <div className="flex items-center gap-1.5 mb-2">
         <Globe2 className="h-3.5 w-3.5 text-emerald-400" />
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
           {isId ? 'Global & Makro' : 'Global & Macro'}
         </span>
       </div>
@@ -69,14 +69,14 @@ export function GlobalMarkets({ language, isActive }: GlobalMarketsProps) {
               key={inst.symbol}
               className="snap-start shrink-0 w-[150px] rounded-xl bg-white/[0.02] border border-white/5 px-3 py-2.5 flex flex-col gap-1"
             >
-              <span className="text-[10px] font-bold text-slate-400 truncate" title={inst.unit ? `${inst[language]} (${inst.unit})` : inst[language]}>
+              <span className="text-[11px] font-bold text-slate-400 truncate" title={inst.unit ? `${inst[language]} (${inst.unit})` : inst[language]}>
                 {inst[language]}
               </span>
               {q ? (
                 <>
                   <div className="flex items-baseline justify-between gap-1 tabular-nums">
                     <span className="text-sm font-black text-white">{formatNumberLocale(q.price, language, inst.decimals)}</span>
-                    <span className={`text-[10px] font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`text-[11px] font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isUp ? '+' : ''}{formatNumberLocale(q.changePercent, language, 2)}%
                     </span>
                   </div>

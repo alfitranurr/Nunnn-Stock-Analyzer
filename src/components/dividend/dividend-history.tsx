@@ -89,7 +89,7 @@ export function DividendHistory({ language, ticker, profile, marketPrice }: Divi
                     className={`flex-1 min-w-0 h-full flex-col items-center justify-end gap-1 ${i < years.length - MOBILE_YEARS ? 'hidden sm:flex' : 'flex'}`}
                     title={`${y.year}: ${rpShare(y.dps, language)} (${y.payments}×)${y.yieldPct !== null ? ` · yield ${pct(y.yieldPct, language)}` : ''}`}
                   >
-                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-300 tabular-nums whitespace-nowrap">
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-300 tabular-nums whitespace-nowrap">
                       {y.dps > 0 ? rpShare(y.dps, language).replace('Rp ', '') : '0'}
                     </span>
                     <div className="flex-1 w-full flex items-end justify-center">
@@ -111,13 +111,13 @@ export function DividendHistory({ language, ticker, profile, marketPrice }: Divi
             <div className="flex gap-1.5 sm:gap-2 px-1 mt-1.5 border-t border-white/10 pt-1.5">
               {years.map((y, i) => (
                 <div key={y.year} className={`flex-1 min-w-0 text-center ${i < years.length - MOBILE_YEARS ? 'hidden sm:block' : ''}`}>
-                  <span className="block text-[10px] font-bold text-slate-400">{y.year}{y.partial ? '*' : ''}</span>
-                  <span className="block text-[9px] text-slate-500 tabular-nums">{y.yieldPct !== null ? pct(y.yieldPct, language, 1) : '—'}</span>
+                  <span className="block text-[11px] font-bold text-slate-400">{y.year}{y.partial ? '*' : ''}</span>
+                  <span className="block text-[10px] text-slate-500 tabular-nums">{y.yieldPct !== null ? pct(y.yieldPct, language, 1) : '—'}</span>
                 </div>
               ))}
             </div>
           </div>
-          <p className="text-[10px] text-slate-500 mt-2">
+          <p className="text-[11px] text-slate-500 mt-2">
             {L(
               '* tahun berjalan (belum lengkap). Baris bawah = yield terhadap rata-rata harga tahun itu.',
               '* current year (incomplete). Bottom row = yield on that year’s average price.'
@@ -133,7 +133,7 @@ export function DividendHistory({ language, ticker, profile, marketPrice }: Divi
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full min-w-[560px] text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+              <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-2.5 px-3">{L('Tahun', 'Year')}</th>
                 <th className="py-2.5 px-3">{L('Cum date ≈', 'Cum date ≈')}</th>
                 <th className="py-2.5 px-3">Ex date</th>
@@ -167,7 +167,7 @@ export function DividendHistory({ language, ticker, profile, marketPrice }: Divi
             {showAll ? L('Ringkas', 'Show less') : L(`Tampilkan semua (${profile.events.length})`, `Show all (${profile.events.length})`)}
           </button>
         )}
-        <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
+        <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
           {L(
             'Ex date dari sumber data. Cum date = 1 hari bursa sebelum ex date (batas akhir beli); tanggal cair diperkirakan ±18 hari setelah ex date. Hari libur bursa belum diperhitungkan, jadi cek pengumuman resmi emiten di KSEI/BEI.',
             'Ex date comes from the data source. Cum date = 1 trading day before the ex date (last day to buy); payment is estimated ~18 days after the ex date. Exchange holidays are not accounted for, so check the official KSEI/IDX announcement.'

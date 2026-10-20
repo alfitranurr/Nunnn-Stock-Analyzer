@@ -117,8 +117,8 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Star className="h-4 w-4 text-amber-400" />
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Watchlist</span>
-          <span className="text-[10px] text-slate-600 tabular-nums">{entries.length}/{WATCHLIST_MAX}</span>
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Watchlist</span>
+          <span className="text-[11px] text-slate-600 tabular-nums">{entries.length}/{WATCHLIST_MAX}</span>
         </div>
         <div className="flex items-center gap-2">
           {entries.length > 1 && (
@@ -126,7 +126,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
               value={sort}
               onChange={(e) => setSort(e.target.value as SortMode)}
               aria-label={isId ? 'Urutkan watchlist' : 'Sort watchlist'}
-              className="glass-input bg-background text-foreground px-2 py-1 text-[10px] font-bold rounded-lg cursor-pointer"
+              className="glass-input bg-background text-foreground px-2 py-1 text-[11px] font-bold rounded-lg cursor-pointer"
             >
               {sortOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -136,7 +136,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
               type="button"
               onClick={() => setShowAdd((v) => !v)}
               aria-expanded={showAdd}
-              className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 transition-colors cursor-pointer"
+              className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 transition-colors cursor-pointer"
             >
               <Plus className="h-3 w-3" />
               {isId ? 'Tambah' : 'Add'}
@@ -165,7 +165,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
                 autoFocus
               />
               {searching && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">
                   {isId ? 'Mencari...' : 'Searching...'}
                 </span>
               )}
@@ -207,7 +207,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
                 key={symbol}
                 type="button"
                 onClick={() => add({ symbol, name: IDX_TICKERS[symbol] ?? symbol })}
-                className="px-2.5 py-1 rounded-lg border border-white/10 hover:border-emerald-500/40 text-[10px] font-bold text-slate-300 hover:text-emerald-400 transition-colors cursor-pointer"
+                className="px-2.5 py-1 rounded-lg border border-white/10 hover:border-emerald-500/40 text-[11px] font-bold text-slate-300 hover:text-emerald-400 transition-colors cursor-pointer"
               >
                 + {symbol}
               </button>
@@ -232,7 +232,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
                 >
                   <span className="block font-bold text-xs text-emerald-400 group-hover:text-emerald-300">{entry.symbol}</span>
                   {entry.name !== entry.symbol && (
-                    <span className="hidden sm:block text-[10px] text-slate-500 truncate">{entry.name}</span>
+                    <span className="hidden sm:block text-[11px] text-slate-500 truncate">{entry.name}</span>
                   )}
                 </button>
                 <span className="hidden sm:block">
@@ -245,19 +245,19 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
                     </span>
                     {q.suspect ? (
                       <span
-                        className="text-[10px] font-bold text-right w-14 text-amber-400 cursor-help"
+                        className="text-[11px] font-bold text-right w-14 text-amber-400 cursor-help"
                         title={isId ? 'Data perubahan harga dari sumber meragukan' : 'Price change data from the source looks unreliable'}
                       >
                         ?
                       </span>
                     ) : (
-                      <span className={`text-[10px] font-bold text-right tabular-nums w-14 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <span className={`text-[11px] font-bold text-right tabular-nums w-14 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {isUp ? '+' : ''}{formatNumberLocale(q.changePercent, language, 2)}%
                       </span>
                     )}
                   </>
                 ) : (
-                  <span className="col-span-2 text-[10px] text-slate-600 text-right">
+                  <span className="col-span-2 text-[11px] text-slate-600 text-right">
                     {quoteError ? '—' : isId ? 'Memuat...' : 'Loading...'}
                   </span>
                 )}
@@ -279,7 +279,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
         <button
           type="button"
           onClick={onOpenFull}
-          className="mt-auto self-start text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+          className="mt-auto self-start text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
         >
           {hiddenCount > 0
             ? (isId ? `Lihat semua (${entries.length})` : `View all (${entries.length})`)
@@ -289,7 +289,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
       )}
 
       {isFull && (
-        <p className="text-[10px] text-amber-400/80">
+        <p className="text-[11px] text-amber-400/80">
           {isId ? `Watchlist penuh (maks ${WATCHLIST_MAX}). Hapus saham untuk menambah yang baru.` : `Watchlist is full (max ${WATCHLIST_MAX}). Remove a stock to add another.`}
         </p>
       )}

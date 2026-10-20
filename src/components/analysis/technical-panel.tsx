@@ -16,9 +16,9 @@ function TrendCell({ language, label, trend }: { language: Lang; label: string; 
   const text = dir === 'BULLISH' ? L('Naik', 'Uptrend') : dir === 'BEARISH' ? L('Turun', 'Downtrend') : dir ? L('Mendatar', 'Sideways') : '—';
   return (
     <div className="p-3.5 rounded-2xl border border-white/10 bg-white/[0.02]">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
       <div className={`flex items-center gap-1.5 text-base font-black mt-1 ${tone}`}><Icon className="h-4 w-4" />{text}</div>
-      <p className="text-[10px] text-slate-500 mt-1 leading-snug">{trend?.detail ?? L('Data tidak cukup', 'Not enough data')}</p>
+      <p className="text-[11px] text-slate-500 mt-1 leading-snug">{trend?.detail ?? L('Data tidak cukup', 'Not enough data')}</p>
     </div>
   );
 }
@@ -70,7 +70,7 @@ export function TechnicalPanel({ language, data }: { language: Lang; data: Techn
       <div className="mt-4 overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+            <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
               <th className="py-2 px-3">{L('Rata-rata bergerak', 'Moving average')}</th>
               <th className="py-2 px-3 text-right">{L('Nilai', 'Value')}</th>
               <th className="py-2 px-3 text-right">{L('Posisi harga', 'Price position')}</th>
@@ -90,7 +90,7 @@ export function TechnicalPanel({ language, data }: { language: Lang; data: Techn
 
       {data.signals.length > 0 && (
         <div className="mt-4">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">{L('Sinyal penyusun skor teknikal', 'Signals behind the technical score')}</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">{L('Sinyal penyusun skor teknikal', 'Signals behind the technical score')}</h3>
           <div className="flex flex-wrap gap-1.5">
             {data.signals.map((s) => (
               <span key={s.indicator} className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${s.signal === 'bull' ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : 'border-rose-500/25 bg-rose-500/10 text-rose-300'}`} title={`${L('bobot', 'weight')} ${s.weight}`}>

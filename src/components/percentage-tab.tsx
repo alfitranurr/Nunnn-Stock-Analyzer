@@ -446,7 +446,7 @@ function NumberField({ spec, label, value, language, onChange }: NumberFieldProp
   const n = toNumber(value);
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+      <label htmlFor={id} className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </label>
       <StepperInput
@@ -594,7 +594,7 @@ export function PercentageTab() {
             aria-pressed={mode === m.id}
             onClick={() => setMode(m.id)}
             className={`py-2 px-2 rounded-xl transition-all cursor-pointer text-center last:col-span-2 sm:last:col-span-1 ${
-              mode === m.id ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              mode === m.id ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
             {t(m.labelKey)}
@@ -639,7 +639,7 @@ export function PercentageTab() {
 
           {directionMode && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 {t('percentage.direction')}
               </span>
               <div className="flex bg-input-bg border border-border-color p-1 rounded-xl text-[11px] font-extrabold select-none">
@@ -654,8 +654,8 @@ export function PercentageTab() {
                       className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         active
                           ? d === 'up'
-                            ? 'bg-emerald-500 text-white shadow-md'
-                            : 'bg-rose-500 text-white shadow-md'
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-rose-600 text-white shadow-md'
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -678,7 +678,7 @@ export function PercentageTab() {
 
           {directionMode && (
             <div className="flex flex-wrap items-center gap-1.5 -mt-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mr-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">
                 {t('percentage.presets')}
               </span>
               {PERCENT_PRESETS.map((p) => (
@@ -686,7 +686,7 @@ export function PercentageTab() {
                   key={p}
                   type="button"
                   onClick={() => updateField('b', String(p))}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
                     toNumber(current.b) === p
                       ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
                       : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
@@ -728,7 +728,7 @@ export function PercentageTab() {
           {outcome.kind === 'ok' && (
             <>
               <div className="space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{outcome.label}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{outcome.label}</span>
                 <div className={`text-4xl md:text-5xl font-black tracking-tight break-all ${TONE_TEXT[outcome.tone]}`}>
                   <Flash value={outcome.headline} />
                 </div>
@@ -738,7 +738,7 @@ export function PercentageTab() {
               <div className={`grid grid-cols-1 ${statCols} gap-3`}>
                 {outcome.stats.map((s) => (
                   <div key={s.label} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1 min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">{s.label}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{s.label}</span>
                     <span className={`text-base font-extrabold block break-all ${TONE_TEXT[s.tone]}`}><Flash value={s.value} /></span>
                   </div>
                 ))}
@@ -753,7 +753,7 @@ export function PercentageTab() {
 
               {context && (
                 <div className="p-3.5 rounded-2xl bg-sky-500/5 border border-sky-500/20 text-[11px] text-sky-100/90 leading-relaxed animate-fadeIn">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1.5 mb-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1.5 mb-1">
                     <Info className="h-3.5 w-3.5" /> {language === 'id' ? 'Bila ini harga saham BEI' : 'If these are IDX stock prices'}
                   </span>
                   <ul className="space-y-0.5 list-disc pl-4">
@@ -763,7 +763,7 @@ export function PercentageTab() {
               )}
 
               <div className="p-3.5 rounded-2xl bg-black/25 border border-white/5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('percentage.formula')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t('percentage.formula')}</span>
                 <code className="block mt-1 text-xs font-mono text-slate-300 break-all">{outcome.formula}</code>
               </div>
 
@@ -779,7 +779,7 @@ export function PercentageTab() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-xs font-bold text-slate-950 flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
                 >
                   {flash === 'save' ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                   {t(flash === 'save' ? 'percentage.saved' : 'percentage.save')}
@@ -801,7 +801,7 @@ export function PercentageTab() {
             <button
               type="button"
               onClick={() => persistHistory([])}
-              className="text-[10px] font-bold text-slate-500 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-[11px] font-bold text-slate-500 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Trash2 className="h-3.5 w-3.5" />
               {t('percentage.clearHistory')}
@@ -825,7 +825,7 @@ export function PercentageTab() {
                       className="w-full p-3 rounded-2xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 flex items-center justify-between gap-3 text-left transition-all cursor-pointer"
                     >
                       <div className="min-w-0">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 block">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                           {t(MODE_BY_ID[entry.mode].labelKey)}
                         </span>
                         <span className="text-xs text-slate-300 block truncate">{o.summary}</span>
@@ -836,7 +836,7 @@ export function PercentageTab() {
                 );
               })}
             </ul>
-            <p className="text-[10px] text-slate-500">{t('percentage.historyHint')}</p>
+            <p className="text-[11px] text-slate-500">{t('percentage.historyHint')}</p>
           </>
         )}
       </div>
@@ -849,7 +849,7 @@ function StatusBadge({ tone, t }: { tone: Tone; t: Translate }) {
     const up = tone === 'up';
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
+        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider border ${
           up ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
         }`}
       >
@@ -859,7 +859,7 @@ function StatusBadge({ tone, t }: { tone: Tone; t: Translate }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border bg-white/5 border-white/10 text-slate-300">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider border bg-white/5 border-white/10 text-slate-300">
       <Minus className="h-3 w-3" />
       {t('percentage.statusFlat')}
     </span>

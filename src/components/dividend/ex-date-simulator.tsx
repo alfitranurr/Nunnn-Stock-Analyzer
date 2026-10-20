@@ -205,7 +205,7 @@ export function ExDateSimulator({ language, ticker, defaultPrice, defaultLots, n
                       )}
                 </p>
               </div>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
                 {L(
                   'BEI tidak menyesuaikan harga secara otomatis saat ex date; penurunan sebesar dividen adalah perilaku pasar yang umum, bukan aturan. Dividen baru masuk RDN beberapa minggu setelah ex date.',
                   'IDX does not adjust prices automatically on the ex date; a drop of about the dividend is common market behaviour, not a rule. The dividend reaches your RDN a few weeks after the ex date.'

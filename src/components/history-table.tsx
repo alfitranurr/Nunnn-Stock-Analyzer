@@ -58,7 +58,7 @@ function HistoryEmitenLogo({ symbol }: { symbol: string }) {
           onError={() => setHasError(true)}
         />
       ) : (
-        <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">
+        <span className="text-[11px] font-extrabold text-slate-400 tracking-wider">
           {cleanSymbol.slice(0, 2)}
         </span>
       )}
@@ -160,12 +160,12 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
               <table className="min-w-full divide-y divide-slate-200/50 dark:divide-white/5">
                 <thead className="bg-slate-100/50 dark:bg-black/45">
                   <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Saham' : 'Stock'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Posisi Awal' : 'Initial Position'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Rencana Baru' : 'New Plan'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Tanggal' : 'Date'}</th>
-                    <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Aksi' : 'Actions'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Saham' : 'Stock'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Posisi Awal' : 'Initial Position'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Rencana Baru' : 'New Plan'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Tanggal' : 'Date'}</th>
+                    <th scope="col" className="px-4 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Aksi' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/30 dark:divide-white/5 bg-transparent">
@@ -181,7 +181,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
                               <span className="font-extrabold text-sm text-emerald-400 tracking-wider leading-tight">
                                 {plan.ticker}
                               </span>
-                              <span className="text-[10px] text-slate-400 truncate max-w-[130px] leading-tight" title={cleanCompanyName(plan.company_name)}>
+                              <span className="text-[11px] text-slate-400 truncate max-w-[130px] leading-tight" title={cleanCompanyName(plan.company_name)}>
                                 {cleanCompanyName(plan.company_name) || '-'}
                               </span>
                             </div>
@@ -192,7 +192,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex flex-col text-xs text-slate-600 dark:text-slate-300">
                             <span className="font-medium">{plan.lot_awal.toLocaleString(numberLocale)} Lot</span>
-                            <span className="text-[10px] text-slate-400">@ {formatIDR(plan.avg_price_awal, language)}</span>
+                            <span className="text-[11px] text-slate-400">@ {formatIDR(plan.avg_price_awal, language)}</span>
                           </div>
                         </td>
 
@@ -200,7 +200,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex flex-col text-xs text-slate-600 dark:text-slate-300">
                             <span className="font-semibold text-emerald-400">+{plan.lot_baru.toLocaleString(numberLocale)} Lot</span>
-                            <span className="text-[10px] text-slate-400">@ {formatIDR(plan.harga_beli_baru, language)}</span>
+                            <span className="text-[11px] text-slate-400">@ {formatIDR(plan.harga_beli_baru, language)}</span>
                           </div>
                         </td>
 
@@ -208,7 +208,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex flex-col items-start gap-0.5 text-xs">
                             <span className="font-bold text-slate-800 dark:text-white">{formatIDR(estimate.avgPriceBaru, language)}</span>
-                            <span className={`text-[10px] font-semibold px-1 rounded ${badge.className}`}>{badge.text}</span>
+                            <span className={`text-[11px] font-semibold px-1 rounded ${badge.className}`}>{badge.text}</span>
                           </div>
                         </td>
 
@@ -263,12 +263,12 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
                         <span className="font-extrabold text-sm text-emerald-400 tracking-wider leading-none">
                           {plan.ticker}
                         </span>
-                        <span className="text-[9px] text-slate-400 truncate max-w-[150px] mt-0.5">
+                        <span className="text-[10px] text-slate-400 truncate max-w-[150px] mt-0.5">
                           {cleanCompanyName(plan.company_name) || '-'}
                         </span>
                       </div>
                     </div>
-                    <span className="text-[9px] text-slate-500 font-medium">
+                    <span className="text-[10px] text-slate-500 font-medium">
                       {formatDate(plan.created_at)}
                     </span>
                   </div>
@@ -276,24 +276,24 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
                   {/* Info Grid */}
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <span className="text-slate-500 text-[10px] block">{isId ? 'Posisi Awal' : 'Initial Position'}</span>
+                      <span className="text-slate-500 text-[11px] block">{isId ? 'Posisi Awal' : 'Initial Position'}</span>
                       <span className="font-bold text-slate-700 dark:text-slate-400">{plan.lot_awal.toLocaleString(numberLocale)} Lot</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">@ {formatIDR(plan.avg_price_awal, language)}</span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">@ {formatIDR(plan.avg_price_awal, language)}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 text-[10px] block">{isId ? 'Rencana Baru' : 'New Plan'}</span>
+                      <span className="text-slate-500 text-[11px] block">{isId ? 'Rencana Baru' : 'New Plan'}</span>
                       <span className="font-bold text-emerald-400">+{plan.lot_baru.toLocaleString(numberLocale)} Lot</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">@ {formatIDR(plan.harga_beli_baru, language)}</span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">@ {formatIDR(plan.harga_beli_baru, language)}</span>
                     </div>
                   </div>
 
                   {/* Estimate & Actions */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-200/30 dark:border-white/5 bg-slate-100/10 dark:bg-black/10 -mx-4 -mb-4 p-3 rounded-b-xl">
                     <div>
-                      <span className="text-[9px] text-slate-500 uppercase block font-bold leading-none mb-1">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</span>
+                      <span className="text-[10px] text-slate-500 uppercase block font-bold leading-none mb-1">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-black text-slate-800 dark:text-white text-xs">{formatIDR(estimate.avgPriceBaru, language)}</span>
-                        <span className={`text-[9px] font-extrabold px-1 rounded ${badge.className}`}>{badge.text}</span>
+                        <span className={`text-[10px] font-extrabold px-1 rounded ${badge.className}`}>{badge.text}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

@@ -74,7 +74,7 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
     <div>
       <div className="flex items-center gap-1.5 mb-3">
         <Newspaper className="h-3.5 w-3.5 text-emerald-400" />
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
           {isId ? 'Berita Pasar Terkini' : 'Latest Market News'}
         </span>
       </div>
@@ -94,10 +94,10 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
               {item.title}
             </span>
             <div className="flex items-center justify-between mt-auto pt-1">
-              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[60%]">
+              <span className="text-[11px] text-slate-500 font-medium truncate max-w-[60%]">
                 {item.source}
               </span>
-              <span className="text-[10px] text-slate-600 flex items-center gap-0.5 shrink-0">
+              <span className="text-[11px] text-slate-600 flex items-center gap-0.5 shrink-0">
                 <Clock className="h-2.5 w-2.5" />
                 {fmtTime(item.pubDate)}
               </span>

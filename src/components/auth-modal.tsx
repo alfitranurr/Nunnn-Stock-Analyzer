@@ -219,7 +219,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
 
         {/* Error Message */}
         {errorMsg && (
-          <div className="mb-4.5 p-3 rounded-lg bg-red-500/15 border border-red-500/35 text-red-400 text-xs flex items-center gap-2">
+          <div className="mb-4.5 p-3 rounded-lg bg-rose-500/15 border border-rose-500/35 text-rose-400 text-xs flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -228,7 +228,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Alamat Email</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Alamat Email</label>
             <div className="relative mt-1.5">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
@@ -243,7 +243,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Password</label>
             <div className="relative mt-1.5">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
@@ -260,7 +260,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
           >
             {loading ? (
               <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -272,7 +272,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         {/* Divider */}
         <div className="my-6 flex items-center justify-center gap-3">
           <div className="h-[1px] flex-1 bg-white/10" />
-          <span className="text-[10px] font-bold uppercase text-slate-500">Atau</span>
+          <span className="text-[11px] font-bold uppercase text-slate-500">Atau</span>
           <div className="h-[1px] flex-1 bg-white/10" />
         </div>
 

@@ -120,7 +120,9 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
   const rows: Row[] = entries.map((entry) => {
     const quote = quotes[entry.symbol] ?? null;
     const valid = quote && !quote.suspect;
-    const series = quote ? [...quote.closes, quote.price].filter((v) => v > 0) : [];
+    // Rentang hari ini: High/Low resmi sesi (termasuk harga pembukaan); grafik 5 menit hanya cadangan,
+    // karena penutupan bar 5 menit melewatkan harga ekstrem di dalam bar (GTSI 20 Okt: Low 87, bar terendah 91).
+    const series = quote ? [...quote.closes, quote.price, quote.dayHigh ?? 0, quote.dayLow ?? 0].filter((v) => v > 0) : [];
     const target = entry.target;
     return {
       entry,
@@ -159,7 +161,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
 
   const changeCell = (r: Row) =>
     r.quote?.stale ? (
-      <span className="text-amber-400 text-[10px] font-bold" title={L('Tidak ada transaksi pada sesi bursa terakhir (mis. suspensi)', 'No trades in the last session (e.g. suspended)')}>
+      <span className="text-amber-400 text-[11px] font-bold" title={L('Tidak ada transaksi pada sesi bursa terakhir (mis. suspensi)', 'No trades in the last session (e.g. suspended)')}>
         {L('tidak bertransaksi', 'not traded')}
         {r.quote.lastTradeDate && <span className="block font-semibold text-amber-300/70">{L('sejak', 'since')} {r.quote.lastTradeDate}</span>}
       </span>
@@ -167,10 +169,10 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
       r.changePct !== null ? (
         <span className={`tabular-nums ${tone(r.quote.change)}`}>
           <Flash value={`${r.quote.change > 0 ? '+' : ''}${formatNumberLocale(r.quote.change, language, 2)}`} />
-          <span className="block text-[10px] font-bold">{signedPct(r.changePct)}</span>
+          <span className="block text-[11px] font-bold">{signedPct(r.changePct)}</span>
         </span>
       ) : (
-        <span className="text-amber-400 text-[10px] font-bold" title={L('Data perubahan harga dari sumber meragukan', 'Price change data from the source looks unreliable')}>{L('data meragukan', 'suspect data')}</span>
+        <span className="text-amber-400 text-[11px] font-bold" title={L('Data perubahan harga dari sumber meragukan', 'Price change data from the source looks unreliable')}>{L('data meragukan', 'suspect data')}</span>
       )
     ) : (
       <span className="text-slate-600">—</span>
@@ -181,11 +183,11 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
     const span = r.high - r.low;
     const pos = span > 0 ? ((r.quote.price - r.low) / span) * 100 : 50;
     return (
-      <div className="w-28" title={L('Rentang intraday (bar 5 menit)', 'Intraday range (5-minute bars)')}>
+      <div className="w-28" title={L('Terendah – tertinggi hari ini', "Today's low – high")}>
         <div className="relative h-1.5 rounded-full bg-white/10">
           <span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-1 rounded bg-white" style={{ left: `${pos}%` }} />
         </div>
-        <div className="flex justify-between text-[9px] text-slate-500 mt-1 tabular-nums">
+        <div className="flex justify-between text-[10px] text-slate-500 mt-1 tabular-nums">
           <span>{formatNumberLocale(r.low, language, 2)}</span>
           <span>{formatNumberLocale(r.high, language, 2)}</span>
         </div>
@@ -207,7 +209,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
         <span className={`block text-[11px] font-bold ${r.targetReached ? 'text-amber-300' : 'text-slate-200'} group-hover/target:text-emerald-400`}>
           {tg.kind === 'buy' ? L('Beli ≤', 'Buy ≤') : L('Jual ≥', 'Sell ≥')} {rp(tg.price, language)}
         </span>
-        <span className="block text-[10px] text-slate-500">
+        <span className="block text-[11px] text-slate-500">
           {r.targetReached ? L('tercapai', 'reached') : r.targetDistancePct !== null ? L(`${signedPct(r.targetDistancePct)} lagi`, `${signedPct(r.targetDistancePct)} away`) : ''}
         </span>
       </button>
@@ -244,7 +246,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
           {r.limit && <Badge tone={r.limit === 'ARA' ? 'emerald' : 'amber'}>{r.limit}</Badge>}
           {r.targetReached && <BellRing className="h-3.5 w-3.5 text-amber-300" aria-label={L('Target tercapai', 'Target reached')} />}
         </span>
-        <span className="block text-[10px] text-slate-500 truncate max-w-[180px]">{r.entry.name !== r.entry.symbol ? r.entry.name : IDX_TICKERS[r.entry.symbol] ?? '—'}</span>
+        <span className="block text-[11px] text-slate-500 truncate max-w-[180px]">{r.entry.name !== r.entry.symbol ? r.entry.name : IDX_TICKERS[r.entry.symbol] ?? '—'}</span>
       </span>
     </button>
   );
@@ -315,7 +317,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
           </div>
           {entries.length > 1 && (
             <div className="flex flex-col items-start lg:items-end gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <ArrowUpDown className="h-3 w-3" /> {L('Urutkan berdasarkan', 'Sort by')}
               </span>
               <Segmented
@@ -367,7 +369,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
             <div className="hidden lg:block overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                     <th className={`py-2.5 px-3 ${sort === 'az' ? 'text-emerald-400' : ''}`} aria-sort={ariaSort('az')}>{L('Saham', 'Stock')}{sort === 'az' ? ` ${sortArrow('az')}` : ''}</th>
                     <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
                     <th className={`py-2.5 px-3 text-right ${sort === 'change' ? 'text-emerald-400' : ''}`} aria-sort={ariaSort('change')}>
@@ -432,7 +434,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
                   <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
                     <div className="min-w-0">
                       {targetCell(r)}
-                      <span className="block text-[10px] text-slate-500 mt-0.5">{L('Nilai ≈', 'Value ≈')} {r.value !== null && r.value > 0 ? formatIDRCompact(r.value, language, 2) : '—'}</span>
+                      <span className="block text-[11px] text-slate-500 mt-0.5">{L('Nilai ≈', 'Value ≈')} {r.value !== null && r.value > 0 ? formatIDRCompact(r.value, language, 2) : '—'}</span>
                     </div>
                     {actions(r, i)}
                   </div>
@@ -445,10 +447,10 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
               ))}
             </ul>
 
-            <p className="text-[10px] text-slate-500 mt-4 leading-relaxed">
+            <p className="text-[11px] text-slate-500 mt-4 leading-relaxed">
               {L(
-                'Harga Yahoo Finance (tertunda), diperbarui tiap 30 detik selama jam bursa. Rentang hari ini dihitung dari bar 5 menit. Harga incaran tersimpan bersama watchlist (ikut tersinkron ke akun) dan ditandai saat tercapai ketika halaman ini dibuka.',
-                'Yahoo Finance prices (delayed), refreshed every 30 seconds during market hours. The day range comes from 5-minute bars. Targets are saved with the watchlist (synced to your account) and flagged when reached while this page is open.'
+                'Harga Yahoo Finance (tertunda), diperbarui tiap 30 detik selama jam bursa. Rentang hari ini = harga terendah–tertinggi sesi dari bursa. Harga incaran tersimpan bersama watchlist (ikut tersinkron ke akun) dan ditandai saat tercapai ketika halaman ini dibuka.',
+                'Yahoo Finance prices (delayed), refreshed every 30 seconds during market hours. The day range is the session low–high from the exchange. Targets are saved with the watchlist (synced to your account) and flagged when reached while this page is open.'
               )}
             </p>
           </>
@@ -498,7 +500,7 @@ function TargetEditor({
   return (
     <div className="p-3.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] flex flex-col md:flex-row md:items-end gap-3">
       <div className="space-y-1.5">
-        <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">{L(`Harga incaran ${entry.symbol}`, `${entry.symbol} target`)}</span>
+        <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">{L(`Harga incaran ${entry.symbol}`, `${entry.symbol} target`)}</span>
         <Segmented
           ariaLabel={L('Jenis target', 'Target type')}
           value={kind}
@@ -511,7 +513,7 @@ function TargetEditor({
         />
       </div>
       <div className="md:w-48 space-y-1.5">
-        <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
           {L('Harga', 'Price')}
           {distance !== null && <span className="normal-case tracking-normal font-semibold text-slate-400"> · {distance > 0 ? '+' : ''}{pct(distance, language)} {L('dari harga', 'from price')}</span>}
         </span>
@@ -533,7 +535,7 @@ function TargetEditor({
           <button type="button" onClick={() => onSave(null)} className="px-3 py-2 rounded-xl text-xs font-bold text-rose-300 hover:bg-rose-500/10 cursor-pointer">{L('Hapus target', 'Remove')}</button>
         )}
         <button type="button" onClick={onClose} className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 cursor-pointer">{L('Batal', 'Cancel')}</button>
-        <button type="button" disabled={!(price > 0)} onClick={() => onSave({ price, kind })} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-white cursor-pointer disabled:opacity-50">{L('Simpan', 'Save')}</button>
+        <button type="button" disabled={!(price > 0)} onClick={() => onSave({ price, kind })} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-slate-950 cursor-pointer disabled:opacity-50">{L('Simpan', 'Save')}</button>
       </div>
     </div>
   );

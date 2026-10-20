@@ -110,7 +110,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
               {isId ? 'Ringkasan pasar dan saham pantauan Anda hari ini.' : 'Your market overview and watched stocks for today.'}
             </p>
           </div>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 text-[10px] font-bold text-slate-300">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] font-bold text-slate-300">
             {isSupabaseConfigured && !user.isMock ? <Cloud className="h-3.5 w-3.5 text-emerald-400" /> : <HardDrive className="h-3.5 w-3.5 text-slate-400" />}
             {isSupabaseConfigured && !user.isMock ? (isId ? 'Mode Cloud' : 'Cloud mode') : (isId ? 'Mode Lokal' : 'Local mode')}
           </span>
@@ -120,7 +120,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
           <div className="absolute top-0 right-0 w-[220px] h-[220px] rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-extrabold uppercase tracking-widest text-emerald-400">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
                 <Sparkles className="h-3 w-3" />
                 {t('cover.sparkles')}
               </span>
@@ -132,7 +132,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
             <button
               type="button"
               onClick={onSignInClick}
-              className="self-start md:self-center shrink-0 px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-all cursor-pointer shadow-md"
+              className="self-start md:self-center shrink-0 px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-md"
             >
               {t('sidebar.login')}
             </button>
@@ -199,7 +199,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
 
       {/* Akses cepat */}
       <section aria-label={isId ? 'Akses cepat' : 'Quick access'}>
-        <span className="block mb-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+        <span className="block mb-2 text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
           {isId ? 'Akses Cepat' : 'Quick Access'}
         </span>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
@@ -221,7 +221,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
                     <span className="truncate">{item.title[language]}</span>
                     {locked && <Lock className="h-3 w-3 text-slate-500 shrink-0" />}
                   </span>
-                  <span className="block text-[10px] text-slate-400 truncate">{item.sub[language]}</span>
+                  <span className="block text-[11px] text-slate-400 truncate">{item.sub[language]}</span>
                 </span>
                 <ArrowRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-emerald-400 shrink-0 hidden sm:block" />
               </button>
@@ -231,7 +231,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
       </section>
 
       {/* Disclaimer */}
-      <div className="max-w-2xl mx-auto w-full p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-[9px] md:text-[10px] text-slate-500 leading-relaxed text-center">
+      <div className="max-w-2xl mx-auto w-full p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-[10px] md:text-[11px] text-slate-500 leading-relaxed text-center">
         {t('common.disclaimer')}
       </div>
     </div>

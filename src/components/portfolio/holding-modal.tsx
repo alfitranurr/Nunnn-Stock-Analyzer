@@ -241,7 +241,7 @@ function HoldingForm({ language, mode, holdings, onClose, onSubmit }: Omit<Holdi
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-bold cursor-pointer">
             {L('Batal', 'Cancel')}
           </button>
-          <button type="submit" disabled={!canSubmit} className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
+          <button type="submit" disabled={!canSubmit} className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {existing ? L('Gabungkan', 'Merge') : L('Simpan', 'Save')}
           </button>

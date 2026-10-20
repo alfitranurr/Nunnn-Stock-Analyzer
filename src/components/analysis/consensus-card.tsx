@@ -58,7 +58,7 @@ export function ConsensusCard({
           <AnimatedNumber value={result.score} format={(v) => String(Math.round(v))} fromZero duration={0.9} className="text-5xl font-black text-white leading-none" />
           <div className="pb-1">
             <span className={`block text-lg font-black leading-tight ${RATING_LABEL[result.rating].cls}`}>{L(RATING_LABEL[result.rating].id, RATING_LABEL[result.rating].en)}</span>
-            <span className="block text-[10px] text-slate-500">/ 100</span>
+            <span className="block text-[11px] text-slate-500">/ 100</span>
           </div>
         </div>
       ) : (
@@ -84,7 +84,7 @@ export function ConsensusCard({
         ))}
       </div>
       {riskLevel && riskLevel !== 'Moderate' && (
-        <p className="text-[10px] text-slate-500 mt-2">
+        <p className="text-[11px] text-slate-500 mt-2">
           {riskLevel === 'High' ? L('Volatilitas tinggi: skor dikurangi 5.', 'High volatility: score reduced by 5.') : L('Volatilitas rendah: skor ditambah 2.', 'Low volatility: score increased by 2.')}
         </p>
       )}
@@ -104,7 +104,7 @@ export function ConsensusCard({
         </div>
       )}
 
-      <p className="text-[10px] text-slate-500 mt-auto pt-4 leading-snug">
+      <p className="text-[11px] text-slate-500 mt-auto pt-4 leading-snug">
         {L('Skor ini ringkasan otomatis, bukan rekomendasi beli/jual. Selalu cek laporan keuangan dan rencana trading sendiri.', 'This score is an automated summary, not a buy/sell recommendation. Always check filings and your own trading plan.')}
       </p>
     </Card>

@@ -328,7 +328,7 @@ export function IpoTab({ user }: IpoTabProps) {
     incrementLabel: `${t('calculator.increase')} ${label}`,
     inputClassName: 'font-bold text-white',
   });
-  const suffix = (s: string) => <span className="flex items-center pr-1 text-[10px] font-bold text-slate-500">{s}</span>;
+  const suffix = (s: string) => <span className="flex items-center pr-1 text-[11px] font-bold text-slate-500">{s}</span>;
   const oversubStep = (v: number) => (v < 10 ? 0.5 : v < 100 ? 5 : 10);
 
   return (
@@ -594,7 +594,7 @@ export function IpoTab({ user }: IpoTabProps) {
                 type="button"
                 onClick={() => void savePlan()}
                 disabled={saving}
-                className="self-start flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                className="self-start flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold cursor-pointer disabled:opacity-60"
               >
                 <Save className="h-3.5 w-3.5" /> {saving ? L('Menyimpan…', 'Saving…') : L('Simpan simulasi', 'Save simulation')}
               </button>
@@ -603,7 +603,7 @@ export function IpoTab({ user }: IpoTabProps) {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 p-5 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-card-bg to-[#121619]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                 {L(`Perkiraan jatah Anda · porsi ${catLabel(me.category).toLowerCase()}`, `Your estimated allotment · ${catLabel(me.category).toLowerCase()} portion`)}
               </span>
               <div className="flex items-baseline flex-wrap gap-x-3 gap-y-1 mt-1">
@@ -684,7 +684,7 @@ export function IpoTab({ user }: IpoTabProps) {
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full sm:min-w-[560px] text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                    <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                       <th className="py-2.5 px-3">{L('Pesan', 'Order')}</th>
                       <th className="py-2.5 px-3 hidden sm:table-cell">{L('Porsi', 'Portion')}</th>
                       <th className="py-2.5 px-3 text-right">{L('Dana disetor', 'Funds')}</th>
@@ -697,7 +697,7 @@ export function IpoTab({ user }: IpoTabProps) {
                       <tr key={s.lots} className={s.lots === myOrderLots ? 'bg-emerald-500/[0.06]' : ''}>
                         <td className="py-2.5 px-3 font-bold text-white whitespace-nowrap">
                           {lotsTxt(s.lots)}
-                          <span className="sm:hidden block text-[10px] font-semibold text-slate-500">{catLabel(s.category)}</span>
+                          <span className="sm:hidden block text-[11px] font-semibold text-slate-500">{catLabel(s.category)}</span>
                           {s.lots === myOrderLots && <span className="ml-2"><Badge tone="emerald">{L('Anda', 'You')}</Badge></span>}
                           {s.lots === me.maxRetailLots && s.lots !== myOrderLots && <span className="ml-2"><Badge>{L('maks ritel', 'retail max')}</Badge></span>}
                           {efficientRetail && s.lots === efficientRetail.lots && efficientRetail.allotted > 0 && s.lots !== myOrderLots && <span className="ml-2"><Badge tone="sky">{L('efisien', 'efficient')}</Badge></span>}
@@ -714,7 +714,7 @@ export function IpoTab({ user }: IpoTabProps) {
             </div>
           )}
 
-          <p className="text-[10px] text-slate-500 mt-4 leading-relaxed">
+          <p className="text-[11px] text-slate-500 mt-4 leading-relaxed">
             {L(
               `Model: pemodal lain diasumsikan memesan rata-rata sama besar di porsinya (data sebaran pesanan per orang tidak dipublikasikan), dan posisi antrean adalah perkiraan Anda. Hasil resmi tetap ditentukan Sistem e-IPO; cek pengumuman penjatahan di e-ipo.co.id.`,
               `Model: other investors are assumed to order the same average size within their portion (per-investor order distributions are not published), and the queue position is your estimate. The official result is determined by the e-IPO system; check the allotment announcement on e-ipo.co.id.`
@@ -749,8 +749,8 @@ export function IpoTab({ user }: IpoTabProps) {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="font-black text-sm text-white">{plan.ticker}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{cleanCompanyName(plan.company_name)}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">
+                  <div className="text-[11px] text-slate-400 truncate">{cleanCompanyName(plan.company_name)}</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
                     {rp(Number(plan.price), language)} · {lotsTxt(Number(plan.total_lots))} · {formatNumberLocale(Number(plan.oversubscription), language, 1)}× · {L('pesan', 'order')} {lotsTxt(Number(plan.personal_order_lots))}
                   </div>
                 </div>

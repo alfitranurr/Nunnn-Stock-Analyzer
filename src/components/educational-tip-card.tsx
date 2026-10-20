@@ -143,14 +143,14 @@ export function EducationalTipCard({ language, market }: { language: 'id' | 'en'
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400">
               {showReason ? (isId ? 'Tips Sesuai Kondisi Pasar' : 'Tip for Today\'s Market') : isId ? 'Tips Investasi Hari Ini' : 'Investment Tip of the Day'}
             </span>
             <span className="flex items-center gap-0.5">
               <button type="button" onClick={() => setOffset((o) => o - 1)} aria-label={isId ? 'Tips sebelumnya' : 'Previous tip'} className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/5 cursor-pointer">
                 <ChevronLeft className="h-3.5 w-3.5" />
               </button>
-              <span className="text-[9px] font-bold text-slate-500 tabular-nums">{tipIdx + 1}/{TIPS.length}</span>
+              <span className="text-[10px] font-bold text-slate-500 tabular-nums">{tipIdx + 1}/{TIPS.length}</span>
               <button type="button" onClick={() => setOffset((o) => o + 1)} aria-label={isId ? 'Tips berikutnya' : 'Next tip'} className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/5 cursor-pointer">
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>
@@ -158,7 +158,7 @@ export function EducationalTipCard({ language, market }: { language: 'id' | 'en'
           </div>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={tip.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.25 }}>
-              {showReason && <p className="text-[10px] font-semibold text-amber-300/90 mb-1">{context.reason}</p>}
+              {showReason && <p className="text-[11px] font-semibold text-amber-300/90 mb-1">{context.reason}</p>}
               <h3 className="text-sm font-bold text-white mb-1.5">
                 {isId ? tip.title_id : tip.title_en}
               </h3>

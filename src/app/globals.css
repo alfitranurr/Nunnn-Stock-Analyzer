@@ -4,12 +4,19 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   
-  --color-brand-purple: #10b981;
-  --color-brand-indigo: #059669;
-  --color-bullish-green: #10b981;
-  --color-bullish-neon: #34d399;
-  --color-bearish-red: #ff4545;
-  --color-bearish-crimson: #e13c3c;
+  /* Warna utama (emerald). Tombol hijau solid memakai teks gelap: slate-950 di emerald-500 = 7,95:1. */
+  --color-brand-primary: #10b981;
+  --color-brand-primary-strong: #059669;
+  /* Naik/turun: satu pasangan untuk seluruh aplikasi (sama dengan emerald-400 / rose-400). */
+  --color-bullish-green: #34d399;
+  --color-bullish-neon: #6ee7b7;
+  --color-bearish-red: #fb7185;
+  --color-bearish-crimson: #f43f5e;
+
+  /* Abu teks: slate-500 dinaikkan agar lolos WCAG AA untuk teks kecil di kartu (#191c20).
+     Bawaan #64748b = 3,59:1 → #8090a6 = 5,26:1. slate-600 → #64748b (3,59:1, untuk ikon/teks nonaktif). */
+  --color-slate-500: #8090a6;
+  --color-slate-600: #64748b;
   
   --color-sidebar-bg: var(--sidebar-bg);
   --color-border-color: var(--border-color);
@@ -107,7 +114,7 @@ body {
 
 .glass-input:focus {
   outline: none;
-  border-color: var(--color-brand-purple);
+  border-color: var(--color-brand-primary);
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
@@ -126,12 +133,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 177, 91, 0.2);
+  background: rgba(16, 185, 129, 0.2);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 177, 91, 0.4);
+  background: rgba(16, 185, 129, 0.4);
 }
 
 /* Clean Flat Backgrounds */
@@ -148,7 +155,7 @@ body {
 
 /* Solid Text Styling (Stockbit style) */
 .text-neon-gradient {
-  color: var(--color-brand-purple);
+  color: var(--color-brand-primary);
   background: none;
   -webkit-text-fill-color: initial;
   background-clip: initial;

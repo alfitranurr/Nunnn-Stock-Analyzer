@@ -162,14 +162,14 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               <div className="mt-auto pt-4 border-t border-white/10 space-y-4">
                 {/* Language Switcher */}
                 <div className="flex flex-col gap-1.5 px-1 pb-1">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
-                  <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[10px] font-extrabold select-none">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
+                  <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[11px] font-extrabold select-none">
                     <button
                       type="button"
                       onClick={() => setLanguage('id')}
                       className={cn(
                         "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                        language === 'id' ? "bg-emerald-500 text-white shadow" : "text-slate-400 hover:text-white"
+                        language === 'id' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
                       )}
                     >
                       Indonesia
@@ -179,7 +179,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       onClick={() => setLanguage('en')}
                       className={cn(
                         "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                        language === 'en' ? "bg-emerald-500 text-white shadow" : "text-slate-400 hover:text-white"
+                        language === 'en' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
                       )}
                     >
                       English
@@ -215,7 +215,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       onSignInClick();
                       setIsMobileOpen(false);
                     }}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm transition-all duration-300 shadow-md"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold text-sm transition-all duration-300 shadow-md"
                   >
                     <User className="h-4 w-4" />
                     <span>{t('sidebar.login')}</span>
@@ -310,14 +310,14 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           {/* Language Switcher */}
           {!isCollapsed ? (
             <div className="flex flex-col gap-1.5 px-2.5">
-              <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
               <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[9.5px] font-extrabold select-none">
                 <button
                   type="button"
                   onClick={() => setLanguage('id')}
                   className={cn(
                     "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'id' ? "bg-emerald-500 text-white shadow" : "text-slate-500 hover:text-white"
+                    language === 'id' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-500 hover:text-white"
                   )}
                 >
                   ID
@@ -327,7 +327,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   onClick={() => setLanguage('en')}
                   className={cn(
                     "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'en' ? "bg-emerald-500 text-white shadow" : "text-slate-500 hover:text-white"
+                    language === 'en' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-500 hover:text-white"
                   )}
                 >
                   EN
@@ -356,7 +356,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 </div>
                 {!isCollapsed && (
                   <div className="overflow-hidden">
-                    <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">{t('sidebar.user')}</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">{t('sidebar.user')}</p>
                     <p className="text-xs font-semibold truncate text-slate-700 dark:text-slate-300">{user.email}</p>
                   </div>
                 )}
@@ -375,7 +375,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             <button
               onClick={onSignInClick}
               className={cn(
-                "flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
+                "flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
                 isCollapsed ? "w-11 h-11 p-0 mx-auto" : "w-full py-2.5 px-3.5"
               )}
               title={t('sidebar.login')}

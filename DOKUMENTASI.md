@@ -277,7 +277,7 @@ Urutan dari atas:
   - `PageHeader` + bar status sesi bursa, jam WIB, waktu update, dan sumber data.
   - Ringkasan: jumlah dipantau (naik/turun/tetap), rata-rata perubahan, saham terkuat & terlemah (sejak `1096531`: bila tidak ada yang turun/naik, kartu menampilkan "—" + "tidak ada yang turun/naik", bukan menyebut saham 0% sebagai terlemah).
   - Pencarian untuk menambah langsung di halaman; saran saham saat kosong.
-  - Per saham: harga, perubahan Rp & %, grafik intraday dengan garis penutupan kemarin, rentang hari ini (dari bar 5 menit) dengan penanda posisi harga, nilai transaksi, badge ARA/ARB (batas sesuai tanggal), tombol Analisis & Hapus.
+  - Per saham: harga, perubahan Rp & %, grafik intraday dengan garis penutupan kemarin, rentang hari ini (High/Low resmi sesi dari meta Yahoo `regularMarketDayHigh/Low`, termasuk harga pembukaan; bar 5 menit hanya cadangan) dengan penanda posisi harga. Sebelum 20 Okt 2026 rentang dihitung dari penutupan bar 5 menit sehingga harga ekstrem di dalam bar hilang (GTSI 91–97 padahal 87–97 di Stockbit), nilai transaksi, badge ARA/ARB (batas sesuai tanggal), tombol Analisis & Hapus.
   - **Harga incaran** per saham: "Beli di bawah" atau "Jual di atas", dengan jarak ke target; baris disorot dan muncul banner saat tercapai.
   - Urutan berlabel **Urutkan berdasarkan** (sejak `1096531`): Urutan saya (digeser dengan ▲▼), Perubahan, Nilai, Kode, beserta tooltip; label diringkas di HP (Saya, %, A–Z). Sejak 17 Okt 2026 setiap pilihan bisa **ditekan dua kali untuk membalik arah**: Perubahan ↓ (naik terbesar dulu) ⇄ ↑ (turun terdalam dulu; menggantikan pilihan Naik/Turun terpisah), Nilai ↓ ⇄ ↑, Kode A–Z ⇄ Z–A. Memilih urutan lain kembali ke arah awalnya. Saham tanpa harga selalu di bawah. Kolom tabel yang dipakai mengurutkan diberi warna dan panah (`aria-sort`). Desktop tabel, HP kartu.
   - Format angka mengikuti Portofolio: harga, perubahan, rentang hari ini, dan harga incaran dalam Rupiah 2 desimal; nilai transaksi tetap ringkas (2 desimal) dengan tanda ≈ karena merupakan perkiraan harga × volume (nilai persis di tooltip).
@@ -969,7 +969,11 @@ Data bermasalah dikeluarkan dari breadth dan movers (jumlahnya dikirim di `dataQ
 
 **Batas ARA/ARB** (`getAutoRejectionBounds(ref, waktu)`, [calculator.ts:123](src/lib/calculator.ts#L123); sejak `2204733` bergantung tanggal transaksi):
 - ARA: 35% untuk acuan ≤ Rp200, 25% untuk ≤ Rp5.000, 20% di atasnya (juga di hari pertama saham IPO).
-- ARB ([`getAutoRejectionDownPct`](src/lib/calculator.ts#L112)): **15% untuk semua rentang** sejak 8 Apr 2025 (Kep-00003/BEI/04-2025) sampai 31 Des 2026; mulai 1 Jan 2027 kembali simetris dengan ARA (Kep-00136/BEI/09-2026).
+- ARB ([`getAutoRejectionDownPct`](src/lib/calculator.ts#L112)), mengikuti tanggal transaksi:
+  - **15% untuk semua rentang** sejak 8 Apr 2025 (Kep-00003/BEI/04-2025);
+  - **7% mulai 19 Okt 2026 s.d. 31 Des 2026** (Kep-00157/BEI/10-2026), setelah IHSG −11,57% pada 16 Okt 2026 terkait konsultasi MSCI; ARA tidak berubah. Mulai 20 Okt 2026 saham Rp11–Rp14 turun maks Rp1/hari. Diverifikasi terhadap Stockbit 20 Okt: GTSI acuan 93 → ARB 87 (= Low hari itu), dari 95 → ARA 128 / ARB 89; CUAN acuan 505 → ARB 470 (= Low);
+  - mulai 1 Jan 2027 kembali simetris dengan ARA (Kep-00136/BEI/09-2026).
+  - `getArbRegulation(at)` memberi persentase, nomor SK, dan batas berlakunya untuk keterangan di UI (simulasi listing E-IPO).
 - Acuan Rp1–Rp10 (sejak harga minimum Rp1, 28 Sep 2026): batas tetap ±Rp1.
 - Dibulatkan ke fraksi, minimal satu fraksi. Papan Akselerasi dan saham pemantauan khusus memakai batas lain (belum dimodelkan).
 - Sebelum `2204733` ARB dianggap simetris (−25% untuk Rp200–Rp5.000), sehingga jumlah ARB di Beranda bisa kurang dan penurunan > 15% yang mustahil lolos validasi.
@@ -1113,6 +1117,11 @@ Belum ada `.env.example`.
 - **Kelas kustom:** `.glass-card`, `.glass-input`, `.mesh-bg`, `.text-profit-glow`, `.text-loss-glow`, plus scrollbar kustom.
 - **Font:** Plus Jakarta Sans lewat `@import` Google Fonts ([globals.css:1](src/app/globals.css#L1)).
 - **Tema:** hanya gelap (`forcedTheme="dark"`), dengan aksen emerald di atas latar `#121518`.
+- **Warna & keterbacaan** (20 Okt 2026, diukur dengan rasio kontras WCAG; minimal 4,5:1 untuk teks kecil):
+  - Tombol/tab hijau solid (`bg-emerald-500`) memakai teks gelap `text-slate-950` (7,95:1); sebelumnya teks putih 2,54:1. Ikon dan angka di dalam tab aktif ikut gelap. Tombol merah solid memakai `rose-600` (4,7:1).
+  - Token `slate-500` di `globals.css` dinaikkan ke `#8090a6` (5,26:1 di kartu, sebelumnya 3,59:1) dan `slate-600` ke `#64748b` (untuk ikon/teks nonaktif), sehingga tingkatan teks tetap sama tanpa mengubah setiap komponen.
+  - Ukuran huruf minimal: 8–9px → 10px dan 10–10,5px → 11px (340 tempat).
+  - Satu pasangan naik/turun: token `bullish-*`/`bearish-*` disamakan dengan emerald-400/rose-400; `red-*` diganti `rose-*`; hex lepas di grafik Compounding (`#00b15b`, `#05fa7b`) diganti warna emerald; token `brand-purple`/`brand-indigo` (isinya hijau) diganti nama `brand-primary`/`brand-primary-strong`.
 - **Komponen layout bersama** (sejak `4b0603f`): [`PageHeader`](src/components/shared/page-header.tsx) dipakai semua halaman kecuali Beranda (ukuran judul, jarak, badge kategori, dan slot aksi seragam; sejak 17 Okt 2026 deskripsi memenuhi lebar kartu sampai kanan, tidak lagi dibatasi `max-w-3xl`); [`shared/calc-ui.tsx`](src/components/shared/calc-ui.tsx) (Card, CardTitle, Field, Segmented, Stat, Badge) dipakai Dividen, E-IPO, Portofolio, dan Admin.
 - **Viewport:** `maximumScale: 1, userScalable: false` ([layout.tsx:13-18](src/app/layout.tsx#L13-L18)), sehingga pengguna tidak bisa zoom (masalah aksesibilitas).
 
@@ -1514,7 +1523,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | **Oversubscription** | Total pesanan dibagi saham yang ditawarkan |
 | **SEOJK 25/2025** | Aturan OJK penjatahan E-IPO yang berlaku sejak 17 Nov 2025 (mencabut SEOJK 15/2020): 5 golongan, porsi ritel : selain ritel 1 : 1, batas pesanan 10%, penjatahan 10 lot → urutan waktu → proporsional |
 | **Penjatahan terpusat / pasti** | *Pooling* (dibagi sistem e-IPO ke semua pemesan) / *fixed allotment* (ditentukan penjamin emisi, umumnya institusi) |
-| **ARA / ARB** | Auto Rejection Atas/Bawah: batas kenaikan/penurunan harga harian. ARB 15% sampai akhir 2026, simetris dengan ARA mulai 2027 |
+| **ARA / ARB** | Auto Rejection Atas/Bawah: batas kenaikan/penurunan harga harian. ARB 15% (Apr 2025), 7% mulai 19 Okt s.d. 31 Des 2026, simetris dengan ARA mulai 2027 |
 | **RDN** | Rekening Dana Nasabah (kas di sekuritas) |
 | **IHSG (`^JKSE`)** | Indeks Harga Saham Gabungan |
 | **RLS** | Row Level Security Postgres/Supabase |

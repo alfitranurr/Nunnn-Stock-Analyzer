@@ -106,14 +106,14 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
             <span className="text-xs font-bold text-white block">
               {isId ? 'Portofolio Kosong' : 'Empty Portfolio'}
             </span>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-[11px] text-slate-400">
               {isId ? 'Tambahkan saham untuk memantau P&L' : 'Add stocks to track P&L'}
             </span>
           </div>
         </div>
         <button
           onClick={onOpenPortfolio}
-          className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+          className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
         >
           {isId ? 'Buka' : 'Open'}
           <ArrowRight className="h-3 w-3" />
@@ -128,7 +128,7 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
       <span className={`text-base font-black tracking-tight flex items-center gap-1 flex-wrap tabular-nums ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
         {up ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
         {up ? '+' : ''}{money(value)}
-        <span className="text-[10px] font-semibold">({up ? '+' : ''}{formatNumberLocale(pct, language, 2)}%)</span>
+        <span className="text-[11px] font-semibold">({up ? '+' : ''}{formatNumberLocale(pct, language, 2)}%)</span>
       </span>
     );
   };
@@ -143,14 +143,14 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Briefcase className="h-4 w-4 text-emerald-400" />
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
             {isId ? 'Ringkasan Portofolio' : 'Portfolio Snapshot'}
           </span>
-          <span className="text-[10px] text-slate-600">{holdings.length} {isId ? 'saham' : holdings.length === 1 ? 'stock' : 'stocks'}</span>
+          <span className="text-[11px] text-slate-600">{holdings.length} {isId ? 'saham' : holdings.length === 1 ? 'stock' : 'stocks'}</span>
         </div>
         <button
           onClick={onOpenPortfolio}
-          className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 transition-colors cursor-pointer"
+          className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 transition-colors cursor-pointer"
         >
           {isId ? 'Lihat Detail' : 'View Detail'}
           <ArrowRight className="h-3 w-3" />
@@ -159,13 +159,13 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
-          <span className="text-[10px] text-slate-500 block">{isId ? 'Total Ekuitas' : 'Total Equity'}</span>
+          <span className="text-[11px] text-slate-500 block">{isId ? 'Total Ekuitas' : 'Total Equity'}</span>
           <span className="text-base font-black text-white tracking-tight tabular-nums">{money(totalEquity)}</span>
-          <span className="text-[10px] text-slate-500 block">{isId ? 'Nilai pasar' : 'Market value'} {money(totalMarketValue)}</span>
+          <span className="text-[11px] text-slate-500 block">{isId ? 'Nilai pasar' : 'Market value'} {money(totalMarketValue)}</span>
         </div>
 
         <div>
-          <span className="text-[10px] text-slate-500 block">{isId ? 'P&L Hari Ini' : "Today's P&L"}</span>
+          <span className="text-[11px] text-slate-500 block">{isId ? 'P&L Hari Ini' : "Today's P&L"}</span>
           {pricedCount > 0 ? (
             renderPL(todayPL, todayPLPct)
           ) : (
@@ -174,12 +174,12 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
         </div>
 
         <div>
-          <span className="text-[10px] text-slate-500 block">{isId ? 'P&L Total (Floating)' : 'Total P&L (Unrealized)'}</span>
+          <span className="text-[11px] text-slate-500 block">{isId ? 'P&L Total (Floating)' : 'Total P&L (Unrealized)'}</span>
           {renderPL(totalPL, totalPLPct)}
         </div>
 
         <div>
-          <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
+          <span className="text-[11px] text-slate-500 flex items-center gap-0.5">
             <Wallet className="h-2.5 w-2.5" />
             {isId ? 'Kas RDN' : 'Cash (RDN)'}
           </span>

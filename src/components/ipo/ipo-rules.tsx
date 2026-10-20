@@ -39,7 +39,7 @@ export function IpoRules({ language, activeGolongan }: { language: Lang; activeG
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full min-w-[620px] text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                   <th className="py-2 px-2">{L('Golongan', 'Class')}</th>
                   <th className="py-2 px-2">{L('Nilai penawaran', 'Offering value')}</th>
                   <th className="py-2 px-2">{L('Alokasi minimal terpusat', 'Minimum pooling')}</th>
@@ -90,7 +90,7 @@ export function IpoRules({ language, activeGolongan }: { language: Lang; activeG
               <li>{L('Sisa pembulatan dibagikan 1 lot per pemodal sesuai urutan waktu pesan.', 'Rounding leftovers go 1 lot each by order time.')}</li>
             </ol>
           </div>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[11px] text-slate-500">
             {L('Sumber: SEOJK 25/SEOJK.04/2025 romawi IV, VI, VII, VIII. Selalu cek prospektus & pengumuman penjatahan resmi di e-ipo.co.id.', 'Source: SEOJK 25/SEOJK.04/2025 sections IV, VI, VII, VIII. Always check the prospectus & official allotment announcement on e-ipo.co.id.')}
           </p>
         </div>

@@ -198,7 +198,7 @@ const sanitizeCount = (s: string) => s.replace(/[^0-9]/g, '');
 function Field({ label, htmlFor, children, hint }: { label: string; htmlFor?: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <label htmlFor={htmlFor} className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</label>
+      <label htmlFor={htmlFor} className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</label>
       {children}
       {hint}
     </div>
@@ -225,7 +225,7 @@ function Segmented<T extends string>({
           onClick={() => onChange(opt.value)}
           aria-pressed={value === opt.value}
           className={`flex-1 py-2 px-3 rounded-lg transition-all cursor-pointer text-center whitespace-nowrap ${
-            value === opt.value ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            value === opt.value ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
           {opt.label}
@@ -264,11 +264,11 @@ function StatCard({
   const t = STAT_TONES[tone];
   return (
     <div className={`glass-card p-4 md:p-4.5 overflow-hidden ${t.card}`}>
-      <span className={`text-[9px] font-bold uppercase tracking-widest block ${t.label}`}>{label}</span>
+      <span className={`text-[10px] font-bold uppercase tracking-widest block ${t.label}`}>{label}</span>
       <h3 className={`text-lg md:text-xl font-black mt-1 tracking-tight truncate ${t.value}`} title={fullValue ?? value}>
         {amount !== undefined && formatAmount ? <AnimatedNumber value={amount} format={formatAmount} fromZero /> : value}
       </h3>
-      {sub && <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 truncate" title={sub}>{sub}</p>}
+      {sub && <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 truncate" title={sub}>{sub}</p>}
     </div>
   );
 }
@@ -1065,7 +1065,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
             <button
               type="button"
               onClick={openSaveModal}
-              className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold transition-all cursor-pointer shadow-md"
+              className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[11px] font-bold transition-all cursor-pointer shadow-md"
             >
               <Save className="h-3.5 w-3.5" />
               {t('compounding.savePlan')}
@@ -1092,7 +1092,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                 htmlFor={`${fieldId}-target`}
                 hint={
                   <div className="space-y-1">
-                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
                       {otherPeriods.map((p, i) => (
                         <span key={p}>
                           {i > 0 && ' · '}≈{' '}
@@ -1103,7 +1103,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                       <span className="text-slate-600">({L('majemuk, sebelum fee', 'compounded, before fees')})</span>
                     </p>
                     {isAggressive && (
-                      <p className="flex items-start gap-1 text-[10px] font-semibold text-amber-400 leading-relaxed">
+                      <p className="flex items-start gap-1 text-[11px] font-semibold text-amber-400 leading-relaxed">
                         <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
                         {L('Setara lebih dari 100% per tahun. Target ini sangat agresif.', 'Equivalent to more than 100% per year. This target is very aggressive.')}
                       </p>
@@ -1138,7 +1138,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                           key={preset.value}
                           type="button"
                           onClick={() => updateTradingParam('duration', String(preset.value))}
-                          className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-colors cursor-pointer ${
+                          className={`px-2 py-0.5 rounded-md border text-[11px] font-bold transition-colors cursor-pointer ${
                             tradingPeriods === preset.value
                               ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-400'
                               : 'border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40'
@@ -1149,12 +1149,12 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                       ))}
                     </div>
                     {requestedPeriods > maxPeriods && (
-                      <p className="text-[10px] font-semibold text-amber-400">
+                      <p className="text-[11px] font-semibold text-amber-400">
                         {L(`Maksimal ${maxPeriods} ${periodText.plural}; simulasi dibatasi.`, `Maximum ${maxPeriods} ${periodText.plural}; the simulation is capped.`)}
                       </p>
                     )}
                     {tradingPeriod === 'daily' && (
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-[11px] text-slate-500">
                         {L(`Asumsi ${TRADING_DAYS_PER_MONTH} hari bursa per bulan, ${TRADING_DAYS_PER_YEAR} per tahun.`, `Assumes ${TRADING_DAYS_PER_MONTH} trading days per month, ${TRADING_DAYS_PER_YEAR} per year.`)}
                       </p>
                     )}
@@ -1173,7 +1173,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   decrementLabel={`${t('calculator.decrease')} ${L('Durasi', 'Duration')}`}
                   incrementLabel={`${t('calculator.increase')} ${L('Durasi', 'Duration')}`}
                   inputClassName="font-bold text-white"
-                  adornment={<span className="flex items-center pr-1 text-[10px] font-semibold text-slate-500">{periodText.plural}</span>}
+                  adornment={<span className="flex items-center pr-1 text-[11px] font-semibold text-slate-500">{periodText.plural}</span>}
                 />
               </Field>
 
@@ -1192,7 +1192,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                 label={L('Broker Fee (per transaksi)', 'Broker Fee (per trade)')}
                 htmlFor={`${fieldId}-broker`}
                 hint={
-                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
                     {L(`Dipotong 1× beli + 1× jual setiap ${periodText.noun.toLowerCase()}.`, `Charged once on buy and once on sell every ${periodText.noun.toLowerCase()}.`)}
                   </p>
                 }
@@ -1230,7 +1230,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                           inputClassName="py-2"
                           adornment={percentSuffix}
                         />
-                        <label htmlFor={`${fieldId}-fee-${key}`} className="text-[9px] text-slate-500 text-center block mt-1">{label}</label>
+                        <label htmlFor={`${fieldId}-fee-${key}`} className="text-[10px] text-slate-500 text-center block mt-1">{label}</label>
                       </div>
                     ))}
                   </div>
@@ -1309,7 +1309,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                     decrementLabel={`${t('calculator.decrease')} ${L('Tahun', 'Years')}`}
                     incrementLabel={`${t('calculator.increase')} ${L('Tahun', 'Years')}`}
                     inputClassName="font-bold text-white"
-                    adornment={<span className="flex items-center pr-1 text-[9px] font-semibold text-slate-500">{L('Thn', 'Yrs')}</span>}
+                    adornment={<span className="flex items-center pr-1 text-[10px] font-semibold text-slate-500">{L('Thn', 'Yrs')}</span>}
                   />
                   <StepperInput
                     type="text"
@@ -1323,7 +1323,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                     incrementLabel={`${t('calculator.increase')} ${L('Bulan', 'Months')}`}
                     aria-label={L('Bulan', 'Months')}
                     inputClassName="font-bold text-white"
-                    adornment={<span className="flex items-center pr-1 text-[9px] font-semibold text-slate-500">{L('Bln', 'Mths')}</span>}
+                    adornment={<span className="flex items-center pr-1 text-[10px] font-semibold text-slate-500">{L('Bln', 'Mths')}</span>}
                   />
                 </div>
               </Field>
@@ -1342,7 +1342,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                     decrementLabel={`${t('calculator.decrease')} ${L('Inflasi', 'Inflation')}`}
                     incrementLabel={`${t('calculator.increase')} ${L('Inflasi', 'Inflation')}`}
                     inputClassName="font-bold text-white"
-                    adornment={<span className="flex items-center pr-1 text-[9px] text-slate-500">% Inf</span>}
+                    adornment={<span className="flex items-center pr-1 text-[10px] text-slate-500">% Inf</span>}
                   />
                   <StepperInput
                     type="text"
@@ -1356,7 +1356,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                     incrementLabel={`${t('calculator.increase')} ${L('Pajak', 'Tax')}`}
                     aria-label={L('Pajak', 'Tax')}
                     inputClassName="font-bold text-white"
-                    adornment={<span className="flex items-center pr-1 text-[9px] text-slate-500">% {L('Pjk', 'Tax')}</span>}
+                    adornment={<span className="flex items-center pr-1 text-[10px] text-slate-500">% {L('Pjk', 'Tax')}</span>}
                   />
                 </div>
               </Field>
@@ -1453,7 +1453,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
       {/* Wawasan dinamis */}
       {insights.length > 0 && (
         <div className="glass-card p-4 md:p-5 border-sky-500/20 bg-sky-500/[0.03]">
-          <h2 className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
+          <h2 className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
             <Lightbulb className="h-4 w-4" /> {L('Wawasan', 'Insights')}
           </h2>
           <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-2.5" key={`${calcMode}:${tradingPeriod}`}>
@@ -1474,7 +1474,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
             <TrendingUp className="h-4.5 w-4.5 text-emerald-400" />
             {L('Visualisasi Proyeksi Pertumbuhan Dana', 'Growth Projection Visualization')}
           </h2>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 select-none">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 select-none">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded bg-emerald-500" />
               <span>{L('Saldo Nominal', 'Nominal Balance')}</span>
@@ -1553,7 +1553,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   key={`line-${chartData.length}-${calcMode}`}
                   d={linePath(d => d.endingBalance)}
                   fill="none"
-                  stroke="#00b15b"
+                  stroke="#10b981"
                   strokeWidth="3.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -1567,8 +1567,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
                 {activeIndex !== null && (
                   <g>
-                    <line x1={getX(activeIndex)} y1={chartMargin.top} x2={getX(activeIndex)} y2={svgHeight - chartMargin.bottom} stroke="#00b15b" strokeWidth="1.2" opacity="0.4" />
-                    <circle cx={getX(activeIndex)} cy={getY(chartData[activeIndex].endingBalance)} r="5.5" fill="#00b15b" stroke="#ffffff" strokeWidth="1.5" />
+                    <line x1={getX(activeIndex)} y1={chartMargin.top} x2={getX(activeIndex)} y2={svgHeight - chartMargin.bottom} stroke="#10b981" strokeWidth="1.2" opacity="0.4" />
+                    <circle cx={getX(activeIndex)} cy={getY(chartData[activeIndex].endingBalance)} r="5.5" fill="#10b981" stroke="#ffffff" strokeWidth="1.5" />
                     {!isTrading && (
                       <circle cx={getX(activeIndex)} cy={getY(chartData[activeIndex].realEndingBalance)} r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.2" />
                     )}
@@ -1578,8 +1578,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
                 <defs>
                   <linearGradient id="nominalGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00b15b" />
-                    <stop offset="100%" stopColor="#00b15b" stopOpacity="0" />
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
                   </linearGradient>
                   <linearGradient id="depositGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#6366f1" />
@@ -1595,7 +1595,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                 const onRight = leftPct < 55;
                 return (
                   <div
-                    className="absolute top-2 md:top-4 p-3 bg-slate-950/95 border border-[#00b15b]/30 rounded-xl shadow-xl z-20 space-y-1 text-[10px] text-slate-400 w-[220px] max-w-[70%] backdrop-blur-md pointer-events-none"
+                    className="absolute top-2 md:top-4 p-3 bg-slate-950/95 border border-[#10b981]/30 rounded-xl shadow-xl z-20 space-y-1 text-[11px] text-slate-400 w-[220px] max-w-[70%] backdrop-blur-md pointer-events-none"
                     style={onRight ? { left: `calc(${leftPct}% + 14px)` } : { right: `calc(${100 - leftPct}% + 14px)` }}
                   >
                     <div className="font-extrabold text-white border-b border-white/5 pb-1 uppercase tracking-wider">
@@ -1603,7 +1603,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                     </div>
                     <div className="flex justify-between items-center gap-3">
                       <span>{L('Saldo', 'Balance')}</span>
-                      <strong className="text-[#05fa7b] font-bold">{formatIDR(point.endingBalance)}</strong>
+                      <strong className="text-[#34d399] font-bold">{formatIDR(point.endingBalance)}</strong>
                     </div>
                     {!isTrading && (
                       <div className="flex justify-between items-center gap-3">
@@ -1661,7 +1661,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
         <div className="overflow-x-auto max-h-[440px] overflow-y-auto pr-1">
           <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
             <thead className="sticky top-0 z-10 bg-card-bg">
-              <tr className="border-b border-border-color text-slate-500 font-bold uppercase tracking-wider text-[9px]">
+              <tr className="border-b border-border-color text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-2">{L('Periode', 'Period')}</th>
                 <th className="py-3 px-2 text-right">{L('Saldo Awal', 'Start Balance')}</th>
                 {showDepositCol && <th className="py-3 px-2 text-right">{L('Setoran', 'Deposit')}</th>}
@@ -1679,7 +1679,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                 <tr key={row.key} className="hover:bg-white/2 transition-colors text-[11px]">
                   <td className="py-2.5 px-2">
                     <span className="font-bold text-slate-200 block">{row.label}</span>
-                    {row.sub && <span className="text-[9px] text-slate-500">{row.sub}</span>}
+                    {row.sub && <span className="text-[10px] text-slate-500">{row.sub}</span>}
                   </td>
                   <td className="py-2.5 px-2 text-right text-slate-300">{formatIDR(row.start)}</td>
                   {showDepositCol && <td className="py-2.5 px-2 text-right text-indigo-400">+{formatIDR(row.deposit)}</td>}
@@ -1704,7 +1704,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
             <Database className="h-4.5 w-4.5 text-emerald-400" />
             {L('Rencana Compounding Tersimpan', 'Saved Compounding Plans')}
           </h2>
-          <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-slate-300">
+          <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300">
             {savedPlans.length} {L('rencana', savedPlans.length === 1 ? 'plan' : 'plans')}
           </span>
         </div>
@@ -1736,7 +1736,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border-color bg-black/10 hover:border-emerald-500/40 hover:bg-black/20 transition-all group"
                 >
                   <div className="space-y-1 min-w-0">
-                    <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                       isTradingPlan ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400'
                     }`}>
                       {isTradingPlan ? <Repeat className="h-2.5 w-2.5" /> : <Sprout className="h-2.5 w-2.5" />}
@@ -1745,7 +1745,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                     <h4 className="font-extrabold text-sm text-slate-200 group-hover:text-emerald-400 transition-colors truncate" title={plan.title}>
                       {plan.title}
                     </h4>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[11px] text-slate-400">
                       {L('Modal', 'Capital')} <strong className="text-slate-300">{formatIDR(Number(plan.initial_amount), true)}</strong> • {detail}
                     </p>
                   </div>
@@ -1807,7 +1807,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
               <form onSubmit={handleSavePlan} className="space-y-4">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`${fieldId}-plan-title`} className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <label htmlFor={`${fieldId}-plan-title`} className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     {L('Judul Rencana', 'Plan Title')}
                   </label>
                   <input
@@ -1835,7 +1835,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   <button
                     type="submit"
                     disabled={isSaving || !planTitle.trim()}
-                    className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-md cursor-pointer flex items-center gap-1.5"
                   >
                     {isSaving ? (
                       <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
