@@ -935,7 +935,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl border border-sky-500/30 bg-[#0f1a22]/95 backdrop-blur text-xs font-semibold text-sky-100 shadow-xl flex items-center gap-2 max-w-[calc(100vw-32px)]"
+            className="fixed bottom-20 md:bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl border border-sky-500/30 bg-[#0f1a22]/95 backdrop-blur text-xs font-semibold text-sky-100 shadow-xl flex items-center gap-2 max-w-[calc(100vw-32px)]"
           >
             <BookmarkCheck className="h-4 w-4 text-sky-400 shrink-0" />
             {saveNotice}

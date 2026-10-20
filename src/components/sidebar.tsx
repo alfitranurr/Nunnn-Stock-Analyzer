@@ -45,20 +45,41 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
   const isAdmin = user && user.email && user.email.toLowerCase() === adminEmail;
 
-  const menuItems = [
-    { id: 'home', label: t('sidebar.home') || 'Home', icon: Home, active: true },
-    { id: 'news', label: t('sidebar.news'), icon: Newspaper, active: true },
-    { id: 'avg-down', label: t('sidebar.avgDown'), icon: Calculator, active: true },
-    { id: 'compounding', label: t('sidebar.compounding'), icon: Sprout, active: true },
-    { id: 'percentage', label: t('sidebar.percentage'), icon: Percent, active: true },
-    { id: 'dividend', label: t('sidebar.dividend'), icon: HandCoins, active: true },
-    { id: 'ipo', label: t('sidebar.ipo'), icon: Rocket, active: true },
-    { id: 'analysis', label: t('sidebar.analysis'), icon: ChartCandlestick, active: true, isLocked: !user },
-    { id: 'portfolio', label: t('sidebar.portfolio'), icon: Briefcase, active: true, isLocked: !user },
-    { id: 'watchlist', label: t('sidebar.watchlist'), icon: Star, active: true },
-    // Admin selalu paling bawah.
-    ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true }] : []),
+  type MenuGroup = 'market' | 'calc' | 'account';
+  const menuItems: Array<{ id: string; label: string; icon: typeof Home; active: boolean; isLocked?: boolean; group: MenuGroup }> = [
+    // Pasar
+    { id: 'home', label: t('sidebar.home') || 'Home', icon: Home, active: true, group: 'market' },
+    { id: 'news', label: t('sidebar.news'), icon: Newspaper, active: true, group: 'market' },
+    { id: 'analysis', label: t('sidebar.analysis'), icon: ChartCandlestick, active: true, isLocked: !user, group: 'market' },
+    { id: 'watchlist', label: t('sidebar.watchlist'), icon: Star, active: true, group: 'market' },
+    // Kalkulator
+    { id: 'avg-down', label: t('sidebar.avgDown'), icon: Calculator, active: true, group: 'calc' },
+    { id: 'compounding', label: t('sidebar.compounding'), icon: Sprout, active: true, group: 'calc' },
+    { id: 'percentage', label: t('sidebar.percentage'), icon: Percent, active: true, group: 'calc' },
+    { id: 'dividend', label: t('sidebar.dividend'), icon: HandCoins, active: true, group: 'calc' },
+    { id: 'ipo', label: t('sidebar.ipo'), icon: Rocket, active: true, group: 'calc' },
+    // Akun (Admin selalu paling bawah)
+    { id: 'portfolio', label: t('sidebar.portfolio'), icon: Briefcase, active: true, isLocked: !user, group: 'account' },
+    ...(isAdmin ? [{ id: 'admin', label: t('sidebar.admin'), icon: ShieldCheck, active: true, group: 'account' as const }] : []),
   ];
+  const GROUP_LABEL: Record<MenuGroup, string> = {
+    market: language === 'id' ? 'Pasar' : 'Market',
+    calc: language === 'id' ? 'Kalkulator' : 'Calculators',
+    account: language === 'id' ? 'Akun' : 'Account',
+  };
+  /** Judul kelompok sebelum item pertama tiap kelompok. */
+  const groupStart = (index: number) => index === 0 || menuItems[index - 1].group !== menuItems[index].group;
+
+  // Menu bawah di HP: 4 halaman yang paling sering dibuka + tombol Menu (laci lengkap).
+  const bottomNav = ['home', 'news', 'analysis', 'watchlist']
+    .map((id) => menuItems.find((m) => m.id === id))
+    .filter((m): m is (typeof menuItems)[number] => !!m);
+  const shortLabel: Record<string, string> = {
+    home: language === 'id' ? 'Beranda' : 'Home',
+    news: language === 'id' ? 'Berita' : 'News',
+    analysis: language === 'id' ? 'Analisis' : 'Analysis',
+    watchlist: 'Watchlist',
+  };
 
   const sidebarVariants = {
     expanded: { width: 260 },
@@ -87,6 +108,49 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           </button>
         </div>
       </header>
+
+      {/* Menu bawah HP (Fixed Bottom) */}
+      <nav
+        aria-label={language === 'id' ? 'Navigasi utama' : 'Main navigation'}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-bg/95 backdrop-blur border-t border-border-color pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="grid grid-cols-5 h-16">
+          {bottomNav.map((item) => {
+            const active = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setCurrentTab(item.id)}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold cursor-pointer transition-colors',
+                  active ? 'text-emerald-400' : 'text-slate-400 hover:text-white'
+                )}
+              >
+                {active && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-400" aria-hidden />}
+                <span className="relative">
+                  <item.icon className="h-5 w-5" />
+                  {item.isLocked && <Lock className="absolute -right-2 -top-1 h-2.5 w-2.5 text-slate-500" />}
+                </span>
+                {shortLabel[item.id]}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setIsMobileOpen(true)}
+            className={cn(
+              'relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold cursor-pointer transition-colors',
+              bottomNav.some((m) => m.id === currentTab) ? 'text-slate-400 hover:text-white' : 'text-emerald-400'
+            )}
+          >
+            {!bottomNav.some((m) => m.id === currentTab) && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-400" aria-hidden />}
+            <Menu className="h-5 w-5" />
+            {language === 'id' ? 'Menu' : 'Menu'}
+          </button>
+        </div>
+      </nav>
 
       {/* Mobile Drawer (Overlay + Panel) */}
       <AnimatePresence>
@@ -130,9 +194,12 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
               {/* Menu items */}
               <nav className="flex-1 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                {menuItems.map((item) => (
+                {menuItems.map((item, index) => (
+                  <React.Fragment key={item.id}>
+                  {groupStart(index) && (
+                    <p className={cn('px-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500', index > 0 ? 'pt-3' : 'pt-0')}>{GROUP_LABEL[item.group]}</p>
+                  )}
                   <button
-                    key={item.id}
                     onClick={() => {
                       if (item.active) {
                         setCurrentTab(item.id);
@@ -155,6 +222,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       <Lock className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                     )}
                   </button>
+                  </React.Fragment>
                 ))}
               </nav>
 
@@ -264,18 +332,23 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
         {/* Navigation Menu (Scrollable if screen is short) */}
         <nav className={cn(
-          "flex-1 overflow-y-auto space-y-2 custom-scrollbar w-full",
+          "flex-1 overflow-y-auto space-y-1 custom-scrollbar w-full",
           isCollapsed ? "px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" : "pr-1.5"
         )}>
-          {menuItems.map((item) => (
+          {menuItems.map((item, index) => (
+            <React.Fragment key={item.id}>
+            {groupStart(index) && (
+              isCollapsed
+                ? index > 0 && <div className="mx-auto my-2 h-px w-8 bg-border-color" aria-hidden />
+                : <p className={cn('px-3.5 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500', index > 0 ? 'pt-2.5' : 'pt-0')}>{GROUP_LABEL[item.group]}</p>
+            )}
             <button
-              key={item.id}
               onClick={() => item.active && setCurrentTab(item.id)}
               className={cn(
                 "flex items-center transition-all duration-300 border relative group/item cursor-pointer",
                 isCollapsed
                   ? "w-11 h-11 mx-auto justify-center rounded-xl p-0 shrink-0"
-                  : "w-full justify-between px-3.5 py-2.5 rounded-xl text-left",
+                  : "w-full justify-between px-3.5 py-2 rounded-xl text-left",
                 currentTab === item.id && item.active
                   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 dark:text-emerald-400 font-semibold shadow-sm"
                   : "bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-input-bg",
@@ -291,6 +364,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 <Lock className="h-3 w-3 text-slate-500 dark:text-slate-600 shrink-0" />
               )}
             </button>
+            </React.Fragment>
           ))}
         </nav>
 

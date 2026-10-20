@@ -30,6 +30,21 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 import { signalAppReady } from '@/components/app-splash';
 
+/** Halaman yang boleh dibuka lewat URL `?tab=` (selain itu kembali ke Beranda). */
+const URL_TABS = ['home', 'news', 'avg-down', 'compounding', 'percentage', 'dividend', 'ipo', 'analysis', 'portfolio', 'watchlist', 'admin'];
+const cleanTicker = (v: string | null) => {
+  const t = (v ?? '').toUpperCase().trim();
+  return /^[A-Z0-9]{2,6}$/.test(t) ? t : null;
+};
+/** URL untuk sebuah halaman: Beranda = path polos, Analisis membawa kode saham. */
+const urlFor = (tab: string, ticker: string | null) => {
+  const params = new URLSearchParams();
+  if (tab !== 'home') params.set('tab', tab);
+  if (tab === 'analysis' && ticker) params.set('ticker', ticker);
+  const q = params.toString();
+  return q ? `${window.location.pathname}?${q}` : window.location.pathname;
+};
+
 export default function Dashboard() {
   const [currentTab, setCurrentTabRaw] = React.useState('home');
   const [user, setUser] = React.useState<AppUser | null>(null);
@@ -118,19 +133,66 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Persistent active tab on page refresh/reload using sessionStorage.
-  // This preserves the current tab on F5/reload, but defaults to 'home' when opening in a new tab/session.
+  // ─── Halaman ↔ URL ───
+  // URL `?tab=…&ticker=…` menjadi sumber halaman saat dibuka (link bisa dibagikan/di-bookmark);
+  // tanpa parameter, halaman terakhir di sesi ini (sessionStorage) dipakai agar F5 tetap di halaman yang sama.
+  // Setiap pindah halaman menambah riwayat browser, jadi tombol Back/Forward berpindah halaman.
+  const urlTickerRef = React.useRef<string | null>(null);
+  const currentTabRef = React.useRef(currentTab);
+  const urlReadyRef = React.useRef(false);
+  const skipPushRef = React.useRef<string | null>(null);
+
   React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('tab');
     const savedTab = sessionStorage.getItem('nunnn_stock_active_tab');
-    if (savedTab) {
-      setTimeout(() => {
-        setCurrentTab(savedTab);
-      }, 0);
-    }
+    const initialTab = fromUrl && URL_TABS.includes(fromUrl) ? fromUrl : savedTab && URL_TABS.includes(savedTab) ? savedTab : 'home';
+    const ticker = cleanTicker(params.get('ticker'));
+    urlTickerRef.current = initialTab === 'analysis' ? ticker : null;
+    urlReadyRef.current = true;
+    if (initialTab !== 'home') skipPushRef.current = initialTab;
+    // Ditunda agar router Next sudah memasang History API-nya; state `null` sesuai panduan Next
+    // (Next menambahkan data internalnya sendiri, tanpa itu Back ke entri ini memuat ulang halaman).
+    setTimeout(() => {
+      const url = urlFor(initialTab, urlTickerRef.current);
+      if (url !== window.location.pathname + window.location.search) window.history.replaceState(null, '', url);
+      if (initialTab !== 'home') {
+        if (initialTab === 'analysis' && ticker) setSelectedAnalysisTicker(ticker);
+        setCurrentTab(initialTab);
+      }
+    }, 0);
+
+    const onPopState = () => {
+      const p = new URLSearchParams(window.location.search);
+      const tab = p.get('tab');
+      const next = tab && URL_TABS.includes(tab) ? tab : 'home';
+      const nextTicker = cleanTicker(p.get('ticker'));
+      if (next === 'analysis' && nextTicker) {
+        urlTickerRef.current = nextTicker;
+        setSelectedAnalysisTicker(nextTicker);
+      }
+      if (next !== currentTabRef.current) {
+        skipPushRef.current = next;
+        setCurrentTab(next);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
+    currentTabRef.current = currentTab;
+    if (urlReadyRef.current) {
+      if (skipPushRef.current !== null) {
+        // Menunggu halaman dari URL/Back terpasang: riwayat sudah benar, jangan menambah entri
+        // (render pertama masih Beranda sebelum halaman dari URL diterapkan).
+        if (skipPushRef.current === currentTab) skipPushRef.current = null;
+      } else {
+        const url = urlFor(currentTab, currentTab === 'analysis' ? urlTickerRef.current : null);
+        if (url !== window.location.pathname + window.location.search) window.history.pushState(null, '', url);
+      }
+    }
     sessionStorage.setItem('nunnn_stock_active_tab', currentTab);
     // Scroll ke paling atas secara instan saat berpindah tab/halaman
     if (scrollContainerRef.current) {
@@ -512,9 +574,19 @@ export default function Dashboard() {
   };
 
   const handleSelectTicker = React.useCallback((symbol: string) => {
+    urlTickerRef.current = cleanTicker(symbol);
     setSelectedAnalysisTicker(symbol);
     setCurrentTab('analysis');
   }, [setCurrentTab]);
+
+  // Saham yang dipilih di dalam halaman Analisis ikut tercatat di URL (tanpa menambah riwayat).
+  const handleAnalysisTickerChange = React.useCallback((symbol: string | null) => {
+    urlTickerRef.current = cleanTicker(symbol);
+    if (currentTabRef.current === 'analysis' && urlReadyRef.current) {
+      const url = urlFor('analysis', urlTickerRef.current);
+      if (url !== window.location.pathname + window.location.search) window.history.replaceState(null, '', url);
+    }
+  }, []);
 
 
   // Sinkronkan watchlist & berita tersimpan dengan akun Supabase (fallback ke browser).
@@ -525,6 +597,7 @@ export default function Dashboard() {
   }, [user]);
 
   const handleAnalyzeFromPortfolio = (ticker: string) => {
+    urlTickerRef.current = cleanTicker(ticker);
     setSelectedAnalysisTicker(ticker);
     setCurrentTab('analysis');
   };
@@ -605,7 +678,7 @@ export default function Dashboard() {
 
       {/* Main Dashboard Panel (animasi mengikuti preferensi "kurangi gerakan" sistem) */}
       <MotionConfig reducedMotion="user">
-      <main className={`flex-1 h-dvh flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
+      <main className={`flex-1 h-dvh flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-3 md:pb-4 max-w-7xl w-full mx-auto flex flex-col justify-between custom-scrollbar">
           
           {/* 0. Home Tab */}
@@ -821,6 +894,7 @@ export default function Dashboard() {
                 isActive={currentTab === 'analysis'}
                 onSignInClick={() => setIsAuthModalOpen(true)}
                 initialTicker={selectedAnalysisTicker}
+                onTickerChange={handleAnalysisTickerChange}
               />
             </motion.div>
           </div>
@@ -891,7 +965,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className={`fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-xl border shadow-xl flex items-center gap-3 backdrop-blur-md text-xs font-bold ${
+            className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 px-5 py-3.5 rounded-xl border shadow-xl flex items-center gap-3 backdrop-blur-md text-xs font-bold ${
               toast.type === 'success' 
                 ? 'bg-bullish-green/90 border-bullish-green/30 text-white' 
                 : toast.type === 'error'
@@ -917,7 +991,7 @@ export default function Dashboard() {
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
             onClick={scrollToTop}
             className={`fixed right-6 md:right-8 z-40 p-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-xl shadow-emerald-500/25 cursor-pointer transition-all duration-300 border border-emerald-400/30 flex items-center justify-center backdrop-blur-md group ${
-              toast ? 'bottom-24 md:bottom-26' : 'bottom-6 md:bottom-8'
+              toast ? 'bottom-40 md:bottom-26' : 'bottom-20 md:bottom-8'
             }`}
             title={language === 'id' ? 'Kembali ke atas' : 'Scroll to top'}
             aria-label="Scroll to top"

@@ -62,7 +62,10 @@
 ### 2.1 Pola aplikasi: satu halaman dengan tab state
 
 - Hanya ada **satu route halaman**, yaitu [src/app/page.tsx](src/app/page.tsx) (`'use client'`, 1133 baris).
-- Menu tidak dipisah per route. Setiap menu adalah tab yang dipilih lewat state `currentTab` ([page.tsx:52](src/app/page.tsx#L52)) dan disimpan di `sessionStorage['nunnn_stock_active_tab']` ([page.tsx:141-158](src/app/page.tsx#L141-L158)).
+- Menu tidak dipisah per route. Setiap menu adalah tab yang dipilih lewat state `currentTab` ([page.tsx](src/app/page.tsx)). Sejak 20 Okt 2026 tab tercermin di URL lewat History API native (`?tab=dividend`, Analisis `?tab=analysis&ticker=BBCA`; Beranda = path polos):
+  - membuka link langsung menampilkan halaman itu (bisa dibagikan/di-bookmark); tanpa parameter dipakai tab terakhir di `sessionStorage['nunnn_stock_active_tab']` agar F5 tetap di halaman yang sama;
+  - setiap pindah halaman menambah riwayat (`pushState`), sehingga tombol Back/Forward berpindah halaman (`popstate`); saham yang dipilih di dalam Analisis memperbarui URL tanpa menambah riwayat (`replaceState`, callback `onTickerChange`);
+  - state riwayat selalu `null` sesuai panduan Next 16 (`single-page-applications.md`): Next menambahkan data internalnya sendiri; entri tanpa data itu membuat Back memuat ulang halaman (sempat terjadi saat pengujian). URL awal hanya diganti bila berbeda, setelah router siap.
 - **Semua tab selalu ter-mount.** Tab yang tidak aktif hanya disembunyikan dengan CSS (`block`/`hidden`) di dalam wrapper animasi framer-motion ([page.tsx:613-1041](src/app/page.tsx#L613-L1041)). Efek sampingnya: state tiap tab bertahan saat berpindah tab, tetapi efek dan fetch semua tab ikut jalan saat halaman dibuka.
 - `page.tsx` memegang state global: `user`, sesi auth, CRUD rencana Avg Down, toast, tombol scroll-to-top, serta modal logout dan hapus. State ini diteruskan ke komponen lewat props. Tidak ada state library.
 
@@ -233,7 +236,8 @@ Ringkasan akses tiap menu:
 
 ### 5.0 Sidebar & Navigasi ([sidebar.tsx](src/components/sidebar.tsx))
 
-- **Daftar menu:** [sidebar.tsx:47-62](src/components/sidebar.tsx#L47-L62). Menu Admin selalu di urutan paling bawah, setelah Watchlist (`fc27b06`).
+- **Daftar menu:** [sidebar.tsx](src/components/sidebar.tsx), dikelompokkan (20 Okt 2026) dengan judul kecil: **Pasar** (Beranda, Berita, Analisis, Watchlist), **Kalkulator** (Avg Down, Compounding, Persentase, Dividen, E-IPO), **Akun** (Portofolio, Admin). Sidebar diciutkan: judul diganti garis pemisah. Menu Admin selalu paling bawah.
+  - **Menu bawah HP** (`md:hidden`, tinggi 64px + safe area): Beranda, Berita, Analisis, Watchlist, dan Menu (membuka laci lengkap). Item aktif hijau dengan garis di atasnya; Menu menyala bila halaman aktif ada di laci. Konten, tombol "ke atas", toast, dan notifikasi Simpan berita digeser ke atas menu ini.
   - Menu `analysis` dan `portfolio` tampil dengan ikon gembok bila belum login.
   - Menu `watchlist` aktif sejak `db0cca3`. Menu "Riwayat Rencana" (dulu berbadge "Segera", tidak pernah aktif) dihapus; rencana tersimpan tetap ada di tiap kalkulator.
   - Menu `admin` hanya muncul bila email pengguna sama dengan `NEXT_PUBLIC_ADMIN_EMAIL` (default `admin@nunnnstock.com`, [sidebar.tsx:44](src/components/sidebar.tsx#L44)).

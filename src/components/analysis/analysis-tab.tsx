@@ -110,6 +110,8 @@ interface AnalysisTabProps {
   isActive: boolean;
   onSignInClick: () => void;
   initialTicker?: string | null;
+  /** Dipanggil saat saham terpilih berubah (untuk URL). */
+  onTickerChange?: (ticker: string | null) => void;
 }
 
 /**
@@ -117,7 +119,7 @@ interface AnalysisTabProps {
  * "Analisis" (sentimen AI opsional), sehingga kuota AI hanya terpakai atas permintaan eksplisit.
  * Setelah itu hanya harga & teknikal yang diperbarui otomatis (LIVE, saat bursa buka).
  */
-export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: AnalysisTabProps) {
+export function AnalysisTab({ user, isActive, onSignInClick, initialTicker, onTickerChange }: AnalysisTabProps) {
   const { language } = useLanguage();
   const L = (id: string, en: string) => pick(language, id, en);
   const signedIn = user !== null;
@@ -130,6 +132,9 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker }: An
     if (initialTicker) setSelected(initialTicker.toUpperCase().trim());
   }
   const [run, setRun] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    onTickerChange?.(selected);
+  }, [selected, onTickerChange]);
 
   const [live, setLive] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
