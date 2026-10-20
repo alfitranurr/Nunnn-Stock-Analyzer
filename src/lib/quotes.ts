@@ -7,6 +7,9 @@ export interface QuoteItem {
   changePercent: number;
   volume: number;
   closes: number[]; // Harga intraday per 5 menit (sparkline)
+  /** Tertinggi/terendah hari ini dari bursa, termasuk harga pembukaan (null bila tidak tersedia). */
+  dayHigh?: number | null;
+  dayLow?: number | null;
   /** true bila perubahan harga tidak lolos pengecekan kewajaran (jangan dipakai untuk P&L). */
   suspect: boolean;
   /** true bila tidak bertransaksi pada sesi bursa terakhir (suspensi / tanpa transaksi); perubahan = 0. */

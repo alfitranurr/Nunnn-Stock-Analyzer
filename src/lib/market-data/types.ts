@@ -14,6 +14,9 @@ export interface StockQuote {
   volume: number; // Lembar saham
   marketTime: number | null; // Epoch detik transaksi terakhir
   intraday: number[]; // Harga intraday sesi terakhir (kosong bila tidak diminta)
+  /** Tertinggi/terendah sesi terakhir dari bursa (null bila tidak tersedia). */
+  dayHigh?: number | null;
+  dayLow?: number | null;
 }
 
 export interface IndexQuote extends StockQuote {

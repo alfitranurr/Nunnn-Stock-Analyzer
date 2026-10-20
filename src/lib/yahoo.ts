@@ -25,6 +25,9 @@ export interface YahooQuote {
   previousCloseDate: string | null;
   /** Tanggal bursa transaksi terakhir. */
   sessionDate: string | null;
+  /** Tertinggi/terendah sesi terakhir dari bursa (meta Yahoo), termasuk harga pembukaan. */
+  dayHigh: number | null;
+  dayLow: number | null;
 }
 
 export interface YahooChartQuote extends YahooQuote {
@@ -130,6 +133,8 @@ function toQuote(symbol: string, series: YahooSeries | undefined): YahooQuote | 
     marketTime: meta.regularMarketTime ?? null,
     closes,
     previousCloseDate: sessions?.previousClose != null ? sessions.previousCloseDate : null,
+    dayHigh: meta.regularMarketDayHigh != null && meta.regularMarketDayHigh > 0 ? meta.regularMarketDayHigh : null,
+    dayLow: meta.regularMarketDayLow != null && meta.regularMarketDayLow > 0 ? meta.regularMarketDayLow : null,
     sessionDate: sessions?.latestDate ?? (meta.regularMarketTime ? exchangeDate(series, meta.regularMarketTime) : null),
   };
 }

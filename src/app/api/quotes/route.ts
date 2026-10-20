@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
         changePercent: quote.changePercent,
         volume: quote.volume,
         closes: quote.intraday,
+        dayHigh: quote.dayHigh ?? null,
+        dayLow: quote.dayLow ?? null,
         suspect: issue !== null,
         stale: stale === true,
         lastTradeDate: lastTradeDate ?? null,

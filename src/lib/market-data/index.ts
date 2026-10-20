@@ -80,7 +80,9 @@ export async function getValidatedStockQuotes(
   for (const [ticker, quote] of raw) {
     const lastTradeDate = quote.marketTime ? wibDate(quote.marketTime) : null;
     const stale = session !== null && lastTradeDate !== null && lastTradeDate < session;
-    const input: StockQuote = stale ? { ...quote, previousClose: quote.price, change: 0, changePercent: 0, volume: 0, intraday: [] } : quote;
+    const input: StockQuote = stale
+      ? { ...quote, previousClose: quote.price, change: 0, changePercent: 0, volume: 0, intraday: [], dayHigh: null, dayLow: null }
+      : quote;
     const checked: ValidatedQuote = { ...validateIdxQuote(input), stale, lastTradeDate };
     quotes.set(ticker, checked);
     if (checked.issue) suspect.push(checked);

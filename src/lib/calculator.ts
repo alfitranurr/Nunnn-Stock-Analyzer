@@ -103,15 +103,28 @@ export function getAutoRejectionPct(referencePrice: number): number {
 }
 
 // Kep-00003/BEI/04-2025: ARB 15% untuk semua rentang harga sejak 8 Apr 2025.
+// Kep-00157/BEI/10-2026: ARB dipangkas menjadi 7% mulai 19 Okt 2026 s.d. 31 Des 2026 (setelah IHSG −11,57%
+//   pada 16 Okt 2026 terkait konsultasi MSCI); ARA tidak berubah. Mulai 20 Okt 2026 saham Rp11–Rp14 turun maks Rp1.
 // Kep-00136/BEI/09-2026: ARB kembali simetris dengan ARA mulai 1 Jan 2027 (00:00 WIB).
 const ARB_FLAT_START_MS = Date.UTC(2025, 3, 7, 17);
+const ARB_CRISIS_START_MS = Date.UTC(2026, 9, 18, 17); // 19 Okt 2026 00:00 WIB
+const ARB_SMALL_PRICE_RULE_MS = Date.UTC(2026, 9, 19, 17); // 20 Okt 2026 00:00 WIB
 const ARB_SYMMETRIC_FROM_MS = Date.UTC(2026, 11, 31, 17);
 const ARB_FLAT_PCT = 15;
+const ARB_CRISIS_PCT = 7;
 
 /** Batas auto rejection BAWAH (ARB) BEI (%) yang berlaku pada waktu `at`. */
 export function getAutoRejectionDownPct(referencePrice: number, at: number = Date.now()): number {
+  if (at >= ARB_CRISIS_START_MS && at < ARB_SYMMETRIC_FROM_MS) return ARB_CRISIS_PCT;
   if (at >= ARB_FLAT_START_MS && at < ARB_SYMMETRIC_FROM_MS) return ARB_FLAT_PCT;
   return getAutoRejectionPct(referencePrice);
+}
+
+/** Dasar aturan ARB yang berlaku pada waktu `at` (untuk keterangan di UI). */
+export function getArbRegulation(at: number = Date.now()): { pct: number | null; decree: string; until: string | null } {
+  if (at >= ARB_CRISIS_START_MS && at < ARB_SYMMETRIC_FROM_MS) return { pct: ARB_CRISIS_PCT, decree: 'Kep-00157/BEI/10-2026', until: '31 Des 2026' };
+  if (at >= ARB_FLAT_START_MS && at < ARB_SYMMETRIC_FROM_MS) return { pct: ARB_FLAT_PCT, decree: 'Kep-00003/BEI/04-2025', until: '31 Des 2026' };
+  return { pct: null, decree: 'Kep-00136/BEI/09-2026', until: null };
 }
 
 /**
@@ -128,6 +141,11 @@ export function getAutoRejectionBounds(
   const downPct = getAutoRejectionDownPct(referencePrice, at);
   if (referencePrice <= 10) {
     return { upper: referencePrice + 1, lower: Math.max(1, referencePrice - 1), pct: upPct, upPct, downPct };
+  }
+  if (referencePrice <= 14 && at >= ARB_SMALL_PRICE_RULE_MS && at < ARB_SYMMETRIC_FROM_MS) {
+    // Rp11–Rp14 selama ARB 7%: turun maksimal Rp1 per hari; ARA tetap persentase.
+    const up = Math.max(roundDownToIdxTick(referencePrice * (1 + upPct / 100)), referencePrice + 1);
+    return { upper: up, lower: referencePrice - 1, pct: upPct, upPct, downPct };
   }
   const tick = getIdxTickSize(referencePrice);
   const upper = Math.max(roundDownToIdxTick(referencePrice * (1 + upPct / 100)), referencePrice + tick);

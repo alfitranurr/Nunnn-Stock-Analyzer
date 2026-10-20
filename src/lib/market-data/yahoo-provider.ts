@@ -13,6 +13,8 @@ function toStockQuote(ticker: string, q: YahooQuote, intraday: boolean): StockQu
     volume: q.volume,
     marketTime: q.marketTime,
     intraday: intraday ? q.closes : [],
+    dayHigh: q.dayHigh,
+    dayLow: q.dayLow,
   };
 }
 
