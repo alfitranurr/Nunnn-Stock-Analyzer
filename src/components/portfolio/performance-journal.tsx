@@ -150,6 +150,21 @@ export function PerformanceJournal({
   const tone = (v: number | null) => (v === null || v === 0 ? 'text-slate-300' : v > 0 ? 'text-emerald-400' : 'text-rose-400');
   const currentRow = table.rows.find((r) => r.isCurrent) ?? null;
 
+  /**
+   * Sisa ke target: kenaikan (%) yang masih dibutuhkan total akhir agar mencapai jalur target terdekat
+   * yang belum tercapai = (nilai target ÷ total akhir − 1) × 100. null bila bulan itu belum ada data.
+   */
+  const remainingTo = (end: number | null, targets: number[]) => {
+    if (end === null || !(end > 0)) return null;
+    const next = targets
+      .map((tv, k) => ({ tv, rate: rates[k] }))
+      .sort((a, b) => a.tv - b.tv)
+      .find((t) => end < t.tv);
+    if (!next) return { done: true as const };
+    return { done: false as const, rate: next.rate, pct: (next.tv / end - 1) * 100, short: next.tv - end };
+  };
+  const currentRemaining = currentRow ? remainingTo(currentRow.record?.endValue ?? null, currentRow.targets) : null;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -237,13 +252,24 @@ export function PerformanceJournal({
                 tone={currentRow?.returnPct == null ? 'slate' : currentRow.returnPct >= 0 ? 'emerald' : 'rose'}
                 label={L('Bulan ini', 'This month')}
                 value={<span className={tone(currentRow?.returnPct ?? null)}>{currentRow?.returnPct != null ? signedPctTxt(currentRow.returnPct) : '—'}</span>}
-                sub={currentRow ? L(`target ${formatNumberLocale(rates[0], language, 0)}%: ${rp(currentRow.targets[0], language)}`, `${formatNumberLocale(rates[0], language, 0)}% target: ${rp(currentRow.targets[0], language)}`) : undefined}
+                sub={
+                  currentRemaining && !currentRemaining.done
+                    ? L(
+                        `butuh +${pct(currentRemaining.pct, language)} lagi ke target ${formatNumberLocale(currentRemaining.rate, language, 0)}%`,
+                        `needs +${pct(currentRemaining.pct, language)} more to the ${formatNumberLocale(currentRemaining.rate, language, 0)}% target`
+                      )
+                    : currentRemaining?.done
+                      ? L('semua target bulan ini tercapai', 'all targets reached this month')
+                      : currentRow
+                        ? L(`target ${formatNumberLocale(rates[0], language, 0)}%: ${rp(currentRow.targets[0], language)}`, `${formatNumberLocale(rates[0], language, 0)}% target: ${rp(currentRow.targets[0], language)}`)
+                        : undefined
+                }
               />
             </div>
 
-            <p className="lg:hidden mt-4 text-[11px] font-semibold text-slate-500">{L('Geser tabel ke kanan untuk melihat untung, kumulatif, dan target →', 'Swipe the table right to see profit, cumulative and targets →')}</p>
+            <p className="lg:hidden mt-4 text-[11px] font-semibold text-slate-500">{L('Geser tabel ke kanan untuk melihat untung, kumulatif, sisa ke target, dan target →', 'Swipe the table right to see profit, cumulative, distance to target and targets →')}</p>
             <div className="mt-2 lg:mt-5 overflow-x-auto custom-scrollbar">
-              <table className="w-full min-w-[1100px] text-left border-collapse text-xs">
+              <table className="w-full min-w-[1230px] text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
                     <th className="py-2.5 px-3 sticky left-0 z-10 bg-card-bg">{L('Bulan', 'Month')}</th>
@@ -252,6 +278,12 @@ export function PerformanceJournal({
                     <th className="py-2.5 px-3 text-right">{L('Untung', 'Profit')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Untung %', 'Profit %')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Kumulatif', 'Cumulative')}</th>
+                    <th
+                      className="py-2.5 px-3 text-right text-amber-300/90"
+                      title={L('Kenaikan yang masih dibutuhkan total akhir untuk mencapai target terdekat yang belum tercapai', 'Increase the end value still needs to reach the nearest unmet target')}
+                    >
+                      {L('Sisa ke target', 'To next target')}
+                    </th>
                     {rates.map((r) => (
                       <th key={r} className="py-2.5 px-3 text-right text-amber-300/90">{L(`Target ${formatNumberLocale(r, language, 0)}%`, `Target ${formatNumberLocale(r, language, 0)}%`)}</th>
                     ))}
@@ -262,6 +294,7 @@ export function PerformanceJournal({
                   {table.rows.map((row) => {
                     const st = statusText(row.status);
                     const end = row.record?.endValue ?? null;
+                    const remaining = remainingTo(end, row.targets);
                     return (
                       <tr key={row.month} className={row.isCurrent ? 'bg-emerald-500/[0.06]' : row.isFuture ? 'opacity-70' : ''}>
                         <td className={`py-2.5 px-3 font-bold text-white whitespace-nowrap sticky left-0 z-10 ${row.isCurrent ? 'bg-[#16211d]' : 'bg-card-bg'}`}>
@@ -273,6 +306,23 @@ export function PerformanceJournal({
                         <td className={`py-2.5 px-3 text-right font-mono whitespace-nowrap ${tone(row.gain)}`}>{row.gain !== null ? signedRp(row.gain) : '—'}</td>
                         <td className={`py-2.5 px-3 text-right font-mono ${tone(row.returnPct)}`}>{row.returnPct !== null ? signedPctTxt(row.returnPct) : '—'}</td>
                         <td className={`py-2.5 px-3 text-right font-mono ${tone(row.cumulativePct)}`}>{row.cumulativePct !== null ? signedPctTxt(row.cumulativePct) : '—'}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">
+                          {remaining === null ? (
+                            <span className="text-slate-600">—</span>
+                          ) : remaining.done ? (
+                            <span className="font-bold text-emerald-400">{L('✓ Semua tercapai', '✓ All reached')}</span>
+                          ) : (
+                            <>
+                              <span className="block font-mono font-bold text-amber-300">+{pct(remaining.pct, language)}</span>
+                              <span className="block text-[11px] text-slate-500">
+                                {L(
+                                  `${row.isCurrent ? 'ke' : 'kurang ke'} ${formatNumberLocale(remaining.rate, language, 0)}% · ${rp(remaining.short, language)}`,
+                                  `${row.isCurrent ? 'to' : 'short of'} ${formatNumberLocale(remaining.rate, language, 0)}% · ${rp(remaining.short, language)}`
+                                )}
+                              </span>
+                            </>
+                          )}
+                        </td>
                         {row.targets.map((tv, k) => (
                           <td
                             key={k}
@@ -297,6 +347,7 @@ export function PerformanceJournal({
                     <td className={`py-3 px-3 text-right font-mono ${tone(table.totalGain)}`}>{signedRp(table.totalGain)}</td>
                     <td className="py-3 px-3" />
                     <td className={`py-3 px-3 text-right font-mono ${tone(table.cumulativePct)}`}>{table.cumulativePct !== null ? signedPctTxt(table.cumulativePct) : '—'}</td>
+                    <td className="py-3 px-3" />
                     {rates.map((r, k) => (
                       <td key={r} className="py-3 px-3 text-right font-mono text-amber-300 whitespace-nowrap">{rp(table.rows[table.rows.length - 1]?.targets[k] ?? 0, language)}</td>
                     ))}
@@ -319,11 +370,12 @@ export function PerformanceJournal({
                   <RotateCcw className="h-3 w-3" /> {L('Mulai ulang jurnal', 'Restart journal')}
                 </button>
               </div>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {[
                   { term: L('Untung', 'Profit'), def: L('Total akhir − modal awal', 'End value − start value') },
                   { term: L('Untung %', 'Profit %'), def: L('Untung ÷ modal awal', 'Profit ÷ start value') },
                   { term: L('Kumulatif', 'Cumulative'), def: L('Untung % tiap bulan dikalikan berantai', 'Monthly profit % compounded') },
+                  { term: L('Sisa ke target', 'To next target'), def: L('Kenaikan yang masih dibutuhkan: target terdekat ÷ total akhir − 1, beserta kekurangannya dalam Rp', 'Increase still needed: nearest target ÷ end value − 1, with the shortfall in Rp') },
                   { term: L('Jalur target', 'Target path'), def: L('Target bulan lalu × (1 + target %), mulai dari nilai awal jurnal', 'Last month’s target × (1 + target %), starting from the journal starting value') },
                   { term: L('Sel hijau', 'Green cell'), def: L('Total akhir sudah melewati jalur target itu', 'End value has passed that target path') },
                 ].map((d) => (
