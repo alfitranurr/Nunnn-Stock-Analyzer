@@ -588,7 +588,7 @@ export function IpoTab({ user }: IpoTabProps) {
         <Card>
           <CardTitle
             icon={<CheckCircle2 className="h-5 w-5 text-emerald-400" />}
-            title={L('Hasil Penjatahan', 'Allocation Result')}
+            title={L('4. Hasil Penjatahan', '4. Allocation Result')}
             right={
               <button
                 type="button"

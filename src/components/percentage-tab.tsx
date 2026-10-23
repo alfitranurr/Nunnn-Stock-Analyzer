@@ -605,8 +605,8 @@ export function PercentageTab() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         {/* Input Card */}
         <div className="glass-card p-5 md:p-6 space-y-5 lg:col-span-2">
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-2">
-            <Percent className="h-4.5 w-4.5 text-emerald-400" />
+          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <Percent className="h-5 w-5 text-emerald-400" />
             {t('percentage.inputHeader')}
           </h2>
 
@@ -701,9 +701,9 @@ export function PercentageTab() {
 
         {/* Result Card */}
         <div className="glass-card p-5 md:p-6 space-y-5 lg:col-span-3" aria-live="polite">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-200/50 dark:border-white/5 pb-2">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <Sigma className="h-4.5 w-4.5 text-emerald-400" />
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <Sigma className="h-5 w-5 text-emerald-400" />
               {t('percentage.resultHeader')}
             </h2>
             {outcome.kind === 'ok' && mode === 'change' && <StatusBadge tone={outcome.tone} t={t} />}
@@ -792,9 +792,9 @@ export function PercentageTab() {
 
       {/* History */}
       <div className="glass-card p-5 md:p-6 space-y-4">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200/50 dark:border-white/5 pb-2">
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <History className="h-4.5 w-4.5 text-emerald-400" />
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <History className="h-5 w-5 text-emerald-400" />
             {t('percentage.history')}
           </h2>
           {history.length > 0 && (
@@ -810,7 +810,10 @@ export function PercentageTab() {
         </div>
 
         {history.length === 0 ? (
-          <p className="text-[11px] text-slate-500">{t('percentage.historyEmpty')}</p>
+          <div className="py-8 px-4 flex flex-col items-center text-center gap-2 rounded-2xl border border-dashed border-white/10">
+            <History className="h-7 w-7 text-slate-600" />
+            <p className="text-xs text-slate-400 max-w-sm">{t('percentage.historyEmpty')}</p>
+          </div>
         ) : (
           <>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">

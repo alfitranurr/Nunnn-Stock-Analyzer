@@ -710,6 +710,21 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   const svgWidth = 800;
   const svgHeight = 300;
   const chartMargin = { top: 20, right: 0, bottom: 30, left: 0 };
+
+  // SVG selebar 800 unit diperkecil mengikuti layar; ukuran huruf label disesuaikan agar tetap ±11px
+  // di layar (di HP fontSize 10 unit sebelumnya hanya tampil ±4px).
+  const [chartPx, setChartPx] = React.useState(svgWidth);
+  React.useEffect(() => {
+    const el = chartRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      if (w > 0) setChartPx(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+  const axisFont = Math.min(30, Math.max(10, (11 * svgWidth) / chartPx));
   const plotWidth = svgWidth - chartMargin.left - chartMargin.right;
   const plotHeight = svgHeight - chartMargin.top - chartMargin.bottom;
 
@@ -728,7 +743,9 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
   const areaPath = (pick: (d: (typeof chartData)[number]) => number) =>
     chartData.length === 0 ? '' : `${linePath(pick)} L ${getX(chartData.length - 1)},${getY(0)} L ${getX(0)},${getY(0)} Z`;
 
-  const tickEvery = Math.max(1, Math.ceil(chartData.length / 8));
+  // Jumlah label sumbu X mengikuti lebar grafik di layar agar tidak bertumpuk di HP.
+  const maxXTicks = chartPx < 480 ? 4 : chartPx < 720 ? 6 : 8;
+  const tickEvery = Math.max(1, Math.ceil(chartData.length / maxXTicks));
   const activeIndex = hoveredIndex !== null && hoveredIndex < chartData.length ? hoveredIndex : null;
 
   // Pointer (mouse & sentuh) → titik data terdekat
@@ -1036,11 +1053,11 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
       {/* Parameter Form */}
       <div id={`${fieldId}-form`} className="glass-card p-4 md:p-6 space-y-5 no-print w-full scroll-mt-20 md:scroll-mt-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3">
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Calendar className="h-4.5 w-4.5 text-emerald-400" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <Calendar className="h-5 w-5 text-emerald-400" />
             {t('compounding.inputHeader')}
-            <span className="normal-case tracking-normal text-emerald-400">
+            <span className="text-xs font-bold text-emerald-400">
               · {isTrading ? `${t('compounding.modeTrading')} ${periodText.adj}` : t('compounding.modeLongTerm')}
             </span>
           </h2>
@@ -1469,9 +1486,9 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
       {/* Interactive Chart */}
       <div className="glass-card p-4 md:p-6 space-y-4 print-full-width">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-2.5 no-print">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <TrendingUp className="h-4.5 w-4.5 text-emerald-400" />
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 no-print">
+          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <TrendingUp className="h-5 w-5 text-emerald-400" />
             {L('Visualisasi Proyeksi Pertumbuhan Dana', 'Growth Projection Visualization')}
           </h2>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 select-none">
@@ -1515,7 +1532,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                   return (
                     <g key={index}>
                       <line x1={chartMargin.left} y1={yVal} x2={svgWidth - chartMargin.right} y2={yVal} stroke="#94a3b8" strokeDasharray="3 3" opacity="0.15" />
-                      <text x={chartMargin.left + 5} y={yVal - 4} fill="#94a3b8" fontSize="10" fontWeight="bold" opacity="0.7">
+                      <text x={chartMargin.left + 5} y={yVal - 4} fill="#94a3b8" fontSize={axisFont} fontWeight="bold" opacity="0.7">
                         {formatIDR(maxY * (1 - ratio), true)}
                       </text>
                     </g>
@@ -1535,7 +1552,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                         x={xVal}
                         y={svgHeight - 10}
                         fill="#94a3b8"
-                        fontSize="10"
+                        fontSize={axisFont}
                         textAnchor={index === 0 ? 'start' : isLast ? 'end' : 'middle'}
                         fontWeight="bold"
                         opacity="0.7"
@@ -1629,11 +1646,11 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
       {/* Projection Table */}
       <div className="glass-card p-4 md:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <FileText className="h-4.5 w-4.5 text-emerald-400" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <FileText className="h-5 w-5 text-emerald-400" />
             {L('Tabel Rincian Akumulasi Saldo', 'Balance Accumulation Details')}
-            <span className="normal-case tracking-normal text-slate-500 font-semibold">({tableRows.length} {L('baris', 'rows')})</span>
+            <span className="text-xs font-semibold text-slate-500">({tableRows.length} {L('baris', 'rows')})</span>
           </h2>
 
           {isTrading ? (
@@ -1699,9 +1716,9 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
       {/* Saved Compounding Plans */}
       <div className="glass-card p-4 md:p-6 no-print">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3 mb-4">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <Database className="h-4.5 w-4.5 text-emerald-400" />
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <Database className="h-5 w-5 text-emerald-400" />
             {L('Rencana Compounding Tersimpan', 'Saved Compounding Plans')}
           </h2>
           <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300">
@@ -1714,7 +1731,8 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
             {L('Memuat rencana simpanan...', 'Loading saved plans...')}
           </div>
         ) : savedPlans.length === 0 ? (
-          <div className="py-8 px-4 text-center text-xs text-slate-500 border border-dashed border-border-color rounded-xl space-y-3">
+          <div className="py-8 px-4 flex flex-col items-center text-center text-xs text-slate-400 border border-dashed border-white/10 rounded-2xl gap-3">
+            <Database className="h-7 w-7 text-slate-600" />
             <p>{L('Belum ada rencana compounding yang disimpan.', 'No saved compounding plans yet.')}</p>
             <button
               type="button"

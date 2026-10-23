@@ -185,7 +185,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         </div>
 
         {/* Card 3: Total Lot Akhir */}
-        <div className="glass-card p-4 md:p-5 bg-white/5 dark:bg-black/25 border-slate-300 dark:border-white/25 flex flex-col justify-center min-h-[96px]">
+        <div className="glass-card p-4 md:p-5 bg-white/5 dark:bg-black/25 border-white/10 flex flex-col justify-center min-h-[96px]">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
             {isId ? 'Total Lot Akhir' : 'Total Final Lots'}
           </span>
@@ -220,7 +220,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="glass-card p-4 md:p-6 border-slate-300 dark:border-white/25 flex flex-col justify-between"
+          className="glass-card p-4 md:p-6 border-white/10 flex flex-col justify-between"
         >
           <div>
             <div className="flex justify-between items-center mb-4 md:mb-5.5">
@@ -345,12 +345,12 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="glass-card p-4 md:p-6 border-slate-300 dark:border-white/25 relative overflow-hidden"
+        className="glass-card p-4 md:p-6 border-white/10 relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
-        <h4 className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-slate-500 mb-4.5 md:mb-6 flex items-center gap-2 border-b border-slate-200/50 dark:border-white/5 pb-3">
-          <ShieldCheck className="h-4.5 w-4.5 text-emerald-400" />
+        <h4 className="text-base font-black text-white mb-5 flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-emerald-400" />
           {isId ? `Rangkuman Perbaikan Posisi (${ticker})` : `Position Improvement Summary (${ticker})`}
         </h4>
 

@@ -108,7 +108,7 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
     <Card>
       <CardTitle
         icon={<TrendingUp className="h-5 w-5 text-emerald-400" />}
-        title={L('4. Simulasi Hari Pertama Listing', '4. Listing-Day Simulation')}
+        title={L('5. Simulasi Hari Pertama Listing', '5. Listing-Day Simulation')}
         subtitle={L(
           `Untung/rugi bila jatah dijual di beberapa skenario harga. Batas ARA/ARB mengikuti aturan BEI yang berlaku saat ini (juga untuk hari pertama saham IPO), dibulatkan ke fraksi harga.`,
           `P/L if the allotment is sold under several price scenarios. ARA/ARB limits follow the current IDX rules (which also apply on an IPO's first day), rounded to the tick size.`

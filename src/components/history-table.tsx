@@ -125,10 +125,10 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
   return (
     <div className="glass-card p-4 md:p-6 space-y-5 w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
-            <History className="h-4.5 w-4.5 text-emerald-400" />
+          <h2 className="text-base font-black text-white flex items-center gap-2">
+            <History className="h-5 w-5 text-emerald-400" />
             {isId ? 'Rencana Tersimpan' : 'Saved Plans'}
           </h2>
           <p className="text-xs text-slate-400">

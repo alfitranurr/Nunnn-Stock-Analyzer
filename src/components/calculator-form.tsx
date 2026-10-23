@@ -90,7 +90,11 @@ const BROKER_PRESETS = [
 ];
 
 const SUB_CARD_CLASS =
-  'p-4 md:p-5 rounded-2xl bg-white/[0.03] border border-white/25 hover:border-emerald-500/40 transition-all duration-300 space-y-4 flex flex-col justify-between min-w-0 w-full';
+  'p-4 md:p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4 flex flex-col min-w-0 w-full';
+/** Label isian: di atas input, sama dengan <Field> di shared/calc-ui.tsx. */
+const FIELD_LABEL = 'text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5';
+/** Judul sub-kartu langkah 1–4. */
+const STEP_TITLE = 'text-sm font-bold text-white block';
 
 function FormEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
@@ -457,9 +461,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   return (
     <div className="glass-card p-4 md:p-6 w-full flex flex-col gap-4">
       {/* Title block */}
-      <div className="flex justify-between items-center gap-3 border-b border-slate-200/50 dark:border-white/5 pb-3">
-        <h2 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
-          <Sparkles className="h-4.5 w-4.5 text-emerald-400" />
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="text-base font-black text-white flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-emerald-400" />
           {t('calculator.title')}
         </h2>
         <button
@@ -480,7 +484,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           {/* Sub-Card Step 1: Ticker & Nama Emiten */}
           <div className={`${SUB_CARD_CLASS} xl:col-span-5`}>
             <div className="space-y-3">
-              <label htmlFor={`${fieldId}-ticker`} className="text-xs font-bold text-slate-300 block">
+              <label htmlFor={`${fieldId}-ticker`} className={STEP_TITLE}>
                 {t('calculator.step1')}
               </label>
               <div className="flex gap-2.5 items-center">
@@ -527,11 +531,12 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           {/* Sub-Card Step 2: Posisi Portofolio Awal */}
           <div className={`${SUB_CARD_CLASS} xl:col-span-7`}>
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-300 block">
+              <span className={STEP_TITLE}>
                 {t('calculator.step2')}
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
                 <div>
+                  <label htmlFor={`${fieldId}-lot-awal`} className={FIELD_LABEL}>{t('calculator.lotAwal')}</label>
                   <StepperInput
                     id={`${fieldId}-lot-awal`}
                     type="text"
@@ -546,9 +551,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     placeholder={t('calculator.lotAwal')}
                     required
                   />
-                  <label htmlFor={`${fieldId}-lot-awal`} className="text-[11px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.lotAwal')}</label>
                 </div>
                 <div>
+                  <label htmlFor={`${fieldId}-avg-awal`} className={FIELD_LABEL}>{t('calculator.avgPrice').replace(' (Rp)', '')} (Rp)</label>
                   <StepperInput
                     id={`${fieldId}-avg-awal`}
                     type="text"
@@ -563,9 +568,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     placeholder="Avg Price"
                     required
                   />
-                  <label htmlFor={`${fieldId}-avg-awal`} className="text-[11px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.avgPrice').replace(' (Rp)', '')} (Rp)</label>
                 </div>
                 <div>
+                  <label htmlFor={`${fieldId}-current-price`} className={FIELD_LABEL}>{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</label>
                   <StepperInput
                     id={`${fieldId}-current-price`}
                     type="text"
@@ -594,9 +599,8 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     }
                     required
                   />
-                  <label htmlFor={`${fieldId}-current-price`} className="text-[11px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.currentPrice').replace(' (Rp)', '')} (Rp)</label>
                   {limits && (
-                    <span className="block text-center text-[10px] font-semibold text-slate-500 mt-0.5 animate-fadeIn" title={language === 'id' ? 'Batas auto rejection papan reguler hari ini, dari penutupan kemarin' : "Today's regular-board auto-rejection limits, from yesterday's close"}>
+                    <span className="block text-[11px] font-semibold text-slate-500 mt-1.5 animate-fadeIn" title={language === 'id' ? 'Batas auto rejection papan reguler hari ini, dari penutupan kemarin' : "Today's regular-board auto-rejection limits, from yesterday's close"}>
                       {liveMarket?.changePercent != null && (
                         <span className={liveMarket.changePercent > 0 ? 'text-bullish-green' : liveMarket.changePercent < 0 ? 'text-bearish-red' : ''}>
                           {formatPercent(liveMarket.changePercent, { language, signed: true })} ·{' '}
@@ -632,7 +636,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           {/* Sub-Card Step 3: Rencana Pembelian Baru */}
           <div className={`${SUB_CARD_CLASS} xl:col-span-8`}>
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-300 block">
+              <span className={STEP_TITLE}>
                 {t('calculator.step3')}
               </span>
 
@@ -801,9 +805,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           </div>
 
           {/* Sub-Card Step 4: Broker Fee Settings */}
-          <div className={`${SUB_CARD_CLASS} xl:col-span-4`}>
+          <div className={`${SUB_CARD_CLASS} xl:col-span-4 xl:self-start`}>
             <div className="space-y-3">
-              <label htmlFor={`${fieldId}-broker`} className="text-xs font-bold text-slate-300 block">
+              <label htmlFor={`${fieldId}-broker`} className={STEP_TITLE}>
                 {t('calculator.step4')}
               </label>
               <select
@@ -819,9 +823,24 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 <option value="none">{t('calculator.presetNone')}</option>
               </select>
 
+              {brokerPreset !== 'custom' && (
+                <dl className="grid grid-cols-2 gap-2">
+                  {[
+                    [t('calculator.feeBeli'), feeBeli],
+                    [t('calculator.feeJual'), feeJual],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                      <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</dt>
+                      <dd className="text-sm font-black text-white mt-0.5">{formatPercent(Number(value), { language })}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
               {brokerPreset === 'custom' && (
                 <div className="grid grid-cols-2 gap-2 mt-2 animate-fadeIn">
                   <div>
+                    <label htmlFor={`${fieldId}-fee-beli`} className={FIELD_LABEL}>{t('calculator.feeBeli')}</label>
                     <StepperInput
                       id={`${fieldId}-fee-beli`}
                       type="number"
@@ -839,9 +858,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       inputClassName="py-2"
                       adornment={<span className="flex items-center pr-0.5 text-xs text-slate-500">%</span>}
                     />
-                    <label htmlFor={`${fieldId}-fee-beli`} className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeBeli')}</label>
                   </div>
                   <div>
+                    <label htmlFor={`${fieldId}-fee-jual`} className={FIELD_LABEL}>{t('calculator.feeJual')}</label>
                     <StepperInput
                       id={`${fieldId}-fee-jual`}
                       type="number"
@@ -859,13 +878,12 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       inputClassName="py-2"
                       adornment={<span className="flex items-center pr-0.5 text-xs text-slate-500">%</span>}
                     />
-                    <label htmlFor={`${fieldId}-fee-jual`} className="text-[10px] text-slate-400 text-center block mt-1 font-medium">{t('calculator.feeJual')}</label>
                   </div>
                 </div>
               )}
             </div>
 
-            <span className="text-[11px] text-slate-400 text-center block font-medium">
+            <span className="text-[11px] text-slate-400 block font-medium">
               {includeFees ? t('calculator.feesIncluded') : t('calculator.feesExcluded')}
             </span>
           </div>
@@ -874,24 +892,24 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         {/* Action Row: ringkasan hasil live + tombol simpan */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200/50 dark:border-white/5 w-full">
           {hasLiveResult && result ? (
-            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-6 text-left" aria-live="polite">
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveNewAvg')}</span>
-                <AnimatedNumber value={result.avgPriceBaru} format={(v) => formatIDR(v, language)} className="text-xs md:text-sm font-black text-white block truncate" />
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 text-left w-full sm:w-auto sm:min-w-[28rem]" aria-live="polite">
+              <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{t('calculator.liveNewAvg')}</span>
+                <AnimatedNumber value={result.avgPriceBaru} format={(v) => formatIDR(v, language)} className="text-sm md:text-base font-black text-white block truncate mt-0.5" />
                 <span className={`text-[11px] font-bold ${result.avgPriceReductionPct >= 0 ? 'text-bullish-green' : 'text-amber-400'}`}>
                   {formatPercent(-result.avgPriceReductionPct, { language, signed: true })}
                 </span>
               </div>
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveBep')}</span>
-                <AnimatedNumber value={result.breakEvenPriceBaru} format={(v) => formatIDR(v, language)} className="text-xs md:text-sm font-black text-white block truncate" />
+              <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{t('calculator.liveBep')}</span>
+                <AnimatedNumber value={result.breakEvenPriceBaru} format={(v) => formatIDR(v, language)} className="text-sm md:text-base font-black text-white block truncate mt-0.5" />
                 <span className={`text-[11px] font-bold ${result.gainToBreakEvenBaruPct > 0 ? 'text-slate-400' : 'text-bullish-green'}`}>
                   {formatPercent(result.gainToBreakEvenBaruPct, { language, signed: true })}
                 </span>
               </div>
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">{t('calculator.liveCapital')}</span>
-                <AnimatedNumber value={result.capitalRequired} format={(v) => formatIDR(v, language)} className="text-xs md:text-sm font-black text-emerald-400 block truncate" />
+              <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{t('calculator.liveCapital')}</span>
+                <AnimatedNumber value={result.capitalRequired} format={(v) => formatIDR(v, language)} className="text-sm md:text-base font-black text-emerald-400 block truncate mt-0.5" />
               </div>
             </div>
           ) : (

@@ -347,7 +347,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
       <Card className="space-y-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-stretch">
           <div className="lg:col-span-2 flex flex-col gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{L('1. Pilih saham', '1. Choose a stock')}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{L('Pilih saham', 'Choose a stock')}</span>
             <QuickSearchTicker language={language} onSelectTicker={selectTicker} />
           </div>
           <div className="lg:col-span-3 flex items-center gap-3 p-3 rounded-2xl bg-input-bg border border-border-color min-w-0">
@@ -465,7 +465,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
       <Card>
         <CardTitle
           icon={<SlidersHorizontal className="h-5 w-5 text-emerald-400" />}
-          title={L('2. Simulasi Dividen', '2. Dividend Simulation')}
+          title={L('Simulasi Dividen', 'Dividend Simulation')}
           subtitle={L('Semua angka bisa diketik atau diatur dengan tombol −/+ (tahan untuk cepat).', 'Type any number or use the −/+ buttons (hold to repeat).')}
         />
 
@@ -678,7 +678,7 @@ export function DividendTab({ isActive }: DividendTabProps) {
 
       {/* 3. Hasil */}
       <Card>
-        <CardTitle icon={<Wallet className="h-5 w-5 text-emerald-400" />} title={L('3. Hasil Dividen', '3. Dividend Result')} />
+        <CardTitle icon={<Wallet className="h-5 w-5 text-emerald-400" />} title={L('Hasil Dividen', 'Dividend Result')} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="p-5 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-card-bg to-[#121619] relative overflow-hidden">

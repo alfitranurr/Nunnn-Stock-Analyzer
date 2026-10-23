@@ -842,12 +842,6 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                         {sentiment && (
                           <span className={`px-1.5 py-0.5 rounded border text-[11px] font-bold ${sentiment.cls}`}>{sentiment[language]}</span>
                         )}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {item.tickers.map((tk) => (
-                          <TickerChip key={tk} ticker={tk} quote={quotes[tk]} language={language} onSelect={onSelectTicker} />
-                        ))}
                         <div className="ml-auto flex items-center gap-1.5">
                         <button
                           type="button"
@@ -880,6 +874,15 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
                         </button>
                         </div>
                       </div>
+
+                      {/* Kode saham yang disebut; baris ini hanya ada bila beritanya menyebut saham */}
+                      {item.tickers.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {item.tickers.map((tk) => (
+                            <TickerChip key={tk} ticker={tk} quote={quotes[tk]} language={language} onSelect={onSelectTicker} />
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <AnimatePresence initial={false}>

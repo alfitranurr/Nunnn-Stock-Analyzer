@@ -1125,6 +1125,15 @@ Belum ada `.env.example`.
 - **Kelas kustom:** `.glass-card`, `.glass-input`, `.mesh-bg`, `.text-profit-glow`, `.text-loss-glow`, plus scrollbar kustom.
 - **Font:** Plus Jakarta Sans lewat `@import` Google Fonts ([globals.css:1](src/app/globals.css#L1)).
 - **Tema:** hanya gelap (`forcedTheme="dark"`), dengan aksen emerald di atas latar `#121518`.
+- **Perapian layout seluruh halaman** (23 Okt 2026):
+  - Satu bentuk kartu: kelas `.glass-card` (Avg Down, Compounding, Persentase) disamakan dengan `<Card>` (sudut 24px, border putih 10%, tanpa efek hover pada kartu statis).
+  - Satu gaya judul bagian = `CardTitle` (`text-base font-black text-white`, ikon 20px, tanpa garis bawah); judul kapital abu-abu bergaris di Persentase, Compounding, dan Avg Down diganti.
+  - Avg Down: label isian di atas input (gaya `<Field>`), sub-kartu ber-border tipis tanpa `justify-between` (penyebab ruang kosong di kartu Broker Fee), kartu fee selalu menampilkan Fee Beli/Jual dan tidak dipaksa setinggi kartu tahap 3, ringkasan Avg Baru/BEP/Modal Baru dalam 3 kotak.
+  - Berita: tombol Simpan & Analisis AI sebaris dengan sumber/waktu; baris kode saham hanya muncul bila berita menyebut saham.
+  - Penomoran bagian: Dividen tanpa nomor (bagian, bukan langkah); E-IPO bernomor 1–5 (Hasil Penjatahan = 4, Simulasi Listing = 5).
+  - Tampilan kosong Riwayat Hitungan (Persentase) dan Rencana Compounding: kotak putus-putus + ikon, seperti halaman lain.
+  - Grafik Compounding: ukuran huruf label mengikuti lebar grafik di layar (ResizeObserver, ±11px) dan jumlah label sumbu X 4/6/8 menurut lebar, sehingga di HP terbaca dan tidak bertumpuk.
+  - File template Next.js yang tidak dipakai di `public/` (file/globe/next/vercel/window.svg) dihapus.
 - **Warna & keterbacaan** (20 Okt 2026, diukur dengan rasio kontras WCAG; minimal 4,5:1 untuk teks kecil):
   - Tombol/tab hijau solid (`bg-emerald-500`) memakai teks gelap `text-slate-950` (7,95:1); sebelumnya teks putih 2,54:1. Ikon dan angka di dalam tab aktif ikut gelap. Tombol merah solid memakai `rose-600` (4,7:1).
   - Token `slate-500` di `globals.css` dinaikkan ke `#8090a6` (5,26:1 di kartu, sebelumnya 3,59:1) dan `slate-600` ke `#64748b` (untuk ikon/teks nonaktif), sehingga tingkatan teks tetap sama tanpa mengubah setiap komponen.
