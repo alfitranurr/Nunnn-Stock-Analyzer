@@ -108,7 +108,7 @@ export function QuickSearchTicker({ language, onSelectTicker }: QuickSearchTicke
               ? 'Cari emiten BEI (mis. BBCA, BBRI, TLKM)...'
               : 'Search IDX ticker (e.g. BBCA, BBRI, TLKM)...'
           }
-          className="w-full glass-input pl-11 pr-10 py-3 text-sm font-medium placeholder:text-slate-500 text-white rounded-2xl"
+          className="w-full glass-input !rounded-full !bg-card-bg !border-white/[0.06] pl-11 pr-10 py-3 text-sm font-medium placeholder:text-slate-500 text-white"
           aria-label={isId ? 'Cari emiten' : 'Search ticker'}
         />
         {query && (

@@ -133,17 +133,16 @@ export function EducationalTipCard({ language, market }: { language: 'id' | 'en'
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/[0.04] to-blue-500/[0.02] border border-emerald-500/10 p-5"
+      className="relative overflow-hidden rounded-[20px] bg-card-bg border border-white/[0.04] p-5 md:p-6 h-full"
     >
-      <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-emerald-500/5 blur-[60px] pointer-events-none" />
 
       <div className="relative z-10 flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-          <Lightbulb className="h-4 w-4 text-emerald-400" />
+        <div className="w-10 h-10 rounded-[12px] bg-amber-400/10 flex items-center justify-center shrink-0">
+          <Lightbulb className="h-[18px] w-[18px] text-amber-400" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-400">
+            <span className="title-display text-base text-white">
               {showReason ? (isId ? 'Tips Sesuai Kondisi Pasar' : 'Tip for Today\'s Market') : isId ? 'Tips Investasi Hari Ini' : 'Investment Tip of the Day'}
             </span>
             <span className="flex items-center gap-0.5">

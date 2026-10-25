@@ -586,15 +586,15 @@ export function PercentageTab() {
       />
 
       {/* Mode Selector */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 bg-input-bg border border-border-color p-1 rounded-2xl text-[11px] font-extrabold select-none">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 bg-surface-2 p-1 rounded-[22px] sm:rounded-full text-xs font-semibold select-none">
         {MODES.map((m) => (
           <button
             key={m.id}
             type="button"
             aria-pressed={mode === m.id}
             onClick={() => setMode(m.id)}
-            className={`py-2 px-2 rounded-xl transition-all cursor-pointer text-center last:col-span-2 sm:last:col-span-1 ${
-              mode === m.id ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+            className={`py-2 px-2 rounded-full transition-colors cursor-pointer text-center last:col-span-2 sm:last:col-span-1 ${
+              mode === m.id ? 'bg-white text-slate-950' : 'text-slate-400 hover:text-white'
             }`}
           >
             {t(m.labelKey)}

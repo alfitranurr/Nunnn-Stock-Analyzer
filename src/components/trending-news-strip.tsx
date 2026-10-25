@@ -54,7 +54,7 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-2xl bg-white/[0.02] border border-white/5 p-4 animate-pulse h-[100px]" />
+          <div key={i} className="rounded-[20px] bg-card-bg border border-white/[0.04] p-4 animate-pulse h-[100px]" />
         ))}
       </div>
     );
@@ -62,7 +62,7 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
 
   if (error || news.length === 0) {
     return (
-      <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-4 text-center text-xs text-slate-500">
+      <div className="rounded-[20px] bg-card-bg border border-white/[0.04] p-4 text-center text-xs text-slate-500">
         {error
           ? (isId ? 'Gagal memuat berita terkini.' : 'Failed to load latest news.')
           : (isId ? 'Belum ada berita terbaru.' : 'No recent news yet.')}
@@ -72,12 +72,10 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
 
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-3">
-        <Newspaper className="h-3.5 w-3.5 text-emerald-400" />
-        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-          {isId ? 'Berita Pasar Terkini' : 'Latest Market News'}
-        </span>
-      </div>
+      <h2 className="flex items-center gap-2 mb-3 title-display text-lg text-white">
+        <Newspaper className="h-4 w-4 text-accent" aria-hidden />
+        {isId ? 'Berita pasar terkini' : 'Latest market news'}
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {news.map((item, i) => (
           <motion.a
@@ -88,17 +86,17 @@ export function TrendingNewsStrip({ language }: { language: 'id' | 'en' }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: i * 0.08 }}
-            className="group rounded-2xl bg-white/[0.02] border border-white/5 hover:border-emerald-500/20 hover:bg-emerald-500/[0.03] p-4 transition-all flex flex-col gap-2 cursor-pointer h-full"
+            className="group rounded-[20px] bg-card-bg border border-white/[0.04] hover:bg-surface-2 p-4 md:p-5 transition-colors flex flex-col gap-2 cursor-pointer h-full"
           >
-            <span className="text-xs font-semibold text-slate-200 line-clamp-2 leading-snug group-hover:text-emerald-400 transition-colors">
+            <span className="text-sm font-medium text-white line-clamp-2 leading-snug">
               {item.title}
             </span>
             <div className="flex items-center justify-between mt-auto pt-1">
-              <span className="text-[11px] text-slate-500 font-medium truncate max-w-[60%]">
+              <span className="text-xs text-slate-500 truncate max-w-[60%]">
                 {item.source}
               </span>
-              <span className="text-[11px] text-slate-600 flex items-center gap-0.5 shrink-0">
-                <Clock className="h-2.5 w-2.5" />
+              <span className="text-xs text-slate-500 flex items-center gap-1 shrink-0">
+                <Clock className="h-3 w-3" />
                 {fmtTime(item.pubDate)}
               </span>
             </div>

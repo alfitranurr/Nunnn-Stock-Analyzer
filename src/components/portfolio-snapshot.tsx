@@ -61,7 +61,7 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
 
   if (loading) {
     return (
-      <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5 animate-pulse h-[110px]" />
+      <div className="rounded-[20px] bg-card-bg border border-white/[0.04] p-5 animate-pulse h-[110px]" />
     );
   }
 
@@ -96,7 +96,7 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="rounded-2xl bg-white/[0.02] border border-white/5 p-5 flex items-center justify-between gap-4"
+        className="rounded-[20px] bg-card-bg border border-white/[0.04] p-5 flex items-center justify-between gap-4"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
@@ -138,15 +138,15 @@ export function PortfolioSnapshot({ user, language, onOpenPortfolio, refreshKey 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="rounded-2xl bg-white/[0.02] border border-white/5 p-4 md:p-5"
+      className="rounded-[20px] bg-card-bg border border-white/[0.04] p-4 md:p-5"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-emerald-400" />
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-            {isId ? 'Ringkasan Portofolio' : 'Portfolio Snapshot'}
-          </span>
-          <span className="text-[11px] text-slate-600">{holdings.length} {isId ? 'saham' : holdings.length === 1 ? 'stock' : 'stocks'}</span>
+          <Briefcase className="h-4 w-4 text-accent" aria-hidden />
+          <h2 className="title-display text-lg text-white">
+            {isId ? 'Ringkasan portofolio' : 'Portfolio snapshot'}
+          </h2>
+          <span className="px-2 py-0.5 rounded-full bg-surface-2 text-[11px] font-semibold text-slate-400">{holdings.length} {isId ? 'saham' : holdings.length === 1 ? 'stock' : 'stocks'}</span>
         </div>
         <button
           onClick={onOpenPortfolio}

@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Nunnn Stock Beranda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600&display=swap">
+<style>
+  /* Layout: rel kiri ramping + kolom utama berisi kartu membulat yang berjarak lega.
+     Sistem desain: fintech gelap modern (terinspirasi open-design "revolut"): permukaan gelap netral, kartu radius 20px,
+     tombol & chip berbentuk pill, tanpa bayangan, display Inter Tight 500 dengan tracking rapat.
+     Satu-satunya keputusan khas: kartu IHSG memakai gradien biru-ungu halus sebagai "kartu utama", sisanya datar. */
+  :root {
+    color-scheme: dark;
+    --bg: #0E1013;
+    --surface: #17191D;
+    --surface-2: #1F2227;
+    --surface-3: #282C33;
+    --line: rgba(255, 255, 255, 0.07);
+    --text: #F4F5F7;
+    --text-2: #A9B0BA;
+    --text-3: #7D8590;
+    --brand: #6E73F2;
+    --brand-2: #9B6CF0;
+    --gain: #2FD39F;
+    --loss: #FF6670;
+    --warn: #F5A524;
+    --gain-soft: rgba(47, 211, 159, 0.12);
+    --loss-soft: rgba(255, 102, 112, 0.12);
+    --warn-soft: rgba(245, 165, 36, 0.12);
+    --brand-soft: rgba(110, 115, 242, 0.14);
+    --scrim: rgba(6, 7, 9, 0.7);
+    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-display: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --r-card: 20px; --r-sm: 12px; --r-pill: 9999px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 400 14px/1.5 var(--font);
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 8px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .up { color: var(--gain); } .down { color: var(--loss); } .flat { color: var(--text-2); }
+  .muted { color: var(--text-3); }
+
+  .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+
+  /* ── Rel kiri ── */
+  .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; padding: 20px 14px; border-right: 1px solid var(--line); overflow-y: auto; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; }
+  .logo { width: 34px; height: 34px; border-radius: 11px; background: linear-gradient(140deg, #34d399, #059669); display: grid; place-items: center; flex: none; }
+  .logo svg { width: 20px; height: 20px; }
+  .brand b { font: 600 16px/1.1 var(--font-display); letter-spacing: -0.01em; }
+  .brand small { display: block; font-size: 11px; color: var(--text-3); letter-spacing: 0.02em; }
+  .group { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 12px 6px; }
+  .side a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--r-sm); color: var(--text-2); text-decoration: none; font-weight: 500; white-space: nowrap; }
+  .side a svg { width: 18px; height: 18px; flex: none; }
+  .side a:hover { background: var(--surface); color: var(--text); }
+  .side a[aria-current="page"] { background: var(--surface-2); color: var(--text); }
+  .side a[aria-current="page"] svg { color: var(--brand); }
+  .side a .lock { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--text-3); padding: 2px 7px; border-radius: var(--r-pill); background: var(--surface-2); }
+  .side-foot { margin-top: auto; padding: 14px; border-radius: 16px; background: var(--surface); font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  .side-foot b { display: block; color: var(--text); font-weight: 600; margin-bottom: 2px; }
+
+  /* ── Area utama ── */
+  .main { min-width: 0; padding: 28px clamp(16px, 3vw, 40px) 48px; display: grid; gap: 20px; align-content: start; }
+  .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .top h1 { margin: 0; font: 500 34px/1.05 var(--font-display); letter-spacing: -0.025em; }
+  .top p { margin: 6px 0 0; color: var(--text-2); }
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: var(--r-pill); background: var(--surface); font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.warn::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .search { display: inline-flex; align-items: center; gap: 10px; min-width: 260px; padding: 10px 12px 10px 16px; border-radius: var(--r-pill); border: 0; background: var(--surface); color: var(--text-3); cursor: pointer; text-align: left; }
+  .search svg { width: 16px; height: 16px; }
+  .search span { flex: 1; }
+  .search:hover { background: var(--surface-2); color: var(--text-2); }
+  kbd { font: 600 11px/1 var(--font); padding: 4px 7px; border-radius: 7px; background: var(--surface-3); color: var(--text-2); }
+
+  .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
+  .card { background: var(--surface); border-radius: var(--r-card); padding: 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .card h2 { margin: 0; font: 500 18px/1.2 var(--font-display); letter-spacing: -0.01em; }
+  .card .sub { font-size: 12px; color: var(--text-3); }
+  .span-8 { grid-column: span 8; } .span-4 { grid-column: span 4; } .span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; } .span-12 { grid-column: span 12; }
+
+  /* Kartu utama IHSG */
+  .hero { background:
+      radial-gradient(120% 120% at 0% 0%, rgba(110, 115, 242, 0.30), transparent 55%),
+      radial-gradient(90% 90% at 100% 0%, rgba(155, 108, 240, 0.16), transparent 60%),
+      var(--surface); }
+  .hero .label { font-size: 13px; font-weight: 500; color: var(--text-2); }
+  .quote { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 4px; }
+  .quote .big { font: 500 clamp(40px, 5vw, 56px)/1 var(--font-display); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: var(--r-pill); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pill.up { background: var(--gain-soft); } .pill.down { background: var(--loss-soft); } .pill.flat { background: var(--surface-2); }
+  .pill.sm { padding: 3px 9px; font-size: 12px; }
+  .ghost { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--r-pill); border: 0; background: rgba(255, 255, 255, 0.07); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .ghost:hover { background: rgba(255, 255, 255, 0.12); }
+  .ghost svg { width: 14px; height: 14px; }
+  .chart { position: relative; margin-inline: -4px; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .axis { font: 500 11px var(--font); fill: var(--text-3); font-variant-numeric: tabular-nums; }
+  .readout { position: absolute; top: 4px; right: 8px; padding: 7px 12px; border-radius: var(--r-sm); background: var(--surface-3); font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--text-3); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 14px; height: 3px; border-radius: 2px; background: var(--gain); display: inline-block; }
+  .legend i.dash { background: repeating-linear-gradient(90deg, var(--text-3) 0 4px, transparent 4px 7px); }
+  .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .facts div { background: rgba(255, 255, 255, 0.04); border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; }
+  .facts span { font-size: 12px; color: var(--text-3); }
+  .facts b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Breadth */
+  .ring-wrap { display: flex; align-items: center; gap: 20px; }
+  .ring { width: 116px; height: 116px; flex: none; }
+  .ring text { font-family: var(--font-display); }
+  .counts { display: grid; gap: 10px; flex: 1; min-width: 0; }
+  .counts div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .counts span { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
+  .counts i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .counts b { font: 500 20px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stats div { background: var(--surface-2); border-radius: 14px; padding: 12px 14px; display: grid; gap: 2px; }
+  .stats div > span { font-size: 12px; color: var(--text-3); }
+  .stats b { font: 500 20px/1.2 var(--font-display); font-variant-numeric: tabular-nums; }
+  .note { margin: 0; color: var(--text-3); font-size: 12px; line-height: 1.55; }
+
+  /* Pasar global */
+  .global { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .global::-webkit-scrollbar { display: none; }
+  .g { min-width: 0; background: var(--surface); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; }
+  .g span { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+  .g b { font: 500 18px/1.2 var(--font-display); font-variant-numeric: tabular-nums; }
+  .g em { font-style: normal; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Tab pill */
+  .seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: var(--surface-2); flex-wrap: wrap; }
+  .seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: var(--r-pill); font-size: 13px; font-weight: 600; color: var(--text-2); cursor: pointer; white-space: nowrap; }
+  .seg button:hover { color: var(--text); }
+  .seg button[aria-selected="true"] { background: var(--text); color: #0E1013; }
+
+  /* Daftar saham */
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 10px 10px; margin-inline: -10px; border-radius: 14px; cursor: pointer; }
+  .row:hover { background: var(--surface-2); }
+  .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font: 600 12px/1 var(--font); letter-spacing: 0.02em; background: var(--surface-3); color: var(--text); }
+  .who { min-width: 0; display: grid; gap: 1px; }
+  .who b { font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .who small { color: var(--text-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { padding: 2px 7px; border-radius: var(--r-pill); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+  .tag.up { background: var(--gain-soft); } .tag.down { background: var(--loss-soft); }
+  .px { text-align: right; display: grid; gap: 2px; }
+  .px b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .px small { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .range { display: grid; gap: 5px; width: 120px; }
+  .range .track { position: relative; height: 6px; border-radius: var(--r-pill); background: var(--surface-3); }
+  .range .fill { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--brand), var(--brand-2)); opacity: 0.55; }
+  .range .mark { position: absolute; top: -3px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--text); border: 2px solid var(--surface); }
+  .range .ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .wl .row { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .wl .row .range { grid-column: 2 / -1; width: auto; }
+
+  /* Berita */
+  .news { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .news a { display: grid; grid-template-columns: 6px minmax(0, 1fr); gap: 14px; padding: 12px 10px; margin-inline: -10px; border-radius: 14px; text-decoration: none; }
+  .news a:hover { background: var(--surface-2); }
+  .news a::before { content: ""; width: 6px; border-radius: 3px; background: var(--surface-3); }
+  .news a:hover::before { background: var(--brand); }
+  .news b { display: block; font-weight: 500; line-height: 1.4; text-wrap: pretty; }
+  .news small { display: block; margin-top: 4px; font-size: 12px; color: var(--text-3); }
+
+  /* Kalkulator */
+  .tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tools a { display: grid; gap: 10px; padding: 16px; border-radius: 16px; background: var(--surface-2); text-decoration: none; }
+  .tools a:hover { background: var(--surface-3); }
+  .tools .ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); }
+  .tools .ic svg { width: 18px; height: 18px; }
+  .tools b { font-weight: 600; }
+  .tools small { display: block; font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .tools a:last-child:nth-child(odd) { grid-column: span 2; grid-template-columns: 36px 1fr; align-items: center; }
+
+  /* Overlay */
+  .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; }
+  .card.focused { position: fixed; z-index: 41; top: max(32px, calc(env(safe-area-inset-top, 0px) + 16px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1100px; margin-inline: auto; }
+  .palette { position: fixed; z-index: 50; top: max(12vh, calc(env(safe-area-inset-top, 0px) + 24px)); left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); background: var(--surface); border-radius: var(--r-card); overflow: hidden; }
+  .palette input { width: 100%; padding: 18px 20px; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--text); font: 500 16px/1.2 var(--font); outline: none; }
+  .palette ul { list-style: none; margin: 0; padding: 8px; max-height: 50vh; overflow-y: auto; }
+  .palette li button { width: 100%; display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; background: transparent; border: 0; border-radius: var(--r-sm); text-align: left; cursor: pointer; color: var(--text-2); font-weight: 500; }
+  .palette li button[aria-selected="true"], .palette li button:hover { background: var(--surface-2); color: var(--text); }
+  .palette li small { font-size: 12px; color: var(--text-3); }
+  .toast { position: fixed; z-index: 60; bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 84px)); left: 50%; transform: translateX(-50%); padding: 11px 18px; border-radius: var(--r-pill); background: var(--text); color: #0E1013; font-size: 13px; font-weight: 600; max-width: calc(100vw - 32px); }
+
+  /* Navigasi bawah (ponsel) */
+  .bottom { display: none; }
+
+  @media (max-width: 1180px) {
+    .span-8, .span-4 { grid-column: span 12; }
+    .span-7, .span-5 { grid-column: span 6; }
+    .breadth-card { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+    .breadth-card .card-head, .breadth-card .note { grid-column: 1 / -1; }
+  }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .side { display: none; }
+    .main { padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px)); gap: 16px; }
+    .span-7, .span-5 { grid-column: span 12; }
+    .grid { gap: 16px; }
+    .card { padding: 18px; border-radius: 18px; }
+    .top h1 { font-size: 28px; }
+    .search { min-width: 0; flex: 1; }
+    .top-actions { width: 100%; }
+    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .breadth-card { display: flex; }
+    .bottom { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; z-index: 30; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom, 0px)); padding: 6px; border-radius: 22px; background: rgba(31, 34, 39, 0.92); backdrop-filter: blur(12px); }
+    .bottom a { display: grid; justify-items: center; gap: 3px; padding: 7px 2px; border-radius: 16px; color: var(--text-3); text-decoration: none; font-size: 11px; font-weight: 600; }
+    .bottom a svg { width: 20px; height: 20px; }
+    .bottom a[aria-current="page"] { color: var(--text); background: var(--surface-3); }
+  }
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; }
+    .av { width: 36px; height: 36px; }
+    .row .last { display: none; }
+    .ring-wrap { gap: 14px; }
+    .ring { width: 96px; height: 96px; }
+    .tools { grid-template-columns: minmax(0, 1fr); }
+    .tools a, .tools a:last-child:nth-child(odd) { grid-column: auto; grid-template-columns: 36px 1fr; align-items: center; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .side a, .row, .news a, .tools a, .seg button, .ghost, .search { transition: background-color 150ms, color 150ms; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-news" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2zM17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M6 15l4-5 3 3 5-7"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l6 7 4-4 6 8M20 12v5h-5"/></symbol>
+  <symbol id="i-grow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c6 0 12-4 16-14M14 6h6v6"/></symbol>
+  <symbol id="i-pct" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5v9M14.5 9.5c-.4-1-1.4-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1.1 1.6 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1.2 0-2.2-.6-2.6-1.6"/></symbol>
+  <symbol id="i-ipo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 21h14"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h11v4M4 7v11a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="side" aria-label="Navigasi">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M15 47V19L41 46V25" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M31 27L41 14L51 27Z" fill="#fff"/></svg></span>
+      <div><b>Nunnn Stock</b><small>Analyzer saham BEI</small></div>
+    </div>
+    <span class="group">Pasar</span>
+    <a href="#" aria-current="page"><svg><use href="#i-home"/></svg>Beranda</a>
+    <a href="#"><svg><use href="#i-news"/></svg>Berita &amp; Sentimen</a>
+    <a href="#"><svg><use href="#i-chart"/></svg>Analisis Saham<span class="lock">Login</span></a>
+    <a href="#"><svg><use href="#i-star"/></svg>Watchlist</a>
+    <span class="group">Kalkulator</span>
+    <a href="#"><svg><use href="#i-down"/></svg>Average Down</a>
+    <a href="#"><svg><use href="#i-grow"/></svg>Compounding</a>
+    <a href="#"><svg><use href="#i-pct"/></svg>Persentase</a>
+    <a href="#"><svg><use href="#i-coin"/></svg>Dividen</a>
+    <a href="#"><svg><use href="#i-ipo"/></svg>E-IPO</a>
+    <span class="group">Akun</span>
+    <a href="#"><svg><use href="#i-wallet"/></svg>Portofolio<span class="lock">Login</span></a>
+    <div class="side-foot"><b>Prototipe desain ulang</b>Gaya fintech gelap modern. Data asli penutupan, tertunda.</div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div>
+        <h1>Ringkasan pasar</h1>
+        <p id="closeTime"></p>
+      </div>
+      <div class="top-actions">
+        <span class="chip warn" role="status">Bursa tutup</span>
+        <button class="search" type="button" id="openPalette" aria-haspopup="dialog"><svg><use href="#i-search"/></svg><span>Cari saham atau halaman</span><kbd>/</kbd></button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card hero span-8" id="ihsgPanel" aria-labelledby="ihsgTitle">
+        <div class="card-head">
+          <div>
+            <span class="label" id="ihsgTitle">IHSG · Indeks Harga Saham Gabungan</span>
+            <div class="quote"><span class="big" id="ihsgPrice"></span><span id="ihsgChg"></span></div>
+          </div>
+          <button class="ghost" type="button" id="focusBtn" aria-pressed="false"><svg><use href="#i-expand"/></svg><span>Perbesar</span></button>
+        </div>
+        <div class="chart" id="chart">
+          <svg id="chartSvg" viewBox="0 0 720 220" role="img" aria-label="Grafik IHSG intraday"></svg>
+          <div class="readout" id="readout" hidden></div>
+        </div>
+        <div class="legend"><span><i></i>IHSG intraday (bar 5 menit)</span><span><i class="dash"></i>Penutupan sebelumnya</span><span>Arahkan kursor untuk membaca nilai</span></div>
+        <div class="facts" id="ihsgFacts"></div>
+      </section>
+
+      <section class="card span-4 breadth-card" aria-labelledby="breadthTitle">
+        <div class="card-head"><h2 id="breadthTitle">Breadth pasar</h2><span class="pill sm" id="breadthMood"></span></div>
+        <div class="ring-wrap">
+          <svg class="ring" id="ring" viewBox="0 0 120 120" role="img"></svg>
+          <div class="counts" id="counts"></div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <p class="note">ARA/ARB: harga menyentuh batas auto rejection harian. Batas ARB 7% berlaku 19 Okt–31 Des 2026.</p>
+      </section>
+
+      <section class="span-12" aria-labelledby="globalTitle">
+        <h2 class="sr-only" id="globalTitle" hidden>Pasar global</h2>
+        <div class="global" id="global"></div>
+      </section>
+
+      <section class="card span-7" aria-labelledby="moversTitle">
+        <div class="card-head"><div><h2 id="moversTitle">Penggerak pasar</h2><span class="sub">5 saham teratas</span></div><div class="seg" role="tablist" id="moverTabs"></div></div>
+        <ul class="list" id="moverRows"></ul>
+      </section>
+
+      <section class="card span-5 wl" aria-labelledby="wlTitle">
+        <div class="card-head"><div><h2 id="wlTitle">Watchlist</h2><span class="sub">Posisi harga di rentang hari ini</span></div></div>
+        <ul class="list" id="wlRows"></ul>
+      </section>
+
+      <section class="card span-7" aria-labelledby="newsTitle">
+        <div class="card-head"><h2 id="newsTitle">Berita saham</h2><span class="sub">Terbaru</span></div>
+        <ul class="news" id="news"></ul>
+      </section>
+
+      <section class="card span-5" aria-labelledby="toolsTitle">
+        <div class="card-head"><h2 id="toolsTitle">Kalkulator</h2></div>
+        <div class="tools">
+          <a href="#"><span class="ic"><svg><use href="#i-down"/></svg></span><span><b>Average Down</b><small>Avg baru, BEP, fraksi BEI</small></span></a>
+          <a href="#"><span class="ic"><svg><use href="#i-grow"/></svg></span><span><b>Compounding</b><small>Proyeksi harian–tahunan</small></span></a>
+          <a href="#"><span class="ic"><svg><use href="#i-pct"/></svg></span><span><b>Persentase</b><small>Naik/turun &amp; fraksi</small></span></a>
+          <a href="#"><span class="ic"><svg><use href="#i-coin"/></svg></span><span><b>Dividen</b><small>Yield, jadwal cum, DRIP</small></span></a>
+          <a href="#"><span class="ic"><svg><use href="#i-ipo"/></svg></span><span><b>E-IPO</b><small>Jatah penjatahan terpusat</small></span></a>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<nav class="bottom" aria-label="Navigasi bawah">
+  <a href="#" aria-current="page"><svg><use href="#i-home"/></svg>Beranda</a>
+  <a href="#"><svg><use href="#i-news"/></svg>Berita</a>
+  <a href="#"><svg><use href="#i-chart"/></svg>Analisis</a>
+  <a href="#"><svg><use href="#i-star"/></svg>Watchlist</a>
+  <a href="#"><svg><use href="#i-menu"/></svg>Menu</a>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Cari saham atau halaman" hidden>
+  <input id="paletteInput" type="text" autocomplete="off" spellcheck="false" placeholder="Ketik kode saham, mis. BBCA" aria-controls="paletteList">
+  <ul id="paletteList" role="listbox"></ul>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+const DATA = {"closeLabel": "Jum, 23 Okt 2026 · 16.00 WIB", "sessionLabel": "Jum 23 Okt", "global": [{"label": "USD/IDR", "dp": 0, "price": 17956, "pct": -0.5373}, {"label": "LQ45", "dp": 2, "price": 547.052, "pct": 0.4558}, {"label": "Emas (USD/oz)", "dp": 1, "price": 4007.9, "pct": -1.293}, {"label": "Brent (USD)", "dp": 2, "price": 111.7, "pct": -1.2989}, {"label": "Batu bara API2", "dp": 2, "price": 104.75, "pct": 8.3247}, {"label": "Nikkei 225", "dp": 0, "price": 62693.16, "pct": -0.3413}, {"label": "Hang Seng", "dp": 0, "price": 23093.37, "pct": 0.6919}, {"label": "S&P 500 fut", "dp": 2, "price": 7659.75, "pct": -0.5808}], "ihsg": {"price": 5439.258, "change": 51.35321484374981, "pct": 0.9531203109830115, "prev": 5387.90478515625, "high": 5455.211, "low": 5366.294, "yearHigh": 9174.474, "yearLow": 4907.37, "intraday": [5372.06, 5407.07, 5432.67, 5421.85, 5416.25, 5415.7, 5415.62, 5401.74, 5416.59, 5418.82, 5426.71, 5430.85, 5424.49, 5428.05, 5436.54, 5440.82, 5449.57, 5436.7, 5439.21, 5440.74, 5434.48, 5419.39, 5422.09, 5420.54, 5432.74, 5431.14, 5433.74, 5439.94, 5442.45, 5446.74, 5436.56, 5426.13, 5424.44, 5425.56, 5415.16, 5406.06, 5396.81, 5399.44, 5417.18, 5425.72, 5420.55, 5421.04, 5419.05, 5407.15, 5408.22, 5413.86, 5437.56, 5437.32, 5433.31, 5433.42, 5443.91, 5453.13, 5439.26]}, "breadth": {"up": 507, "down": 192, "flat": 136, "ara": 9, "arb": 22, "value": 13656372250200, "notTraded": 8, "scanned": 835}, "movers": {"gainers": [{"symbol": "WMUU", "name": "Widodo Makmur Unggas Tbk", "price": 36, "pct": 33.3333, "value": 9032925600, "volume": 250914600, "limit": "ARA"}, {"symbol": "FAST", "name": "Fast Food Indonesia Tbk", "price": 380, "pct": 25, "value": 6330876000, "volume": 16660200, "limit": "ARA"}, {"symbol": "PTSP", "name": "Pioneerindo Gourmet International Tbk", "price": 2250, "pct": 25, "value": 4954725000, "volume": 2202100, "limit": "ARA"}, {"symbol": "TOBA", "name": "TBS Energi Utama Tbk", "price": 520, "pct": 25, "value": 90654668000, "volume": 174335900, "limit": "ARA"}, {"symbol": "KONI", "name": "Perdana Bangun Pusaka Tbk", "price": 1680, "pct": 24.9071, "value": 57456000, "volume": 34200, "limit": "ARA"}], "losers": [{"symbol": "BTEK", "name": "Bumi Teknokultura Unggul Tbk", "price": 11, "pct": -8.3333, "value": 1182177700, "volume": 107470700, "limit": "ARB"}, {"symbol": "BUKK", "name": "Bukaka Teknik Utama Tbk.", "price": 1140, "pct": -6.9388, "value": 1356828000, "volume": 1190200, "limit": "ARB"}, {"symbol": "LINK", "name": "Link Net Tbk", "price": 1275, "pct": -6.9343, "value": 349222500, "volume": 273900, "limit": "ARB"}, {"symbol": "HATM", "name": "Habco Trans Maritima Tbk", "price": 540, "pct": -6.8966, "value": 3630096000, "volume": 6722400, "limit": "ARB"}, {"symbol": "SMLE", "name": "Sinergi Multi Lestarindo Tbk", "price": 300, "pct": -6.8323, "value": 11033460000, "volume": 36778200, "limit": "ARB"}], "value": [{"symbol": "BBCA", "name": "Bank Central Asia Tbk", "price": 5025, "pct": -2.8986, "value": 2490510097500, "volume": 495623900, "limit": null}, {"symbol": "BBRI", "name": "Bank Rakyat Indonesia Tbk", "price": 2910, "pct": 0.3448, "value": 1050118896000, "volume": 360865600, "limit": null}, {"symbol": "BMRI", "name": "Bank Mandiri Tbk", "price": 3900, "pct": 1.2987, "value": 996533850000, "volume": 255521500, "limit": null}, {"symbol": "TLKM", "name": "Telekomunikasi Indonesia Tbk", "price": 2240, "pct": 1.8182, "value": 535148096000, "volume": 238905400, "limit": null}, {"symbol": "VKTR", "name": "VKTR Teknologi Mobilitas Tbk", "price": 400, "pct": 16.9591, "value": 325385280000, "volume": 813463200, "limit": null}], "volume": [{"symbol": "BUMI", "name": "Bumi Resources Tbk", "price": 140, "pct": 0.7194, "value": 253454222000, "volume": 1810387300, "limit": null}, {"symbol": "FORU", "name": "Fortune Indonesia Tbk", "price": 108, "pct": 11.3402, "value": 111822055200, "volume": 1035389400, "limit": null}, {"symbol": "GOTO", "name": "GoTo Gojek Tokopedia Tbk", "price": 25, "pct": 0, "value": 23731067800, "volume": 949242712, "limit": null}, {"symbol": "VKTR", "name": "VKTR Teknologi Mobilitas Tbk", "price": 400, "pct": 16.9591, "value": 325385280000, "volume": 813463200, "limit": null}, {"symbol": "BUVA", "name": "Bukit Uluwatu Villa Tbk", "price": 378, "pct": 20.3822, "value": 299144966400, "volume": 791388800, "limit": null}]}, "watchlist": [{"symbol": "BBCA", "name": "Bank Central Asia", "price": 5025, "pct": -2.8986, "low": 5000, "high": 5225}, {"symbol": "BBRI", "name": "Bank Rakyat Indonesia", "price": 2910, "pct": 0.3448, "low": 2830, "high": 2920}, {"symbol": "GTSI", "name": "GTS Internasional", "price": 98, "pct": 4.2553, "low": 93, "high": 100}, {"symbol": "CUAN", "name": "Petrindo Jaya Kreasi", "price": 510, "pct": 2.8226, "low": 488, "high": 525}, {"symbol": "GOTO", "name": "GoTo Gojek Tokopedia", "price": 25, "pct": 0, "low": 24, "high": 26}], "news": [{"title": "Pemerintah Singapura jual lagi saham MTEL", "source": "IDNFinancials", "link": "https://news.google.com/rss/articles/CBMijgFBVV95cUxPUHA0eTBPT2hFSTVBN3NjQ0FxY2NmSGZsM1JhbWt4SFRsRTlKV1FQQU5tOGUwU3lZZm5RNnpKNUx3ckY4azlsdXdyZURZTmxrc2QtRHpRNFM4RjNVUzJoQ2RvTktBQzhmUmxxVl9YZU5mX202RkpKMXgyMFozZ0NYb3RxbjFmUUpiTlZqdEtB?oc=5", "when": "24 Okt · 01.00 WIB"}, {"title": "Tiga emiten Grup Salim buyback pekan depan, siapkan Rp2,25 triliun", "source": "IDNFinancials", "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPNlgwZUc5TUFtZmFTWXhMdjhKOEZ1TUhzc2Z2U1UwYzNZY0JYUGo0WTJPblFXZ2pIaXFfVVlXdEhvbkd6NGZnVmFvbXBrTzJjV2xFUnlUdzNBSWZXdHE5TldiN1FZMGZWQXVhSmdtd1pVSGlSUXc1bkJ3UkFPa2ZwWGJzc2hQVm5hSDJoQ0dVX2FBVDkwNXpxMVFxVzE1eFprN1ZWMm5wa1Uzb1pVSlE?oc=5", "when": "23 Okt · 20.00 WIB"}, {"title": "Mulai November 2026, saham HSC tak lagi masuk hitungan IHSG", "source": "IDNFinancials", "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxNOXpIVkVWLUdncnBRMXN4X2hvOFpFZ21sMlhJOFdWdXBZeUstTmhOQXNxcU5fLXlTTE9lOWF3SFhNdTc4UmExSmxCaThhR0pyMUJlVERkamZ3RUd5X2dSUUhXUWdZVnBjUzJJTUlPMmltQ1p6aE1JMjJlLUJjbHlaMXhYZ3RocVlURGtDWHRqUFh6bWg1dHpEdkNxaS1YakpCd1VZX2txT3RxR3hWdFE?oc=5", "when": "23 Okt · 17.43 WIB"}, {"title": "Usai bertemu MSCI, Bursa Efek Indonesia coret saham HSC dari IHSG", "source": "IDNFinancials", "link": "https://news.google.com/rss/articles/CBMitgFBVV95cUxPR09LcVNaTjVMeXN6dkMxNm04TVdZRFVZY2hRT0lmdTlKdDVPNjBPcmlzMklqRUNJODBBMjczNU9Qc0Q0VVdtWElhdFZsMWFkSER1UGJQZEZIWk5vbDNKS1lDT0VmSV96bXdOalVFWmZaS25FQ1d6WDN6eHhJQjRhYXZGOUtxT19VaHRYR0N6REN3U3ZPemhRWk5nak56MlphWGhkMnJOa3p4NzdBWmo3WVZ6YUJmQQ?oc=5", "when": "23 Okt · 17.34 WIB"}, {"title": "Saham Korea anjlok 4,1% tertekan saham chip dan lonjakan harga minyak", "source": "IDNFinancials", "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxPQVl3eWhfR0ZQRS0xWEQtWk4tdjJTdDZmek8tSFRsMkJKTE0yMzhPY3V4cXVBOFZlREU3VVNZb0gxd2FRd0xLZ19HS01JRjBtQ2NRZGxYMTRRUnlKSlZoTE96a00xa2VFNnRzVHlnYm1Yc01xeEhlTldUSkZuWHRfb09oQzU0RVl3YUtPSVVqWTgxaU1jV1RyQjlROVJqUFY3RHI0RFpyVC13c0g5cWF4T2V3?oc=5", "when": "23 Okt · 17.20 WIB"}]};
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const fmt = (v, d = 0) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+  const pct = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v), 2)}%`;
+  const dir = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : 'flat');
+  const arrow = (v) => (v > 0 ? '▲' : v < 0 ? '▼' : '•');
+  const compact = (v) => v >= 1e12 ? `Rp ${fmt(v / 1e12, 2)} T` : v >= 1e9 ? `Rp ${fmt(v / 1e9, 1)} M` : v >= 1e6 ? `Rp ${fmt(v / 1e6, 1)} jt` : `Rp ${fmt(v)}`;
+  const vol = (v) => v >= 1e9 ? `${fmt(v / 1e9, 2)} M lbr` : v >= 1e6 ? `${fmt(v / 1e6, 1)} jt lbr` : `${fmt(v)} lbr`;
+  const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* opsional */ } } };
+  const toast = (msg) => { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2600); };
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  $('#closeTime').textContent = `Penutupan ${DATA.closeLabel} · Yahoo Finance, tertunda · ${fmt(DATA.breadth.scanned)} saham dipindai`;
+
+  // Pasar global
+  $('#global').innerHTML = DATA.global.map((g) => `
+    <div class="g"><span>${g.label}</span><b>${fmt(g.price, g.dp)}</b><em class="${dir(g.pct)}">${arrow(g.pct)} ${pct(g.pct)}</em></div>`).join('');
+
+  // IHSG
+  const ih = DATA.ihsg;
+  $('#ihsgPrice').textContent = fmt(ih.price, 2);
+  $('#ihsgChg').innerHTML = `<span class="pill ${dir(ih.change)}">${arrow(ih.change)} ${ih.change >= 0 ? '+' : '−'}${fmt(Math.abs(ih.change), 2)} (${pct(ih.pct)})</span>`;
+  $('#ihsgFacts').innerHTML = [
+    ['Penutupan sebelumnya', fmt(ih.prev, 2)], ['Tertinggi hari ini', fmt(ih.high, 2)], ['Terendah hari ini', fmt(ih.low, 2)], ['Rentang 52 minggu', `${fmt(ih.yearLow, 0)} – ${fmt(ih.yearHigh, 0)}`],
+  ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+
+  // Grafik intraday (skala tunggal untuk garis, gridline, dan label)
+  const svg = $('#chartSvg'); let W = 720; const H = 220, L = 52, R = 8, T = 10, B = 24;
+  const pts = ih.intraday;
+  const lo0 = Math.min(...pts, ih.prev), hi0 = Math.max(...pts, ih.prev);
+  const step = [5, 10, 20, 25, 50, 100].find((s) => (hi0 - lo0) / s <= 5) || 100;
+  const lo = Math.floor(lo0 / step) * step, hi = Math.ceil(hi0 / step) * step;
+  const x = (i) => L + (i / (pts.length - 1)) * (W - L - R);
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ticks = []; for (let v = lo; v <= hi + 1e-9; v += step) ticks.push(v);
+  const lineColor = ih.change >= 0 ? css('--gain') : css('--loss');
+  const draw = () => {
+    W = Math.max(320, Math.min(900, Math.round($('#chart').clientWidth || 720)));
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const line = pts.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+    svg.innerHTML = `
+      <defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${lineColor}" stop-opacity="0.28"/><stop offset="1" stop-color="${lineColor}" stop-opacity="0"/></linearGradient></defs>
+      ${ticks.map((v) => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/><text class="axis" x="${L - 10}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`).join('')}
+      <line x1="${L}" x2="${W - R}" y1="${y(ih.prev)}" y2="${y(ih.prev)}" stroke="var(--text-3)" stroke-width="1" stroke-dasharray="4 4"/>
+      <path d="${line}L${x(pts.length - 1)},${y(lo)}L${x(0)},${y(lo)}Z" fill="url(#area)"/>
+      <path d="${line}" fill="none" stroke="${lineColor}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${x(pts.length - 1)}" cy="${y(pts[pts.length - 1])}" r="4.5" fill="${lineColor}" stroke="var(--surface)" stroke-width="2"/>
+      <text class="axis" x="${L}" y="${H - 4}" text-anchor="start">09.00</text>
+      <text class="axis" x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">Sesi ${DATA.sessionLabel}</text>
+      <text class="axis" x="${W - R}" y="${H - 4}" text-anchor="end">16.00</text>
+      <g id="cross" visibility="hidden"><line id="cx" y1="${T}" y2="${H - B}" stroke="var(--text-3)" stroke-width="1"/><circle id="cd" r="5" fill="var(--surface)" stroke="${lineColor}" stroke-width="2.25"/></g>`;
+  };
+  draw();
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { const w = Math.round($('#chart').clientWidth); if (w && Math.abs(Math.max(320, Math.min(900, w)) - W) > 4) draw(); }).observe($('#chart'));
+  const ro = $('#readout');
+  svg.addEventListener('pointermove', (ev) => {
+    const cross = svg.querySelector('#cross'), cxl = svg.querySelector('#cx'), cd = svg.querySelector('#cd');
+    const r = svg.getBoundingClientRect(); const px = ((ev.clientX - r.left) / r.width) * W;
+    const i = Math.max(0, Math.min(pts.length - 1, Math.round(((px - L) / (W - L - R)) * (pts.length - 1))));
+    cxl.setAttribute('x1', x(i)); cxl.setAttribute('x2', x(i)); cd.setAttribute('cx', x(i)); cd.setAttribute('cy', y(pts[i]));
+    cross.setAttribute('visibility', 'visible'); ro.hidden = false;
+    const d = (pts[i] / ih.prev - 1) * 100;
+    ro.innerHTML = `<b>${fmt(pts[i], 2)}</b> <span class="${dir(d)}">${pct(d)}</span><br><span class="muted">bar ${i + 1} dari ${pts.length}</span>`;
+  });
+  svg.addEventListener('pointerleave', () => { svg.querySelector('#cross')?.setAttribute('visibility', 'hidden'); ro.hidden = true; });
+
+  // Perbesar kartu IHSG
+  const panel = $('#ihsgPanel'), scrim = $('#scrim'), focusBtn = $('#focusBtn');
+  const setFocus = (on) => { panel.classList.toggle('focused', on); scrim.hidden = !on; focusBtn.setAttribute('aria-pressed', String(on)); focusBtn.querySelector('span').textContent = on ? 'Tutup' : 'Perbesar'; };
+  focusBtn.addEventListener('click', () => setFocus(!panel.classList.contains('focused')));
+  scrim.addEventListener('click', () => { setFocus(false); closePalette(); });
+
+  // Breadth: cincin proporsi naik / tetap / turun
+  const b = DATA.breadth; const tot = b.up + b.down + b.flat;
+  const mood = b.up > b.down * 1.5 ? ['Mayoritas naik', 'up'] : b.down > b.up * 1.5 ? ['Mayoritas turun', 'down'] : ['Berimbang', 'flat'];
+  const moodEl = $('#breadthMood'); moodEl.textContent = mood[0]; moodEl.classList.add(mood[1]);
+  const segs = [[b.up, css('--gain')], [b.flat, css('--text-3')], [b.down, css('--loss')]];
+  const C = 2 * Math.PI * 48; let off = 0; const gap = 3;
+  $('#ring').setAttribute('aria-label', `Naik ${b.up}, tetap ${b.flat}, turun ${b.down} saham`);
+  $('#ring').innerHTML = `<circle cx="60" cy="60" r="48" fill="none" stroke="var(--surface-2)" stroke-width="12"/>` +
+    segs.map(([v, c]) => { const len = (v / tot) * C; const s = `<circle cx="60" cy="60" r="48" fill="none" stroke="${c}" stroke-width="12" stroke-dasharray="${Math.max(0, len - gap)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 60 60)" stroke-linecap="butt"/>`; off += len; return s; }).join('') +
+    `<text x="60" y="58" text-anchor="middle" fill="var(--text)" font-size="24" font-weight="500">${fmt((b.up / tot) * 100, 0)}%</text><text x="60" y="76" text-anchor="middle" fill="var(--text-3)" font-size="11" font-family="Inter">naik</text>`;
+  $('#counts').innerHTML = [['Naik', b.up, 'var(--gain)'], ['Tetap', b.flat, 'var(--text-3)'], ['Turun', b.down, 'var(--loss)']]
+    .map(([k, v, c]) => `<div><span><i style="background:${c}"></i>${k}</span><b>${fmt(v)}</b></div>`).join('');
+  $('#stats').innerHTML = [
+    ['Menyentuh ARA', `<span class="up">${fmt(b.ara)}</span>`], ['Menyentuh ARB', `<span class="down">${fmt(b.arb)}</span>`],
+    ['Nilai transaksi', compact(b.value)], ['Tidak bertransaksi', fmt(b.notTraded)],
+  ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+
+  // Penggerak pasar
+  const av = (s) => `<span class="av" aria-hidden="true">${s.slice(0, 2)}</span>`;
+  const TABS = [['gainers', 'Naik'], ['losers', 'Turun'], ['value', 'Nilai'], ['volume', 'Volume']];
+  let tab = store.get('nunnn-proto-tab') || 'gainers';
+  const renderTabs = () => { $('#moverTabs').innerHTML = TABS.map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === tab}" data-k="${k}">${l}</button>`).join(''); };
+  const renderMovers = () => {
+    $('#moverRows').innerHTML = DATA.movers[tab].map((m) => `
+      <li class="row" data-sym="${m.symbol}">${av(m.symbol)}
+        <span class="who"><b>${m.symbol}${m.limit ? `<span class="tag ${m.limit === 'ARA' ? 'up' : 'down'}">${m.limit}</span>` : ''}</b><small>${m.name}</small></span>
+        <span class="px last"><b>${tab === 'volume' ? vol(m.volume) : compact(m.value)}</b><small>${tab === 'volume' ? 'volume' : 'nilai'}</small></span>
+        <span class="px"><b>${fmt(m.price)}</b><span class="pill sm ${dir(m.pct)}">${arrow(m.pct)} ${pct(m.pct)}</span></span></li>`).join('');
+  };
+  $('#moverTabs').addEventListener('click', (e) => { const k = e.target.closest('button')?.dataset.k; if (!k) return; tab = k; store.set('nunnn-proto-tab', k); renderTabs(); renderMovers(); });
+  renderTabs(); renderMovers();
+
+  // Watchlist
+  $('#wlRows').innerHTML = DATA.watchlist.map((w) => {
+    const p = w.high > w.low ? ((w.price - w.low) / (w.high - w.low)) * 100 : 50;
+    return `<li class="row" data-sym="${w.symbol}">${av(w.symbol)}
+      <span class="who"><b>${w.symbol}</b><small>${w.name}</small></span>
+      <span class="px"><b>${fmt(w.price)}</b><span class="pill sm ${dir(w.pct)}">${arrow(w.pct)} ${pct(w.pct)}</span></span>
+      <span class="range" title="Rendah ${fmt(w.low)} · tinggi ${fmt(w.high)}"><span class="track"><span class="fill" style="width:${p.toFixed(1)}%"></span><span class="mark" style="left:${p.toFixed(1)}%"></span></span><span class="ends"><span>${fmt(w.low)}</span><span>${fmt(w.high)}</span></span></span></li>`;
+  }).join('');
+
+  // Berita
+  $('#news').innerHTML = DATA.news.map((n) => `<li><a href="${n.link}" target="_blank" rel="noopener noreferrer"><span><b>${n.title}</b><small>${n.source} · ${n.when}</small></span></a></li>`).join('');
+
+  // Interaksi prototipe
+  document.addEventListener('click', (e) => { const r = e.target.closest('[data-sym]'); if (r) toast(`Prototipe: membuka Analisis ${r.dataset.sym}`); });
+  document.querySelectorAll('.side a, .tools a, .bottom a').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); toast(`Prototipe: membuka ${a.textContent.replace('Login', '').trim()}`); }));
+
+  // Palet pencarian: / atau Ctrl+K
+  const PAGES = ['Beranda', 'Berita & Sentimen', 'Analisis Saham', 'Watchlist', 'Average Down', 'Compounding', 'Persentase', 'Dividen', 'E-IPO', 'Portofolio'];
+  const SYMS = [...new Map([...DATA.watchlist, ...Object.values(DATA.movers).flat()].map((s) => [s.symbol, s])).values()];
+  const pal = $('#palette'), pin = $('#paletteInput'), plist = $('#paletteList'); let sel = 0, items = [];
+  const renderPalette = () => {
+    const q = pin.value.trim().toUpperCase();
+    items = [...SYMS.filter((s) => !q || s.symbol.startsWith(q) || (s.name || '').toUpperCase().includes(q)).slice(0, 6).map((s) => ({ t: s.symbol, h: s.name || 'Saham', a: `Analisis ${s.symbol}` })),
+      ...PAGES.filter((p) => !q || p.toUpperCase().includes(q)).slice(0, 5).map((p) => ({ t: p, h: 'Halaman', a: p }))];
+    sel = Math.min(sel, Math.max(0, items.length - 1));
+    plist.innerHTML = items.length ? items.map((it, i) => `<li><button type="button" role="option" aria-selected="${i === sel}" data-i="${i}"><span>${it.t}</span><small>${it.h}</small></button></li>`).join('') : '<li><button type="button" disabled>Tidak ada hasil</button></li>';
+  };
+  const openPalette = () => { pal.hidden = false; scrim.hidden = false; pin.value = ''; sel = 0; renderPalette(); pin.focus(); };
+  function closePalette() { if (pal.hidden) return; pal.hidden = true; if (!panel.classList.contains('focused')) scrim.hidden = true; }
+  const run = (i) => { const it = items[i]; if (!it) return; closePalette(); toast(`Prototipe: membuka ${it.a}`); };
+  $('#openPalette').addEventListener('click', openPalette);
+  pin.addEventListener('input', () => { sel = 0; renderPalette(); });
+  plist.addEventListener('click', (e) => { const i = e.target.closest('button')?.dataset.i; if (i != null) run(Number(i)); });
+  pin.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { sel = Math.min(items.length - 1, sel + 1); renderPalette(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); renderPalette(); e.preventDefault(); }
+    else if (e.key === 'Enter') run(sel);
+  });
+  document.addEventListener('keydown', (e) => {
+    const typing = /INPUT|TEXTAREA/.test(document.activeElement?.tagName || '');
+    if ((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) { e.preventDefault(); openPalette(); }
+    else if (e.key === 'Escape') { closePalette(); setFocus(false); }
+  });
+})();
+</script>
+
+</body>
+</html>

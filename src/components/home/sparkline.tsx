@@ -34,7 +34,7 @@ export function Sparkline({
 
   const reference = baseline ?? values[0];
   const isUp = values[values.length - 1] >= reference;
-  const color = isUp ? '#10b981' : '#f43f5e';
+  const color = isUp ? '#2fd39f' : '#ff6670';
 
   const min = Math.min(...values, reference);
   const max = Math.max(...values, reference);

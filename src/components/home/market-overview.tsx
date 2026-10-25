@@ -1,22 +1,23 @@
 'use client';
 
 import * as React from 'react';
-import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { formatNumberLocale, formatIDRCompact } from '@/lib/format';
-import { Sparkline } from './sparkline';
-import { AnimatedNumber, GrowBar } from '@/components/shared/motion';
+import { formatWibTime } from '@/lib/market-hours';
+import { IntradayChart } from './intraday-chart';
+import { AnimatedNumber } from '@/components/shared/motion';
 import type { Lang, MarketSummaryData } from './types';
 
 interface MarketOverviewProps {
   language: Lang;
   data: MarketSummaryData | null;
   loading: boolean;
+  /** Sesi bursa sedang berjalan: label ujung grafik memakai jam data terakhir, bukan 16:00. */
+  trading: boolean;
   error: boolean;
 }
 
-function CardShell({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl bg-white/[0.02] border border-white/5 p-4 md:p-5 ${className}`}>{children}</div>;
-}
+const CARD = 'rounded-[20px] bg-card-bg border border-white/[0.04] p-5 md:p-6';
 
 const ISSUE_LABEL: Record<string, { id: string; en: string }> = {
   'invalid-price': { id: 'harga tidak valid', en: 'invalid price' },
@@ -25,154 +26,207 @@ const ISSUE_LABEL: Record<string, { id: string; en: string }> = {
   'no-volume': { id: 'berubah tanpa transaksi', en: 'moved without volume' },
 };
 
-/** Kartu IHSG (harga, grafik intraday, rentang 52 minggu) dan breadth pasar. */
-export function MarketOverview({ language, data, loading, error }: MarketOverviewProps) {
+/** Cincin proporsi saham naik / tetap / turun dengan persentase naik di tengah. */
+function BreadthRing({ up, flat, down, label, center }: { up: number; flat: number; down: number; label: string; center: string }) {
+  const total = up + flat + down || 1;
+  const C = 2 * Math.PI * 48;
+  const GAP = 3;
+  let offset = 0;
+  const segments = [
+    { v: up, color: '#2fd39f' },
+    { v: flat, color: '#7d8590' },
+    { v: down, color: '#ff6670' },
+  ].map((s) => {
+    const len = (s.v / total) * C;
+    const seg = { ...s, len, offset };
+    offset += len;
+    return seg;
+  });
+  return (
+    <svg viewBox="0 0 120 120" className="w-24 h-24 sm:w-[116px] sm:h-[116px] shrink-0" role="img" aria-label={label}>
+      <circle cx="60" cy="60" r="48" fill="none" stroke="#1f2227" strokeWidth="12" />
+      {segments.map((s) =>
+        s.v > 0 ? (
+          <circle
+            key={s.color}
+            cx="60"
+            cy="60"
+            r="48"
+            fill="none"
+            stroke={s.color}
+            strokeWidth="12"
+            strokeDasharray={`${Math.max(0, s.len - GAP)} ${C}`}
+            strokeDashoffset={-s.offset}
+            transform="rotate(-90 60 60)"
+          />
+        ) : null
+      )}
+      <text x="60" y="58" textAnchor="middle" className="fill-white font-display text-[24px] font-medium">
+        {Math.round((up / total) * 100)}%
+      </text>
+      <text x="60" y="76" textAnchor="middle" className="fill-slate-500 text-[11px]">
+        {center}
+      </text>
+    </svg>
+  );
+}
+
+/** Kartu IHSG (harga, grafik intraday, fakta harian) dan breadth pasar. */
+export function MarketOverview({ language, data, loading, trading, error }: MarketOverviewProps) {
   const isId = language === 'id';
   const num = (v: number, d = 2) => formatNumberLocale(v, language, d);
 
   if (loading && !data) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2 rounded-2xl bg-white/[0.02] border border-white/5 h-[188px] animate-pulse" />
-        <div className="rounded-2xl bg-white/[0.02] border border-white/5 h-[188px] animate-pulse" />
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5">
+        <div className="xl:col-span-2 rounded-[20px] h-[440px] skeleton-shimmer" />
+        <div className="rounded-[20px] h-[440px] skeleton-shimmer" />
       </div>
     );
   }
 
   if (!data) {
     return (
-      <CardShell className="text-center text-xs text-slate-500">
+      <div className={`${CARD} text-center text-sm text-slate-400`}>
         {error
           ? (isId ? 'Gagal memuat data pasar. Coba tombol Refresh.' : 'Failed to load market data. Try the Refresh button.')
           : (isId ? 'Data pasar belum tersedia.' : 'Market data is not available yet.')}
-      </CardShell>
+      </div>
     );
   }
 
   const { ihsg, breadth } = data;
   const isUp = ihsg.change >= 0;
   const ChangeIcon = isUp ? TrendingUp : TrendingDown;
-  const changeColor = isUp ? 'text-emerald-400' : 'text-rose-400';
+  const sign = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '');
 
-  const yearSpan = ihsg.yearHigh - ihsg.yearLow;
-  const yearPos = yearSpan > 0 ? Math.min(100, Math.max(0, ((ihsg.price - ihsg.yearLow) / yearSpan) * 100)) : 50;
-
-  const totalBreadth = breadth.advancers + breadth.decliners + breadth.unchanged || 1;
-  const pct = (n: number) => (n / totalBreadth) * 100;
   const breadthTone =
     breadth.advancers > breadth.decliners * 1.2
-      ? { id: 'Mayoritas saham naik', en: 'Most stocks are rising', cls: 'text-emerald-400' }
+      ? { id: 'Mayoritas naik', en: 'Mostly up', cls: 'bg-emerald-400/10 text-emerald-400' }
       : breadth.decliners > breadth.advancers * 1.2
-        ? { id: 'Mayoritas saham turun', en: 'Most stocks are falling', cls: 'text-rose-400' }
-        : { id: 'Pasar berimbang', en: 'Balanced market', cls: 'text-slate-300' };
+        ? { id: 'Mayoritas turun', en: 'Mostly down', cls: 'bg-rose-400/10 text-rose-400' }
+        : { id: 'Berimbang', en: 'Balanced', cls: 'bg-surface-2 text-slate-300' };
+
+  const lastTime = ihsg.marketTime ? formatWibTime(ihsg.marketTime * 1000) : null;
+  const endLabel = trading && lastTime ? `${isId ? 'Terakhir' : 'Last'} ${lastTime}` : '16:00';
+
+  const facts: Array<[string, string]> = [
+    [isId ? 'Penutupan sebelumnya' : 'Previous close', num(ihsg.previousClose)],
+    [isId ? 'Tertinggi hari ini' : 'Day high', num(ihsg.dayHigh)],
+    [isId ? 'Terendah hari ini' : 'Day low', num(ihsg.dayLow)],
+    [isId ? 'Rentang 52 minggu' : '52-week range', `${num(ihsg.yearLow, 0)} – ${num(ihsg.yearHigh, 0)}`],
+  ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-      {/* IHSG */}
-      <CardShell className="lg:col-span-2 flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">
-              {isId ? 'IHSG · Indeks Harga Saham Gabungan' : 'IHSG · Jakarta Composite Index'}
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5">
+      {/* IHSG: satu-satunya kartu bergradien (kartu utama) */}
+      <section className="xl:col-span-2 rounded-[20px] hero-surface border border-white/[0.04] p-5 md:p-6 flex flex-col gap-4" aria-label="IHSG">
+        <div>
+          <span className="text-sm font-medium text-slate-300">
+            {isId ? 'IHSG · Indeks Harga Saham Gabungan' : 'IHSG · Jakarta Composite Index'}
+          </span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
+            <AnimatedNumber value={ihsg.price} format={num} className="title-display text-[40px] md:text-[56px] leading-none text-white tabular-nums" />
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold tabular-nums ${isUp ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'}`}
+            >
+              <ChangeIcon className="h-4 w-4" />
+              {sign(ihsg.change)}{num(Math.abs(ihsg.change))} ({sign(ihsg.changePercent)}{num(Math.abs(ihsg.changePercent))}%)
             </span>
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-1">
-              <AnimatedNumber value={ihsg.price} format={num} className="text-3xl font-black text-white tracking-tight" />
-              <span className={`text-sm font-bold flex items-center gap-1 tabular-nums ${changeColor}`}>
-                <ChangeIcon className="h-4 w-4" />
-                {isUp ? '+' : ''}{num(ihsg.change)} ({isUp ? '+' : ''}{num(ihsg.changePercent)}%)
-              </span>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-[11px] tabular-nums">
-            <div>
-              <span className="text-slate-500 block">{isId ? 'Tutup Kemarin' : 'Prev Close'}</span>
-              <span className="text-slate-200 font-semibold">{num(ihsg.previousClose)}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block">{isId ? 'Tertinggi' : 'High'}</span>
-              <span className="text-slate-200 font-semibold">{num(ihsg.dayHigh)}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block">{isId ? 'Terendah' : 'Low'}</span>
-              <span className="text-slate-200 font-semibold">{num(ihsg.dayLow)}</span>
-            </div>
           </div>
         </div>
 
         {ihsg.intraday.length > 1 ? (
-          <Sparkline values={ihsg.intraday} baseline={ihsg.previousClose} width={600} height={64} className="w-full" strokeWidth={2} filled />
+          <>
+            <IntradayChart language={language} values={ihsg.intraday} previousClose={ihsg.previousClose} endLabel={endLabel} />
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-2">
+                <i className={`inline-block w-3.5 h-[3px] rounded ${isUp ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                {isId ? 'IHSG intraday (bar 5 menit)' : 'IHSG intraday (5-minute bars)'}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <i className="inline-block w-3.5 h-[3px] bg-[repeating-linear-gradient(90deg,#7d8590_0_4px,transparent_4px_7px)]" />
+                {isId ? 'Penutupan sebelumnya' : 'Previous close'}
+              </span>
+              <span className="hidden sm:inline">{isId ? 'Arahkan kursor untuk membaca nilai' : 'Hover to read values'}</span>
+            </div>
+          </>
         ) : (
-          <div className="h-16 flex items-center justify-center text-[11px] text-slate-600">
+          <div className="h-40 flex items-center justify-center text-xs text-slate-500">
             {isId ? 'Grafik intraday belum tersedia' : 'Intraday chart not available yet'}
           </div>
         )}
 
-        {/* Rentang 52 minggu */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-[11px] text-slate-500 tabular-nums">
-            <span>{isId ? '52 mgg rendah' : '52w low'} {num(ihsg.yearLow)}</span>
-            <span>{isId ? '52 mgg tinggi' : '52w high'} {num(ihsg.yearHigh)}</span>
-          </div>
-          <div className="relative h-1.5 rounded-full bg-gradient-to-r from-rose-500/40 via-slate-500/30 to-emerald-500/40">
-            <span
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-1.5 rounded-sm bg-white shadow"
-              style={{ left: `${yearPos}%` }}
-              title={`${num(yearPos, 0)}%`}
-            />
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {facts.map(([label, value]) => (
+            <div key={label} className="rounded-2xl bg-white/[0.04] px-3.5 py-3 min-w-0">
+              <span className="block text-xs text-slate-500">{label}</span>
+              <span className="block mt-0.5 font-semibold text-white tabular-nums truncate">{value}</span>
+            </div>
+          ))}
         </div>
-      </CardShell>
+      </section>
 
       {/* Breadth */}
-      <CardShell className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5 text-emerald-400" />
-            {isId ? 'Breadth Pasar' : 'Market Breadth'}
-          </span>
-          <span className={`text-[11px] font-bold ${breadthTone.cls}`}>{breadthTone[language]}</span>
+      <section className={`${CARD} flex flex-col gap-4`} aria-labelledby="breadth-title">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="breadth-title" className="title-display text-lg text-white">{isId ? 'Breadth pasar' : 'Market breadth'}</h2>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${breadthTone.cls}`}>{breadthTone[language]}</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-center tabular-nums">
-          <div>
-            <span className="text-xl font-black text-emerald-400 block">{num(breadth.advancers, 0)}</span>
-            <span className="text-[11px] text-slate-500">{isId ? 'Naik' : 'Up'}</span>
-          </div>
-          <div>
-            <span className="text-xl font-black text-slate-300 block">{num(breadth.unchanged, 0)}</span>
-            <span className="text-[11px] text-slate-500">{isId ? 'Tetap' : 'Flat'}</span>
-          </div>
-          <div>
-            <span className="text-xl font-black text-rose-400 block">{num(breadth.decliners, 0)}</span>
-            <span className="text-[11px] text-slate-500">{isId ? 'Turun' : 'Down'}</span>
-          </div>
-        </div>
-
-        <div className="flex h-2 rounded-full overflow-hidden bg-white/5" role="img" aria-label={`${breadth.advancers} / ${breadth.unchanged} / ${breadth.decliners}`}>
-          <GrowBar pct={pct(breadth.advancers)} className="bg-emerald-500" />
-          <GrowBar pct={pct(breadth.unchanged)} className="bg-slate-500" />
-          <GrowBar pct={pct(breadth.decliners)} className="bg-rose-500" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-[11px] tabular-nums">
-          <div className="px-2.5 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 flex justify-between">
-            <span className="text-slate-400">ARA</span>
-            <span className="font-bold text-emerald-400">{num(breadth.ara, 0)}</span>
-          </div>
-          <div className="px-2.5 py-1.5 rounded-lg bg-rose-500/5 border border-rose-500/15 flex justify-between">
-            <span className="text-slate-400">ARB</span>
-            <span className="font-bold text-rose-400">{num(breadth.arb, 0)}</span>
+        <div className="flex items-center gap-5">
+          <BreadthRing
+            up={breadth.advancers}
+            flat={breadth.unchanged}
+            down={breadth.decliners}
+            center={isId ? 'naik' : 'up'}
+            label={isId
+              ? `Naik ${breadth.advancers}, tetap ${breadth.unchanged}, turun ${breadth.decliners} saham`
+              : `Up ${breadth.advancers}, flat ${breadth.unchanged}, down ${breadth.decliners} stocks`}
+          />
+          <div className="flex-1 min-w-0 grid gap-2.5">
+            {([
+              [isId ? 'Naik' : 'Up', breadth.advancers, 'bg-emerald-400'],
+              [isId ? 'Tetap' : 'Flat', breadth.unchanged, 'bg-slate-500'],
+              [isId ? 'Turun' : 'Down', breadth.decliners, 'bg-rose-400'],
+            ] as const).map(([label, value, dot]) => (
+              <div key={label} className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 text-sm text-slate-300">
+                  <i className={`inline-block h-2 w-2 rounded-full ${dot}`} />
+                  {label}
+                </span>
+                <span className="font-display text-xl font-medium text-white tabular-nums">{num(value, 0)}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <p className="text-[11px] text-slate-500 mt-auto">
-          {isId ? 'Nilai transaksi' : 'Turnover'} ≈ <strong className="text-slate-300">{formatIDRCompact(breadth.totalValue, language)}</strong>
-          {' · '}
-          {num(data.totalScanned, 0)} {isId ? 'saham dipantau' : 'stocks tracked'}
+        <div className="grid grid-cols-2 gap-2.5">
+          {([
+            [isId ? 'Menyentuh ARA' : 'Hit ARA', <span key="ara" className="text-emerald-400">{num(breadth.ara, 0)}</span>],
+            [isId ? 'Menyentuh ARB' : 'Hit ARB', <span key="arb" className="text-rose-400">{num(breadth.arb, 0)}</span>],
+            [isId ? 'Nilai transaksi ≈' : 'Turnover ≈', formatIDRCompact(breadth.totalValue, language)],
+            [isId ? 'Saham dipantau' : 'Stocks tracked', num(data.totalScanned, 0)],
+          ] as const).map(([label, value]) => (
+            <div key={label} className="rounded-2xl bg-surface-2 px-3.5 py-3 min-w-0">
+              <span className="block text-xs text-slate-500">{label}</span>
+              <span className="block mt-0.5 font-display text-xl font-medium text-white tabular-nums truncate">{value}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-slate-500 leading-relaxed mt-auto">
+          {isId
+            ? 'ARA/ARB: harga menyentuh batas auto rejection harian.'
+            : 'ARA/ARB: price hit the daily auto-rejection limit.'}
+          {(breadth.notTraded ?? 0) > 0 &&
+            (isId
+              ? ` ${num(breadth.notTraded ?? 0, 0)} saham tidak bertransaksi sesi ini dan tidak ikut dihitung.`
+              : ` ${num(breadth.notTraded ?? 0, 0)} stocks did not trade this session and are excluded.`)}
         </p>
         {data.dataQuality.excludedCount > 0 && (
           <p
-            className="text-[11px] text-amber-400/80"
+            className="text-xs text-amber-400/80 -mt-2"
             title={data.dataQuality.excluded
               .map((e) => `${e.symbol}: ${(ISSUE_LABEL[e.issue] ?? { id: e.issue, en: e.issue })[language]}`)
               .join(', ')}
@@ -182,7 +236,7 @@ export function MarketOverview({ language, data, loading, error }: MarketOvervie
               : `${num(data.dataQuality.excludedCount, 0)} stocks skipped due to unreliable data`}
           </p>
         )}
-      </CardShell>
+      </section>
     </div>
   );
 }

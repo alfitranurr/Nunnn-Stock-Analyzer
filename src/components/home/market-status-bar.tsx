@@ -31,7 +31,7 @@ export function MarketStatusBar({ language, session, now, updatedAt, refreshing,
   const open = session ? isSessionOpen(session) : false;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 rounded-2xl bg-white/[0.02] border border-white/5 text-[11px]">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 rounded-2xl bg-card-bg border border-white/[0.04] text-xs">
       <span className="flex items-center gap-2 font-bold text-white">
         <span className="relative flex h-2 w-2">
           {open && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping motion-reduce:animate-none" />}
@@ -58,7 +58,7 @@ export function MarketStatusBar({ language, session, now, updatedAt, refreshing,
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
-        className="ml-auto flex items-center gap-1 text-slate-400 hover:text-emerald-400 disabled:opacity-50 transition-colors cursor-pointer"
+        className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-2 text-slate-300 hover:text-white disabled:opacity-50 transition-colors cursor-pointer"
         aria-label={isId ? 'Muat ulang data pasar' : 'Refresh market data'}
       >
         <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />

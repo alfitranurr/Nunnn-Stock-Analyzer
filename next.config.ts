@@ -46,6 +46,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Login berupa modal di halaman utama; alamat /login (dan alias umum) membuka modal itu.
+  async redirects() {
+    return ["/login", "/masuk", "/signin"].map((source) => ({
+      source,
+      destination: "/?login=1",
+      permanent: false,
+    }));
+  },
   async headers() {
     return [
       {

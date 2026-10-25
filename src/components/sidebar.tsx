@@ -27,6 +27,31 @@ import type { AppUser } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/language-context';
 
+/** Logo Nunnn: ubin hijau dengan huruf N dan panah naik (sama dengan app/icon.svg). */
+function BrandMark({ size = 34 }: { size?: number }) {
+  return (
+    <span
+      className="rounded-[11px] bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shrink-0"
+      style={{ width: size, height: size }}
+      aria-hidden
+    >
+      <svg viewBox="0 0 64 64" style={{ width: size * 0.6, height: size * 0.6 }}>
+        <path d="M15 47V19L41 46V25" fill="none" stroke="#fff" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M31 27L41 14L51 27Z" fill="#fff" />
+      </svg>
+    </span>
+  );
+}
+
+function BrandName({ language }: { language: string }) {
+  return (
+    <span className="min-w-0 leading-tight">
+      <span className="block font-display font-semibold text-base text-white tracking-tight">Nunnn Stock</span>
+      <span className="block text-[11px] text-slate-500">{language === 'id' ? 'Analyzer saham BEI' : 'IDX stock analyzer'}</span>
+    </span>
+  );
+}
+
 interface SidebarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
@@ -89,22 +114,22 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
   return (
     <>
       {/* Mobile Header (Fixed Top) */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar-bg border-b border-border-color flex items-center justify-between px-4 z-40">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar-bg/95 backdrop-blur border-b border-white/[0.06] flex items-center justify-between px-4 z-40">
         <button
           onClick={onLogoClick}
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
         >
-          <span className="font-extrabold text-xl text-emerald-400 tracking-wider font-sans">
-            NUNNN STOCK
-          </span>
+          <BrandMark size={32} />
+          <BrandName language={language} />
         </button>
         <div className="flex items-center gap-2">
           <GlobalRefreshButton language={language} variant="icon" isAdmin={!!isAdmin} />
           <button
             onClick={() => setIsMobileOpen(true)}
-            className="p-2 rounded-lg bg-input-bg border border-border-color text-foreground cursor-pointer"
+            className="p-2 rounded-xl bg-surface-2 text-foreground cursor-pointer"
+            aria-label={language === 'id' ? 'Buka menu' : 'Open menu'}
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-5 w-5" />
           </button>
         </div>
       </header>
@@ -112,9 +137,9 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
       {/* Menu bawah HP (Fixed Bottom) */}
       <nav
         aria-label={language === 'id' ? 'Navigasi utama' : 'Main navigation'}
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-bg/95 backdrop-blur border-t border-border-color pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-bg/95 backdrop-blur border-t border-white/[0.06] pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-5 h-16 px-1.5 py-1.5 gap-1">
           {bottomNav.map((item) => {
             const active = currentTab === item.id;
             return (
@@ -124,11 +149,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 onClick={() => setCurrentTab(item.id)}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold cursor-pointer transition-colors',
-                  active ? 'text-emerald-400' : 'text-slate-400 hover:text-white'
+                  'relative flex flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-semibold cursor-pointer transition-colors',
+                  active ? 'bg-surface-3 text-white' : 'text-slate-400 hover:text-white'
                 )}
               >
-                {active && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-400" aria-hidden />}
                 <span className="relative">
                   <item.icon className="h-5 w-5" />
                   {item.isLocked && <Lock className="absolute -right-2 -top-1 h-2.5 w-2.5 text-slate-500" />}
@@ -141,11 +165,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             type="button"
             onClick={() => setIsMobileOpen(true)}
             className={cn(
-              'relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold cursor-pointer transition-colors',
-              bottomNav.some((m) => m.id === currentTab) ? 'text-slate-400 hover:text-white' : 'text-emerald-400'
+              'relative flex flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-semibold cursor-pointer transition-colors',
+              bottomNav.some((m) => m.id === currentTab) ? 'text-slate-400 hover:text-white' : 'bg-surface-3 text-white'
             )}
           >
-            {!bottomNav.some((m) => m.id === currentTab) && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-400" aria-hidden />}
             <Menu className="h-5 w-5" />
             {language === 'id' ? 'Menu' : 'Menu'}
           </button>
@@ -180,9 +203,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   }}
                   className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
                 >
-                  <span className="font-extrabold text-2xl text-emerald-400 tracking-wider font-sans">
-                    NUNNN STOCK
-                  </span>
+                  <BrandMark />
+                  <BrandName language={language} />
                 </button>
                 <button 
                   onClick={() => setIsMobileOpen(false)}
@@ -207,19 +229,19 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       }
                     }}
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer text-left",
+                      "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl transition-colors duration-200 cursor-pointer text-left",
                       currentTab === item.id && item.active
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                        : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-input-bg",
+                        ? "bg-surface-2 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-card-bg",
                       !item.active && "opacity-50 cursor-not-allowed"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <item.icon className={cn("h-5 w-5", currentTab === item.id && "text-emerald-400")} />
+                      <item.icon className={cn("h-5 w-5", currentTab === item.id && "text-accent")} />
                       <span className="font-medium text-sm text-left">{item.label}</span>
                     </div>
                     {item.isLocked && (
-                      <Lock className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                      <span className="px-2 py-0.5 rounded-full bg-surface-2 text-[10px] font-semibold text-slate-400 shrink-0">Login</span>
                     )}
                   </button>
                   </React.Fragment>
@@ -231,13 +253,13 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 {/* Language Switcher */}
                 <div className="flex flex-col gap-1.5 px-1 pb-1">
                   <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
-                  <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[11px] font-extrabold select-none">
+                  <div className="flex bg-surface-2 p-1 rounded-full text-xs font-semibold select-none">
                     <button
                       type="button"
                       onClick={() => setLanguage('id')}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                        language === 'id' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                        "flex-1 py-1.5 rounded-full transition-colors cursor-pointer text-center",
+                        language === 'id' ? "bg-white text-slate-950" : "text-slate-400 hover:text-white"
                       )}
                     >
                       Indonesia
@@ -246,8 +268,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       type="button"
                       onClick={() => setLanguage('en')}
                       className={cn(
-                        "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                        language === 'en' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                        "flex-1 py-1.5 rounded-full transition-colors cursor-pointer text-center",
+                        language === 'en' ? "bg-white text-slate-950" : "text-slate-400 hover:text-white"
                       )}
                     >
                       English
@@ -302,7 +324,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         variants={sidebarVariants}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
         className={cn(
-          "hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-sidebar-bg border-r border-border-color py-4 z-30 group transition-all duration-300",
+          "hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-sidebar-bg border-r border-white/[0.06] py-5 z-30 group transition-all duration-300",
           isCollapsed ? "px-0 items-center" : "px-3"
         )}
       >
@@ -310,17 +332,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         <div className={cn("flex items-center mb-5 transition-all duration-300 relative w-full", isCollapsed ? "justify-center px-0" : "justify-between px-2")}>
           <button
             onClick={onLogoClick}
-            className={cn("flex items-center cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all bg-transparent border-0 p-0", isCollapsed ? "justify-center w-full" : "gap-2 text-left")}
+            className={cn("flex items-center cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all bg-transparent border-0 p-0", isCollapsed ? "justify-center w-full" : "gap-2.5 text-left")}
           >
-            {!isCollapsed ? (
-              <span className="font-extrabold text-lg text-emerald-400 tracking-wider font-sans select-none">
-                NUNNN STOCK
-              </span>
-            ) : (
-              <span className="font-black text-2xl text-emerald-400 select-none tracking-tight text-center leading-none">
-                N
-              </span>
-            )}
+            <BrandMark />
+            {!isCollapsed && <BrandName language={language} />}
           </button>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -345,23 +360,23 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             <button
               onClick={() => item.active && setCurrentTab(item.id)}
               className={cn(
-                "flex items-center transition-all duration-300 border relative group/item cursor-pointer",
+                "flex items-center transition-colors duration-200 relative group/item cursor-pointer",
                 isCollapsed
                   ? "w-11 h-11 mx-auto justify-center rounded-xl p-0 shrink-0"
-                  : "w-full justify-between px-3.5 py-2 rounded-xl text-left",
+                  : "w-full justify-between px-3 py-2.5 rounded-xl text-left",
                 currentTab === item.id && item.active
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 dark:text-emerald-400 font-semibold shadow-sm"
-                  : "bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-input-bg",
+                  ? "bg-surface-2 text-white"
+                  : "text-slate-400 hover:text-white hover:bg-card-bg",
                 !item.active && "opacity-45 cursor-not-allowed"
               )}
               title={isCollapsed ? item.label : undefined}
             >
               <div className={cn("flex items-center justify-center", isCollapsed ? "w-full h-full" : "gap-3")}>
-                <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/item:scale-110 shrink-0", currentTab === item.id && "text-emerald-400")} />
-                {!isCollapsed && <span className="text-[13px] font-semibold text-left whitespace-nowrap">{item.label}</span>}
+                <item.icon className={cn("h-[18px] w-[18px] shrink-0", currentTab === item.id && "text-accent")} />
+                {!isCollapsed && <span className="text-sm font-medium text-left whitespace-nowrap">{item.label}</span>}
               </div>
               {!isCollapsed && item.isLocked && (
-                <Lock className="h-3 w-3 text-slate-500 dark:text-slate-600 shrink-0" />
+                <span className="px-2 py-0.5 rounded-full bg-surface-2 text-[10px] font-semibold text-slate-400 shrink-0">Login</span>
               )}
             </button>
             </React.Fragment>
@@ -369,7 +384,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         </nav>
 
         {/* Bottom Section */}
-        <div className="mt-auto pt-3 border-t border-border-color space-y-3 shrink-0 w-full">
+        <div className="mt-auto pt-3 border-t border-white/[0.06] space-y-3 shrink-0 w-full">
           {/* Refresh data terpusat (semua halaman) */}
           {isCollapsed ? (
             <div className="flex justify-center w-full">
@@ -385,13 +400,13 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           {!isCollapsed ? (
             <div className="flex flex-col gap-1.5 px-2.5">
               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.language')}</span>
-              <div className="flex bg-input-bg border border-border-color p-0.5 rounded-xl text-[9.5px] font-extrabold select-none">
+              <div className="flex bg-surface-2 p-1 rounded-full text-[11px] font-semibold select-none">
                 <button
                   type="button"
                   onClick={() => setLanguage('id')}
                   className={cn(
-                    "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'id' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-500 hover:text-white"
+                    "flex-1 py-1.5 rounded-full transition-colors cursor-pointer text-center",
+                    language === 'id' ? "bg-white text-slate-950" : "text-slate-500 hover:text-white"
                   )}
                 >
                   ID
@@ -400,8 +415,8 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   type="button"
                   onClick={() => setLanguage('en')}
                   className={cn(
-                    "flex-1 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                    language === 'en' ? "bg-emerald-500 text-slate-950 shadow" : "text-slate-500 hover:text-white"
+                    "flex-1 py-1.5 rounded-full transition-colors cursor-pointer text-center",
+                    language === 'en' ? "bg-white text-slate-950" : "text-slate-500 hover:text-white"
                   )}
                 >
                   EN

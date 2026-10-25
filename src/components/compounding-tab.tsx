@@ -217,15 +217,15 @@ function Segmented<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={`flex bg-input-bg border border-border-color p-1 rounded-xl text-[11px] font-extrabold select-none ${className}`}>
+    <div className={`flex bg-surface-2 p-1 rounded-full text-xs font-semibold select-none ${className}`}>
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
           aria-pressed={value === opt.value}
-          className={`flex-1 py-2 px-3 rounded-lg transition-all cursor-pointer text-center whitespace-nowrap ${
-            value === opt.value ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+          className={`flex-1 py-2 px-3 rounded-full transition-colors cursor-pointer text-center whitespace-nowrap ${
+            value === opt.value ? 'bg-white text-slate-950' : 'text-slate-400 hover:text-white'
           }`}
         >
           {opt.label}

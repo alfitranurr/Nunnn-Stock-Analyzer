@@ -46,7 +46,7 @@ export function GlobalMarkets({ language, isActive }: GlobalMarketsProps) {
 
   if (status === 'error') {
     return (
-      <div className="rounded-2xl bg-white/[0.02] border border-white/5 px-4 py-3 text-[11px] text-slate-500">
+      <div className="rounded-[20px] bg-card-bg border border-white/[0.04] px-5 py-4 text-xs text-slate-500">
         {isId ? 'Data pasar global belum bisa dimuat.' : 'Global market data could not be loaded.'}
       </div>
     );
@@ -54,36 +54,35 @@ export function GlobalMarkets({ language, isActive }: GlobalMarketsProps) {
 
   return (
     <section aria-label={isId ? 'Pasar global & makro' : 'Global markets & macro'}>
-      <div className="flex items-center gap-1.5 mb-2">
-        <Globe2 className="h-3.5 w-3.5 text-emerald-400" />
-        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-          {isId ? 'Global & Makro' : 'Global & Macro'}
-        </span>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar snap-x">
+      <h2 className="flex items-center gap-2 mb-3 title-display text-lg text-white">
+        <Globe2 className="h-4 w-4 text-accent" aria-hidden />
+        {isId ? 'Global & makro' : 'Global & macro'}
+      </h2>
+      {/* Kartu dibagi rata selebar layar; bila tidak muat (layar sempit), geser ke samping. */}
+      <div className="grid grid-flow-col auto-cols-[minmax(150px,1fr)] gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
         {GLOBAL_INSTRUMENTS.map((inst) => {
           const q = quotes[inst.symbol];
           const isUp = (q?.change ?? 0) >= 0;
           return (
             <div
               key={inst.symbol}
-              className="snap-start shrink-0 w-[150px] rounded-xl bg-white/[0.02] border border-white/5 px-3 py-2.5 flex flex-col gap-1"
+              className="snap-start min-w-0 rounded-2xl bg-card-bg border border-white/[0.04] px-4 py-3.5 flex flex-col gap-1.5"
             >
-              <span className="text-[11px] font-bold text-slate-400 truncate" title={inst.unit ? `${inst[language]} (${inst.unit})` : inst[language]}>
+              <span className="text-xs text-slate-500 truncate" title={inst.unit ? `${inst[language]} (${inst.unit})` : inst[language]}>
                 {inst[language]}
               </span>
               {q ? (
                 <>
-                  <div className="flex items-baseline justify-between gap-1 tabular-nums">
-                    <span className="text-sm font-black text-white">{formatNumberLocale(q.price, language, inst.decimals)}</span>
-                    <span className={`text-[11px] font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {isUp ? '+' : ''}{formatNumberLocale(q.changePercent, language, 2)}%
-                    </span>
-                  </div>
-                  <Sparkline values={q.closes} baseline={q.price - q.change} width={126} height={20} />
+                  <span className="font-display text-lg font-medium text-white tabular-nums leading-tight truncate">
+                    {formatNumberLocale(q.price, language, inst.decimals)}
+                  </span>
+                  <span className={`text-xs font-semibold tabular-nums ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isUp ? '▲ +' : '▼ '}{formatNumberLocale(q.changePercent, language, 2)}%
+                  </span>
+                  <Sparkline values={q.closes} baseline={q.price - q.change} width={160} height={22} className="w-full" />
                 </>
               ) : (
-                <div className="h-[38px] rounded bg-white/[0.03] animate-pulse" />
+                <div className="h-[62px] rounded-xl skeleton-shimmer" />
               )}
             </div>
           );

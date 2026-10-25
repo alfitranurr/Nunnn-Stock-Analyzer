@@ -1,9 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Inter_Tight } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClientBootstrap } from "@/components/client-bootstrap";
 import { AppSplash } from "@/components/app-splash";
 import { LanguageProvider } from "@/lib/language-context";
 import "./globals.css";
+
+// Di-host sendiri oleh next/font (CSP hanya mengizinkan font dari origin ini).
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
+const interTight = Inter_Tight({ subsets: ["latin"], weight: ["500", "600"], display: "swap", variable: "--font-inter-tight" });
 
 export const metadata: Metadata = {
   title: "Nunnn Stock - Kalkulator Average Down Saham Indonesia (BEI/IDX)",
@@ -24,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="dark" suppressHydrationWarning>
+    <html lang="id" className={`dark ${inter.variable} ${interTight.variable}`} suppressHydrationWarning>
       <body className="antialiased min-h-screen">
         {/* Animasi pemuatan awal: dirender server agar langsung tampil saat reload */}
         <AppSplash />

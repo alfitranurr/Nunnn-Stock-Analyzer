@@ -237,14 +237,15 @@ Ringkasan akses tiap menu:
 ### 5.0 Sidebar & Navigasi ([sidebar.tsx](src/components/sidebar.tsx))
 
 - **Daftar menu:** [sidebar.tsx](src/components/sidebar.tsx), dikelompokkan (20 Okt 2026) dengan judul kecil: **Pasar** (Beranda, Berita, Analisis, Watchlist), **Kalkulator** (Avg Down, Compounding, Persentase, Dividen, E-IPO), **Akun** (Portofolio, Admin). Sidebar diciutkan: judul diganti garis pemisah. Menu Admin selalu paling bawah.
-  - **Menu bawah HP** (`md:hidden`, tinggi 64px + safe area): Beranda, Berita, Analisis, Watchlist, dan Menu (membuka laci lengkap). Item aktif hijau dengan garis di atasnya; Menu menyala bila halaman aktif ada di laci. Konten, tombol "ke atas", toast, dan notifikasi Simpan berita digeser ke atas menu ini.
-  - Menu `analysis` dan `portfolio` tampil dengan ikon gembok bila belum login.
+  - **Menu bawah HP** (`md:hidden`, tinggi 64px + safe area): Beranda, Berita, Analisis, Watchlist, dan Menu (membuka laci lengkap). Item aktif putih di atas pill abu (`bg-surface-3`, sejak desain ulang 26 Okt 2026); Menu menyala bila halaman aktif ada di laci. Konten, tombol "ke atas", toast, dan notifikasi Simpan berita digeser ke atas menu ini.
+  - Menu `analysis` dan `portfolio` tampil dengan chip "Login" bila belum login (ikon gembok di menu bawah HP).
   - Menu `watchlist` aktif sejak `db0cca3`. Menu "Riwayat Rencana" (dulu berbadge "Segera", tidak pernah aktif) dihapus; rencana tersimpan tetap ada di tiap kalkulator.
   - Menu `admin` hanya muncul bila email pengguna sama dengan `NEXT_PUBLIC_ADMIN_EMAIL` (default `admin@nunnnstock.com`, [sidebar.tsx:44](src/components/sidebar.tsx#L44)).
 - **Ikon (lucide-react), unik per menu:** Beranda `Home`, Berita `Newspaper`, Avg Down `Calculator`, Compounding `Sprout`, Persentase `Percent`, Dividen `HandCoins`, E-IPO `Rocket`, Analisis `ChartCandlestick`, Portofolio `Briefcase`, Admin `ShieldCheck`, Watchlist `Star`. Badge judul di setiap tab memakai ikon yang sama dengan sidebar.
 - **Desktop:**
   - Sidebar fixed yang bisa diciutkan (260px ↔ 80px). Chevron untuk menciutkan baru muncul saat hover.
-  - Klik logo membuka Beranda.
+  - Logo: ubin hijau bergradasi berisi huruf N berpanah naik (sama dengan ikon aplikasi) + "Nunnn Stock / Analyzer saham BEI"; saat diciutkan hanya ubinnya. Klik logo membuka Beranda.
+  - Item aktif: latar `surface-2` dengan ikon biru-ungu (`text-accent`); item lain abu, terang saat hover.
   - Pengalih bahasa ID/EN; saat sidebar diciutkan berubah jadi satu tombol toggle.
   - Footer profil berisi email dan tombol logout, atau tombol "Masuk ke Akun".
 - **Mobile:** header atas 64px dengan tombol refresh dan tombol hamburger, lalu drawer geser 280px yang berisi menu, pengalih bahasa, dan area profil.
@@ -259,24 +260,24 @@ Urutan dari atas:
 
 | Bagian | File | Isi & perilaku |
 |---|---|---|
-| Sapaan / hero | home-dashboard.tsx | Login: "Selamat pagi/siang/sore/malam, {nama}" (jam WIB) + badge Mode Cloud/Lokal. Pengunjung: hero ringkas + tombol Masuk |
+| Sapaan / hero | home-dashboard.tsx | Login: "Selamat pagi/siang/sore/malam, {nama}" (jam WIB) + badge Mode Cloud/Lokal. Pengunjung: kartu hero bergradien + tombol pill putih Masuk |
 | Status pasar | [market-status-bar.tsx](src/components/home/market-status-bar.tsx) | Sesi BEI (Pra-Pembukaan, Sesi 1, Istirahat, Sesi 2, Pra-Penutupan, Bursa Tutup, Libur Bursa), jam WIB, waktu scan terakhir, nama sumber data dari provider ("data bisa tertunda"), tombol Refresh |
 | Pencarian | [quick-search-ticker.tsx](src/components/quick-search-ticker.tsx) | Debounce 350ms ke `/api/ticker?q=`; memilih ticker membuka **Analisis** |
-| IHSG | [market-overview.tsx](src/components/home/market-overview.tsx) | Harga, perubahan, tutup kemarin, tertinggi/terendah, grafik intraday 5 menit dengan garis acuan, posisi dalam rentang 52 minggu |
-| Breadth | market-overview.tsx | Jumlah saham naik/tetap/turun + bar, label "Mayoritas naik/turun/berimbang", jumlah ARA/ARB, total nilai transaksi, jumlah saham dipantau, dan jumlah saham yang dilewati karena datanya meragukan |
+| IHSG | [market-overview.tsx](src/components/home/market-overview.tsx), [intraday-chart.tsx](src/components/home/intraday-chart.tsx) | Kartu utama bergradien biru-ungu: harga besar (Inter Tight 56px), pill perubahan, grafik intraday bar 5 menit **bersumbu harga** (gridline kelipatan bulat, garis putus-putus penutupan kemarin, label 09:00 → 16:00 atau "Terakhir HH:MM" saat sesi berjalan) dengan pembacaan nilai + % saat kursor diarahkan, lalu 4 kotak fakta: penutupan sebelumnya, tertinggi, terendah, rentang 52 minggu |
+| Breadth | market-overview.tsx | Cincin proporsi naik/tetap/turun dengan % naik di tengah, jumlah per kelompok, chip "Mayoritas naik/turun/Berimbang", kotak ARA, ARB, nilai transaksi ≈, saham dipantau; catatan saham tidak bertransaksi dan saham yang dilewati karena datanya meragukan |
 | Cakupan emiten | [listing-coverage.tsx](src/components/home/listing-coverage.tsx) | "924 emiten terpantau di web ini dari 963 tercatat di BEI · 96%": bar aktif (TradingView) / suspensi (terdeteksi) / belum terdeteksi, tanggal & sumber angka resmi. Data dari `/api/universe`, ikut sinyal refresh Admin (sejak `f7c2190`) |
-| Global & Makro | [global-markets.tsx](src/components/home/global-markets.tsx) | USD/IDR, LQ45, Emas, Brent, Batu Bara (API2), Nikkei 225, Hang Seng, S&P 500 Futures dengan grafik mini; refresh tiap 2 menit saat Beranda aktif ([lib/global-markets.ts](src/lib/global-markets.ts)) |
-| Penggerak Pasar | [market-movers.tsx](src/components/home/market-movers.tsx) | Tab Gainers / Losers / Top Nilai / Top Volume (6 baris). Filter nilai transaksi Semua / ≥ Rp1 M / ≥ Rp10 M (default ≥ Rp1 M, hanya untuk Gainers/Losers). Badge ARA/ARB. Klik kode → Analisis; tombol ☆ → watchlist. Sejak `76c0b7f`: badge **LIVE · 30 dtk** saat bursa buka atau **Data penutupan** saat tutup, jam pembaruan, jumlah saham yang tidak ditransaksikan sesi ini, baris bergeser beranimasi saat peringkat berubah, harga berkedip saat berubah. Kolom nilai diberi tanda ≈ (harga terakhir × volume; sumber gratis tidak menyediakan nilai transaksi persis, mis. PEVE Rp3,26 M vs Rp3,05 M di Stockbit) |
+| Global & Makro | [global-markets.tsx](src/components/home/global-markets.tsx) | USD/IDR, LQ45, Emas, Brent, Batu Bara (API2), Nikkei 225, Hang Seng, S&P 500 Futures dengan grafik mini; 8 kartu dibagi rata selebar layar (geser ke samping bila tidak muat); refresh tiap 2 menit saat Beranda aktif ([lib/global-markets.ts](src/lib/global-markets.ts)) |
+| Penggerak Pasar | [market-movers.tsx](src/components/home/market-movers.tsx) | Tab pill Naik / Turun / Nilai / Volume (6 baris; baris = avatar kode, nama, nilai ≈, harga + pill %, ☆). Filter nilai transaksi Semua / ≥ Rp1 M / ≥ Rp10 M (default ≥ Rp1 M, hanya untuk Gainers/Losers). Badge ARA/ARB. Klik kode → Analisis; tombol ☆ → watchlist. Sejak `76c0b7f`: badge **LIVE** saat bursa buka (tooltip: tiap 30 dtk) atau **Penutupan** saat tutup, jam pembaruan (jumlah saham tidak bertransaksi kini di kartu Breadth), baris bergeser beranimasi saat peringkat berubah, harga berkedip saat berubah. Kolom nilai diberi tanda ≈ (harga terakhir × volume; sumber gratis tidak menyediakan nilai transaksi persis, mis. PEVE Rp3,26 M vs Rp3,05 M di Stockbit) |
 | Watchlist | [watchlist-panel.tsx](src/components/watchlist-panel.tsx) | Varian ringkas (6 baris + "Lihat semua"); lihat di bawah |
 | Ringkasan Portofolio | [portfolio-snapshot.tsx](src/components/portfolio-snapshot.tsx) | Login saja. Total ekuitas (+ nilai pasar), **P&L hari ini**, P&L total, kas RDN ("Belum diatur" bila kosong, tanpa angka fiktif). Satuan "jt / M / T" ([format.ts](src/lib/format.ts) `formatIDRCompact`). Data dibaca lewat [portfolio-store](src/lib/portfolio-store.ts) yang sama dengan halaman Portofolio. Harga semua saham diambil sekali lewat `/api/quotes`; perubahan yang meragukan tidak dihitung ke P&L hari ini |
 | Berita | [trending-news-strip.tsx](src/components/trending-news-strip.tsx) | 4 berita `/api/news?category=saham` (2 kolom); pesan berbeda untuk gagal dimuat vs kosong |
 | Tips | [educational-tip-card.tsx](src/components/educational-tip-card.tsx) | 1 tip acak dari 8 tip dwibahasa (isi dikoreksi di `db0cca3`) |
-| Akses Cepat | home-dashboard.tsx | 8 menu dengan ikon yang sama seperti sidebar; ikon gembok untuk Analisis/Portofolio bila belum login |
+| Akses Cepat | home-dashboard.tsx | 8 ubin dengan ikon biru-ungu yang sama seperti sidebar; ikon gembok untuk Analisis/Portofolio bila belum login |
 | Disclaimer | home-dashboard.tsx | Teks `common.disclaimer` |
 
 **Watchlist** (widget Beranda [watchlist-panel.tsx](src/components/watchlist-panel.tsx), halaman penuh [watchlist/watchlist-page.tsx](src/components/watchlist/watchlist-page.tsx), store [watchlist-store.ts](src/lib/watchlist-store.ts)):
 - Satu store (`useSyncExternalStore`) dipakai bersama oleh widget Beranda, halaman **Watchlist Saham** (menu sidebar), dan tombol ☆ di Penggerak Pasar & Berita. Maksimal 20 saham.
-- Widget Beranda: 6 baris, harga + % + grafik mini, tambah lewat pencarian, "Lihat semua" membuka halaman penuh.
+- Widget Beranda: 6 baris (avatar kode, nama, grafik mini, harga, pill %), tambah lewat pencarian, "Lihat semua" membuka halaman penuh.
 - Halaman penuh (dibangun ulang di `30f9770`; sebelumnya hanya widget yang direntangkan di kolom sempit):
   - `PageHeader` + bar status sesi bursa, jam WIB, waktu update, dan sumber data.
   - Ringkasan: jumlah dipantau (naik/turun/tetap), rata-rata perubahan, saham terkuat & terlemah (sejak `1096531`: bila tidak ada yang turun/naik, kartu menampilkan "—" + "tidak ada yang turun/naik", bukan menyebut saham 0% sebagai terlemah).
@@ -1090,7 +1091,8 @@ Belum ada `.env.example`.
     - `connect-src` berisi Supabase dan 3 host AI
   - Header lain: nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, HSTS preload.
   - `images.remotePatterns` mengizinkan logo Stockbit.
-  - ⚠️ `style-src`/`font-src` tidak mengizinkan Google Fonts, lihat [H-04](#h-04).
+  - Font di-host sendiri lewat `next/font` sehingga `font-src 'self'` cukup ([H-04](#h-04) selesai 26 Okt 2026).
+  - `redirects()`: `/login`, `/masuk`, `/signin` → `/?login=1` (307, tidak permanen). Login berupa modal di halaman utama; `page.tsx` membaca `?login=1`, membuka modal, lalu membuang parameternya dari URL.
 - **[vercel.json](vercel.json):**
   - Cron `/api/keepalive` setiap hari pukul 00:00 UTC.
   - `maxDuration` dan memori per route; region `sin1`.
@@ -1121,13 +1123,20 @@ Belum ada `.env.example`.
 
 ### 10.2 Styling
 
-- **Tailwind v4** dengan token di blok `@theme` di [globals.css:4-20](src/app/globals.css#L4-L20): bullish-green, bearish-red, dan background sidebar/card/input.
-- **Kelas kustom:** `.glass-card`, `.glass-input`, `.mesh-bg`, `.text-profit-glow`, `.text-loss-glow`, plus scrollbar kustom.
-- **Font:** Plus Jakarta Sans lewat `@import` Google Fonts ([globals.css:1](src/app/globals.css#L1)).
-- **Tema:** hanya gelap (`forcedTheme="dark"`), dengan aksen emerald di atas latar `#121518`.
+- **Desain ulang "fintech gelap modern"** (26 Okt 2026; terinspirasi design system `revolut` dari open-design, prototipe di `prototypes/beranda-fintech.html`):
+  - **Permukaan:** latar `#0e1013`, kartu `#17191d` (`bg-card-bg`), lapisan `surface-2` `#1f2227` dan `surface-3` `#282c33`. Kartu datar tanpa bayangan, radius 20px, border putih 4%.
+  - **Warna:** hijau tetap warna brand dan "naik", merah rose untuk "turun". Aksen sekunder biru-ungu `accent` `#6e73f2` / `accent-2` `#9b6cf0` hanya untuk kartu utama (`.hero-surface`: gradien radial halus di IHSG, header halaman, hero pengunjung), ikon menu aktif, dan ikon ubin.
+  - **Kontrol:** tab/segmen berbentuk pill; pilihan aktif putih dengan teks gelap (`Segmented`, Compounding, Persentase, Penggerak Pasar, pengalih bahasa). Tombol arah naik/turun di Persentase tetap hijau/merah karena bermakna.
+  - **Tipografi:** Inter (teks & angka, `tabular-nums`) dan Inter Tight medium bertracking rapat untuk judul & angka besar (`.title-display`; utilitas `font-display` hanya mengganti keluarga font). Token `--font-weight-black` = 700 dan `--font-weight-extrabold` = 650 sehingga kelas `font-black` lama ikut melunak tanpa mengubah 90+ tempat.
+  - **Lebar konten:** batas kolom utama `max-w-[1800px]` (sebelumnya `max-w-7xl` = 1280px) agar layar lebar terisi penuh.
+  - Bagian dalam halaman kalkulator (sub-kartu ber-border, label kapital) belum disesuaikan; tahap berikutnya.
+- **Tailwind v4** dengan token di blok `@theme` / `@theme inline` di [globals.css](src/app/globals.css): font, berat huruf, accent/surface, brand, bullish/bearish, dan background sidebar/card/input.
+- **Kelas kustom:** `.glass-card`, `.hero-surface`, `.title-display`, `.glass-input`, `.mesh-bg`, `.text-profit-glow`, `.text-loss-glow`, plus scrollbar netral.
+- **Font:** Inter + Inter Tight lewat `next/font/google` di [layout.tsx](src/app/layout.tsx) (di-host sendiri; sebelumnya Plus Jakarta Sans lewat `@import` Google Fonts yang diblok CSP, sehingga tampilan jatuh ke `sans-serif`).
+- **Tema:** hanya gelap (`forcedTheme="dark"`).
 - **Perapian layout seluruh halaman** (23 Okt 2026):
-  - Satu bentuk kartu: kelas `.glass-card` (Avg Down, Compounding, Persentase) disamakan dengan `<Card>` (sudut 24px, border putih 10%, tanpa efek hover pada kartu statis).
-  - Satu gaya judul bagian = `CardTitle` (`text-base font-black text-white`, ikon 20px, tanpa garis bawah); judul kapital abu-abu bergaris di Persentase, Compounding, dan Avg Down diganti.
+  - Satu bentuk kartu: kelas `.glass-card` (Avg Down, Compounding, Persentase) disamakan dengan `<Card>` (sejak 26 Okt 2026: sudut 20px, border putih 4%, tanpa bayangan).
+  - Satu gaya judul bagian = `CardTitle` (sejak 26 Okt 2026: `title-display text-lg`, ikon 20px, tanpa garis bawah); judul kapital abu-abu bergaris di Persentase, Compounding, dan Avg Down diganti.
   - Avg Down: label isian di atas input (gaya `<Field>`), sub-kartu ber-border tipis tanpa `justify-between` (penyebab ruang kosong di kartu Broker Fee), kartu fee selalu menampilkan Fee Beli/Jual dan tidak dipaksa setinggi kartu tahap 3, ringkasan Avg Baru/BEP/Modal Baru dalam 3 kotak.
   - Berita: tombol Simpan & Analisis AI sebaris dengan sumber/waktu; baris kode saham hanya muncul bila berita menyebut saham.
   - Penomoran bagian: Dividen tanpa nomor (bagian, bukan langkah); E-IPO bernomor 1–5 (Hasil Penjatahan = 4, Simulasi Listing = 5).
@@ -1314,6 +1323,7 @@ Status yang dipakai: **T** = terverifikasi di kode · **R** = perlu verifikasi r
 - **Lokasi:** [globals.css:1](src/app/globals.css#L1) memuat `fonts.googleapis.com`, sedangkan [next.config.ts:10-12](next.config.ts#L10-L12) hanya punya `style-src 'self' 'unsafe-inline'` dan `font-src 'self'`.
 - **Dampak:** di produksi, font Plus Jakarta Sans kemungkinan gagal dimuat dan tampilan jatuh ke `sans-serif`. Ini juga menambah noise pelanggaran CSP.
 - **Rekomendasi:** pakai `next/font/google`, yang menyajikan font dari host sendiri tanpa mengubah CSP.
+- **Status:** ✅ selesai 26 Okt 2026, Inter + Inter Tight via `next/font/google`; `@import` Google Fonts dihapus.
 
 <a id="h-05"></a>
 **H-05: Rate limit kemungkinan tidak aktif di produksi** · Abuse/Cost · R
@@ -1429,7 +1439,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 | `f32820c` | 2026-10-13 | — | Bar harian Yahoo melewatkan sesi 12 Okt untuk semua saham sehingga perubahan hari ini dihitung dari penutupan Jumat (CUAN −14,29% padahal +0,76%); portofolio dan movers berbeda dari Stockbit |
 | `f2c68f1` | 2026-10-07 | Compounding pada L-01, sebagian L-07 (toast Compounding) | Compounding: fee broker dipotong tapi tidak tampil di tabel harian (baris tidak cocok dengan saldo); kolom pajak di tabel harian bergantung pada input mode lain; input persen `type=number` menolak koma ("0,5"); grafik tidak bisa disentuh di HP; label sumbu hampir tak terlihat; `maxY = 0` (modal 0) menghasilkan NaN; hapus rencana tanpa konfirmasi; default target 5%/hari yang tidak realistis |
 
-**Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-04–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08.
+**Masih terbuka:** H-02 (RLS), H-03 (DNS rebinding), H-05–H-07, M-01, M-14, M-17, L-05, L-06, L-07 (auth-modal), L-08. H-04 ditutup oleh desain ulang 26 Okt 2026 (`next/font`).
 
 ---
 
@@ -1476,7 +1486,7 @@ Temuan Medium lain yang terkait performa dan robustness:
 ### P0: dampak besar, kerja kecil (1–2 hari)
 1. ✅ **C-01** (`abdd7d9`): token Bearer + `requireUser(request)`.
 2. ✅ **C-02** (`abdd7d9`): limiter AI hanya untuk route LLM. Cache sentimen per kumpulan berita dan refresh berita 10 menit ✅ `802aed7`.
-3. **H-04:** pindah ke `next/font/google`.
+3. ~~**H-04:** pindah ke `next/font/google`.~~ Selesai 26 Okt 2026.
 4. ✅ **H-01:** fallback palsu dihapus (Dividen `86e45a5`, Analisis `802aed7`).
 5. **M-01:** perbaikan satu baris di logika parsing angka. (M-09 ✅ `b9db7a6`, M-02 ✅ `db0cca3`, M-10 ✅ `86e45a5`, M-03 ✅ `802aed7`.)
 6. ✅ **L-01, L-02, L-04:** simpan Compounding `f2c68f1`, selector login `b9db7a6`, mojibake `86e45a5`, simpan E-IPO `c2e9dde`.

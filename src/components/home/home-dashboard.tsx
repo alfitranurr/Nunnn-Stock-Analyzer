@@ -98,41 +98,40 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
   const userName = user?.email?.split('@')[0];
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-4 md:space-y-5">
       {/* Sapaan (login) atau hero ringkas (pengunjung baru) */}
       {user ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
+            <h1 className="title-display text-[28px] md:text-[34px] leading-tight text-white">
               {now ? getWibGreeting(now, language) : isId ? 'Halo' : 'Hello'}, <span className="text-emerald-400">{userName}</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-sm text-slate-400 mt-1">
               {isId ? 'Ringkasan pasar dan saham pantauan Anda hari ini.' : 'Your market overview and watched stocks for today.'}
             </p>
           </div>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] font-bold text-slate-300">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card-bg text-xs font-semibold text-slate-300">
             {isSupabaseConfigured && !user.isMock ? <Cloud className="h-3.5 w-3.5 text-emerald-400" /> : <HardDrive className="h-3.5 w-3.5 text-slate-400" />}
             {isSupabaseConfigured && !user.isMock ? (isId ? 'Mode Cloud' : 'Cloud mode') : (isId ? 'Mode Lokal' : 'Local mode')}
           </span>
         </div>
       ) : (
-        <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-card-bg via-[#161a1d] to-[#121517] p-5 md:p-7">
-          <div className="absolute top-0 right-0 w-[220px] h-[220px] rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="rounded-[20px] hero-surface border border-white/[0.04] p-5 md:p-7">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                <Sparkles className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.07] text-xs font-semibold text-slate-200">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
                 {t('cover.sparkles')}
               </span>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-tight text-white">
+              <h1 className="title-display text-[28px] md:text-4xl leading-[1.08] text-white">
                 {t('cover.title1')} <span className="text-profit-glow">{t('cover.title2')}</span>
               </h1>
-              <p className="text-xs md:text-sm text-slate-400 leading-relaxed max-w-2xl">{t('cover.desc')}</p>
+              <p className="text-sm text-slate-300/80 leading-relaxed max-w-2xl">{t('cover.desc')}</p>
             </div>
             <button
               type="button"
               onClick={onSignInClick}
-              className="self-start md:self-center shrink-0 px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-md"
+              className="self-start md:self-center shrink-0 px-6 py-2.5 rounded-full bg-white hover:bg-white/85 text-slate-950 font-semibold text-sm transition-colors cursor-pointer"
             >
               {t('sidebar.login')}
             </button>
@@ -154,13 +153,13 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
         <QuickSearchTicker language={language} onSelectTicker={onSelectTicker} />
       </div>
 
-      <MarketOverview language={language} data={data} loading={loading} error={error} />
+      <MarketOverview language={language} data={data} loading={loading} trading={trading} error={error} />
 
       <ListingCoverage language={language} isActive={isActive} />
 
       <GlobalMarkets language={language} isActive={isActive} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5 items-stretch">
         <div className="lg:col-span-2">
           <MarketMovers
             language={language}
@@ -190,7 +189,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
         <div className="lg:col-span-2">
           <TrendingNewsStrip language={language} />
         </div>
@@ -199,10 +198,10 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
 
       {/* Akses cepat */}
       <section aria-label={isId ? 'Akses cepat' : 'Quick access'}>
-        <span className="block mb-2 text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-          {isId ? 'Akses Cepat' : 'Quick Access'}
-        </span>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        <h2 className="mb-3 title-display text-lg text-white">
+          {isId ? 'Akses cepat' : 'Quick access'}
+        </h2>
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-4 gap-3">
           {QUICK_ACCESS.map((item) => {
             const Icon = item.icon;
             const locked = 'locked' in item && item.locked && !user;
@@ -211,19 +210,19 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
                 key={item.tab}
                 type="button"
                 onClick={() => onNavigate(item.tab)}
-                className="group p-3 rounded-2xl bg-white/[0.03] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 flex items-center gap-3 text-left transition-all cursor-pointer"
+                className="group p-4 rounded-2xl bg-card-bg hover:bg-surface-2 border border-white/[0.04] flex items-center gap-3 text-left transition-colors cursor-pointer"
               >
-                <span className="w-9 h-9 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                  <Icon className="h-4 w-4 text-emerald-400" />
+                <span className="w-10 h-10 shrink-0 rounded-[12px] bg-accent/15 flex items-center justify-center">
+                  <Icon className="h-[18px] w-[18px] text-accent" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1 font-bold text-xs text-white group-hover:text-emerald-400 transition-colors">
+                  <span className="flex items-center gap-1 font-semibold text-sm text-white">
                     <span className="truncate">{item.title[language]}</span>
                     {locked && <Lock className="h-3 w-3 text-slate-500 shrink-0" />}
                   </span>
-                  <span className="block text-[11px] text-slate-400 truncate">{item.sub[language]}</span>
+                  <span className="block text-xs text-slate-500 truncate">{item.sub[language]}</span>
                 </span>
-                <ArrowRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-emerald-400 shrink-0 hidden sm:block" />
+                <ArrowRight className="h-4 w-4 text-slate-600 group-hover:text-white group-hover:translate-x-0.5 transition-transform shrink-0 hidden sm:block" />
               </button>
             );
           })}
@@ -231,7 +230,7 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
       </section>
 
       {/* Disclaimer */}
-      <div className="max-w-2xl mx-auto w-full p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-[10px] md:text-[11px] text-slate-500 leading-relaxed text-center">
+      <div className="max-w-3xl mx-auto w-full px-4 py-3 text-[11px] md:text-xs text-slate-500 leading-relaxed text-center">
         {t('common.disclaimer')}
       </div>
     </div>

@@ -72,7 +72,7 @@ export function stepDecimal(s: string, dir: 1 | -1, step: number, min: number, m
 }
 
 // ─── Komponen kecil ───
-/** Kartu standar: muncul halus saat pertama masuk layar, border menyala tipis saat hover. */
+/** Kartu standar: datar (tanpa bayangan), radius 20px, muncul halus saat pertama masuk layar. */
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <motion.section
@@ -80,7 +80,7 @@ export function Card({ children, className }: { children: React.ReactNode; class
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '0px 0px -30px 0px' }}
       transition={{ duration: 0.45, ease: EASE_OUT }}
-      className={cn('p-4 sm:p-6 rounded-3xl border border-white/10 bg-card-bg shadow-xl w-full', className)}
+      className={cn('p-4 sm:p-6 rounded-[20px] border border-white/[0.04] bg-card-bg w-full', className)}
     >
       {children}
     </motion.section>
@@ -91,7 +91,7 @@ export function CardTitle({ icon, title, subtitle, right }: { icon: React.ReactN
   return (
     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
       <div className="min-w-0">
-        <h2 className="text-base font-black text-white flex items-center gap-2">
+        <h2 className="title-display text-lg text-white flex items-center gap-2">
           {icon}
           <span>{title}</span>
         </h2>
@@ -128,7 +128,7 @@ export function Segmented<T extends string>({
   ariaLabel?: string;
 }) {
   return (
-    <div role="group" aria-label={ariaLabel} className={cn('flex bg-input-bg border border-border-color p-1 rounded-xl text-[11px] font-extrabold select-none', className)}>
+    <div role="group" aria-label={ariaLabel} className={cn('flex bg-surface-2 p-1 rounded-full text-xs font-semibold select-none', className)}>
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -138,8 +138,8 @@ export function Segmented<T extends string>({
           onClick={() => onChange(opt.value)}
           aria-pressed={value === opt.value}
           className={cn(
-            'flex-1 py-2 px-2 rounded-lg transition-all text-center whitespace-nowrap disabled:opacity-35 disabled:cursor-not-allowed',
-            value === opt.value ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white cursor-pointer'
+            'flex-1 py-2 px-3 rounded-full transition-colors text-center whitespace-nowrap disabled:opacity-35 disabled:cursor-not-allowed',
+            value === opt.value ? 'bg-white text-slate-950' : 'text-slate-400 hover:text-white cursor-pointer'
           )}
         >
           {opt.label}
@@ -154,7 +154,7 @@ const TONES = {
   amber: 'bg-amber-500/[0.06] border-amber-500/20 text-amber-400',
   sky: 'bg-sky-500/[0.06] border-sky-500/20 text-sky-400',
   rose: 'bg-rose-500/[0.06] border-rose-500/20 text-rose-400',
-  slate: 'bg-white/[0.02] border-white/10 text-slate-400',
+  slate: 'bg-surface-2 border-transparent text-slate-400',
 } as const;
 
 export function Stat({
@@ -174,9 +174,9 @@ export function Stat({
 }) {
   return (
     <div className={cn('p-3.5 rounded-2xl border min-w-0 transition-colors duration-500', TONES[tone], className)}>
-      <span className="text-[11px] font-bold uppercase tracking-wider block opacity-90">{label}</span>
+      <span className="text-xs font-medium block opacity-90">{label}</span>
       <div
-        className={cn('text-[15px] min-[400px]:text-base sm:text-lg font-black text-white tracking-tight mt-1 tabular-nums truncate', valueClassName)}
+        className={cn('font-display text-[17px] min-[400px]:text-lg sm:text-xl font-medium text-white tracking-tight mt-1 tabular-nums truncate', valueClassName)}
         title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
       >
         {typeof value === 'string' || typeof value === 'number' ? <Flash value={value} className="max-w-full truncate align-bottom" /> : value}

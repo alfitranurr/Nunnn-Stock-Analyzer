@@ -35,7 +35,7 @@ export function ListingCoverage({ language, isActive }: { language: Lang; isActi
   }, [isActive, epoch]);
 
   if (failed && !data) return null;
-  if (!data) return <div className="h-[92px] rounded-2xl border border-white/5 skeleton-shimmer" aria-hidden />;
+  if (!data) return <div className="h-[92px] rounded-[20px] skeleton-shimmer" aria-hidden />;
 
   const num = (v: number) => formatNumberLocale(Math.round(v), language);
   const gap = Math.max(0, data.official.count - data.tracked);
@@ -44,14 +44,14 @@ export function ListingCoverage({ language, isActive }: { language: Lang; isActi
   const suspendedPct = data.official.count > 0 ? (data.suspended.length / data.official.count) * 100 : 0;
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-card-bg p-4 md:p-5">
+    <section className="rounded-[20px] border border-white/[0.04] bg-card-bg p-5 md:p-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <span className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0"><Building2 className="h-4 w-4 text-emerald-400" /></span>
+          <span className="w-10 h-10 rounded-[12px] bg-accent/15 flex items-center justify-center shrink-0"><Building2 className="h-[18px] w-[18px] text-accent" /></span>
           <div className="min-w-0">
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">{isId ? 'Cakupan emiten BEI' : 'IDX listing coverage'}</span>
+            <h2 className="title-display text-lg text-white">{isId ? 'Cakupan emiten BEI' : 'IDX listing coverage'}</h2>
             <p className="text-sm text-slate-300 mt-0.5">
-              <AnimatedNumber value={data.tracked} format={num} fromZero className="text-xl font-black text-white" />{' '}
+              <AnimatedNumber value={data.tracked} format={num} fromZero className="font-display text-xl font-medium text-white" />{' '}
               {isId ? 'emiten terpantau di web ini dari' : 'stocks tracked here out of'}{' '}
               <strong className="text-white">{num(data.official.count)}</strong> {isId ? 'tercatat di BEI' : 'listed on IDX'}
             </p>

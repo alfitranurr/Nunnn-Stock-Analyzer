@@ -152,9 +152,12 @@ export default function Dashboard() {
     urlTickerRef.current = initialTab === 'analysis' ? ticker : null;
     urlReadyRef.current = true;
     if (initialTab !== 'home') skipPushRef.current = initialTab;
+    const openLogin = params.get('login') === '1';
     // Ditunda agar router Next sudah memasang History API-nya; state `null` sesuai panduan Next
     // (Next menambahkan data internalnya sendiri, tanpa itu Back ke entri ini memuat ulang halaman).
     setTimeout(() => {
+      // `?login=1` (tujuan redirect /login) membuka modal masuk; parameternya dibuang oleh replaceState di bawah.
+      if (openLogin) setIsAuthModalOpen(true);
       const url = urlFor(initialTab, urlTickerRef.current);
       if (url !== window.location.pathname + window.location.search) window.history.replaceState(null, '', url);
       if (initialTab !== 'home') {
@@ -683,7 +686,7 @@ export default function Dashboard() {
       {/* Main Dashboard Panel (animasi mengikuti preferensi "kurangi gerakan" sistem) */}
       <MotionConfig reducedMotion="user">
       <main className={`flex-1 h-dvh flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-3 md:pb-4 max-w-7xl w-full mx-auto flex flex-col justify-between custom-scrollbar">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 xl:px-10 pb-3 md:pb-4 max-w-[1800px] w-full mx-auto flex flex-col justify-between custom-scrollbar">
           
           {/* 0. Home Tab */}
           <div className={currentTab === 'home' ? 'block' : 'hidden'}>

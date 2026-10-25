@@ -9,6 +9,7 @@ import { formatNumberLocale } from '@/lib/format';
 import { usePolling } from '@/lib/use-polling';
 import { LIVE_POLL_MS, useDataRefreshEpoch } from '@/lib/refresh-signal';
 import { Sparkline } from '@/components/home/sparkline';
+import { TickerAvatar, ChangePill } from '@/components/home/market-movers';
 import { IDX_TICKERS } from '@/lib/tickers';
 
 type SortMode = 'manual' | 'gain' | 'loss' | 'az';
@@ -112,13 +113,12 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
   ];
 
   return (
-    <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-4 md:p-5 flex flex-col gap-3 h-full">
+    <div className="rounded-[20px] bg-card-bg border border-white/[0.04] p-5 md:p-6 flex flex-col gap-4 h-full">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Star className="h-4 w-4 text-amber-400" />
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Watchlist</span>
-          <span className="text-[11px] text-slate-600 tabular-nums">{entries.length}/{WATCHLIST_MAX}</span>
+          <h2 className="title-display text-lg text-white">Watchlist</h2>
+          <span className="px-2 py-0.5 rounded-full bg-surface-2 text-[11px] font-semibold text-slate-400 tabular-nums">{entries.length}/{WATCHLIST_MAX}</span>
         </div>
         <div className="flex items-center gap-2">
           {entries.length > 1 && (
@@ -215,32 +215,34 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-0.5">
           {visible.map((entry) => {
             const q = quotes[entry.symbol];
-            const isUp = (q?.change ?? 0) >= 0;
             return (
               <div
                 key={entry.symbol}
-                className="group grid grid-cols-[minmax(0,1fr)_auto_auto_1.5rem] sm:grid-cols-[minmax(0,1fr)_64px_auto_auto_1.5rem] items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:border-emerald-500/20 transition-colors"
+                className="group grid grid-cols-[minmax(0,1fr)_auto_auto_1.75rem] sm:grid-cols-[minmax(0,1fr)_64px_auto_auto_1.75rem] items-center gap-2.5 -mx-2.5 px-2.5 py-2 rounded-2xl hover:bg-surface-2 transition-colors"
               >
                 <button
                   type="button"
                   onClick={() => onSelectTicker(entry.symbol)}
-                  className="min-w-0 text-left cursor-pointer"
+                  className="min-w-0 flex items-center gap-3 text-left cursor-pointer"
                   title={isId ? `Analisis ${entry.symbol}` : `Analyze ${entry.symbol}`}
                 >
-                  <span className="block font-bold text-xs text-emerald-400 group-hover:text-emerald-300">{entry.symbol}</span>
-                  {entry.name !== entry.symbol && (
-                    <span className="hidden sm:block text-[11px] text-slate-500 truncate">{entry.name}</span>
-                  )}
+                  <TickerAvatar symbol={entry.symbol} />
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-white">{entry.symbol}</span>
+                    {entry.name !== entry.symbol && (
+                      <span className="block text-xs text-slate-500 truncate">{entry.name}</span>
+                    )}
+                  </span>
                 </button>
                 <span className="hidden sm:block">
                   {q && !q.suspect && <Sparkline values={q.closes} baseline={q.previousClose} width={64} height={22} />}
                 </span>
                 {q ? (
                   <>
-                    <span className="text-xs font-semibold text-slate-200 text-right tabular-nums">
+                    <span className="font-semibold text-white text-right tabular-nums">
                       {formatNumberLocale(q.price, language)}
                     </span>
                     {q.suspect ? (
@@ -251,8 +253,8 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
                         ?
                       </span>
                     ) : (
-                      <span className={`text-[11px] font-bold text-right tabular-nums w-14 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {isUp ? '+' : ''}{formatNumberLocale(q.changePercent, language, 2)}%
+                      <span className="text-right">
+                        <ChangePill value={q.changePercent} language={language} />
                       </span>
                     )}
                   </>
