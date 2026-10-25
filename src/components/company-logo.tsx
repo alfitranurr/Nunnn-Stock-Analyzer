@@ -13,11 +13,11 @@ export function CompanyLogo({ symbol, size = 40, className }: { symbol: string; 
 
   return (
     <div
-      className={cn('rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0', className)}
+      className={cn('rounded-xl bg-surface-3 border border-white/[0.06] flex items-center justify-center overflow-hidden shrink-0', className)}
       style={{ width: size, height: size }}
     >
       {failed ? (
-        <span className="font-black text-xs text-emerald-400">{clean.slice(0, 2) || 'ID'}</span>
+        <span className="font-semibold text-xs text-white" aria-hidden>{clean.slice(0, 2) || 'ID'}</span>
       ) : (
         <Image
           src={`https://assets.stockbit.com/logos/companies/${clean}.png`}

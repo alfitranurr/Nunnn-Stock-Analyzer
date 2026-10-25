@@ -1,5 +1,8 @@
 export type Lang = 'id' | 'en';
 
+/** Satu rasio untuk semua baris dua kolom di Beranda (kiri ± 58%, kanan ± 42%) agar tepi kolom kanan sejajar. */
+export const HOME_SPLIT = 'grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-4 md:gap-5';
+
 export interface StockMover {
   symbol: string;
   name: string;

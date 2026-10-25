@@ -270,7 +270,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker, onTi
         <Card className="flex flex-col items-center text-center gap-4 py-12">
           <span className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/25"><Lock className="h-8 w-8 text-emerald-400" /></span>
           <div className="space-y-1.5 max-w-sm">
-            <h2 className="text-lg font-black text-white">{L('Masuk untuk membuka analisis', 'Sign in to unlock analysis')}</h2>
+            <h2 className="title-display text-xl text-white">{L('Masuk untuk membuka analisis', 'Sign in to unlock analysis')}</h2>
             <p className="text-sm text-slate-400 leading-relaxed">{L('Analisis Saham Pro memakai kuota data dan AI, jadi hanya tersedia untuk akun terdaftar.', 'Pro Stock Analysis uses data and AI quota, so it is available to registered accounts only.')}</p>
           </div>
           <button type="button" onClick={onSignInClick} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold flex items-center gap-2 cursor-pointer">
@@ -286,7 +286,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker, onTi
 
   const chipRow = (label: string, items: string[]) => (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 shrink-0 w-16">{label}</span>
+      <span className="text-xs font-medium text-slate-400 shrink-0 w-16">{label}</span>
       <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 min-w-0">
         {items.map((s) => (
           <button
@@ -321,14 +321,14 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker, onTi
         {chipRow(L('Populer', 'Popular'), POPULAR)}
       </div>
 
-      <div className="mt-4 p-3 sm:p-4 rounded-2xl border border-white/10 bg-white/[0.02] flex flex-col lg:flex-row lg:items-center gap-4">
+      <div className="mt-4 p-3 sm:p-4 rounded-2xl bg-surface-2/60 flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {selected ? (
             <>
               <CompanyLogo symbol={selected} size={44} />
               <div className="min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-lg font-black text-white">{selected}</span>
+                  <span className="title-display text-xl text-white">{selected}</span>
                   {p?.price != null && <span className="text-sm font-bold text-white tabular-nums">{rp(p.price, language)}</span>}
                   {p?.changePercent != null && (
                     <span className={`text-xs font-bold tabular-nums ${p.changePercent > 0 ? 'text-emerald-400' : p.changePercent < 0 ? 'text-rose-400' : 'text-slate-400'}`}>
@@ -398,7 +398,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker, onTi
         {startCard}
         <Stagger className="grid grid-cols-2 lg:grid-cols-5 gap-3" step={0.07}>
           {features.map((f, i) => (
-            <StaggerItem key={f.title} className={`p-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/30 transition-colors ${i === features.length - 1 ? 'col-span-2 lg:col-span-1' : ''}`}>
+            <StaggerItem key={f.title} className={`p-4 rounded-2xl bg-surface-2/60 hover:border-emerald-500/30 transition-colors ${i === features.length - 1 ? 'col-span-2 lg:col-span-1' : ''}`}>
               <f.icon className="h-5 w-5 text-emerald-400" />
               <p className="text-sm font-bold text-white mt-2">{f.title}</p>
               <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{f.desc}</p>
@@ -477,7 +477,7 @@ export function AnalysisTab({ user, isActive, onSignInClick, initialTicker, onTi
         )}
       </Card>
     ) : (
-      <div className={`${height} rounded-3xl border border-white/10 bg-white/[0.02] animate-pulse`} aria-label={L('Memuat…', 'Loading…')} />
+      <div className={`${height} rounded-[20px] bg-surface-2/60 animate-pulse`} aria-label={L('Memuat…', 'Loading…')} />
     );
 
   const staleNote = (section: Section<unknown> | null) =>

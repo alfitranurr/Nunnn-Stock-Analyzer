@@ -172,7 +172,7 @@ export function ExDateSimulator({ language, ticker, defaultPrice, defaultLots, n
               {L('Isi harga, lot, dan dividen per lembar.', 'Fill in price, lots and dividend per share.')}
             </p>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-2.5 text-xs">
+            <div className="rounded-2xl bg-surface-2/60 p-4 space-y-2.5 text-xs">
               <Row label={L(`Beli ${lots} lot ${ticker} @ ${rp(cumPrice, language)} (+fee ${pct(buyFeePct, language)})`, `Buy ${lots} lots ${ticker} @ ${rp(cumPrice, language)} (+fee ${pct(buyFeePct, language)})`)} value={`−${rp(sim.buyCostRp, language)}`} />
               <Row
                 label={L(

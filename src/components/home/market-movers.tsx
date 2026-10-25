@@ -8,6 +8,7 @@ import { formatWibTime } from '@/lib/market-hours';
 import { LIVE_POLL_MS } from '@/lib/refresh-signal';
 import { Flash } from '@/components/shared/motion';
 import { useWatchlist } from '@/lib/watchlist-store';
+import { CompanyLogo } from '@/components/company-logo';
 import type { Lang, MarketSummaryData, MoverCategory } from './types';
 
 interface MarketMoversProps {
@@ -34,13 +35,9 @@ const MIN_VALUE_OPTIONS: Array<{ value: number; label: { id: string; en: string 
   { value: 1e10, label: { id: '≥ Rp10 M', en: '≥ Rp10B' } },
 ];
 
-/** Avatar bulat berisi dua huruf pertama kode saham. */
+/** Avatar bulat: logo emiten dari Stockbit, atau dua huruf pertama kode saham bila logo tidak ada. */
 export function TickerAvatar({ symbol, className = '' }: { symbol: string; className?: string }) {
-  return (
-    <span className={`h-10 w-10 shrink-0 rounded-full bg-surface-3 flex items-center justify-center text-xs font-semibold text-white ${className}`} aria-hidden>
-      {symbol.slice(0, 2)}
-    </span>
-  );
+  return <CompanyLogo symbol={symbol} size={40} className={`rounded-full bg-surface-3 border-0 ${className}`} />;
 }
 
 /** Label perubahan persentase berbentuk pill (hijau naik, merah turun, abu tetap). */

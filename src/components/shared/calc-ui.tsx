@@ -105,7 +105,7 @@ export function CardTitle({ icon, title, subtitle, right }: { icon: React.ReactN
 export function Field({ label, htmlFor, children, hint }: { label: React.ReactNode; htmlFor?: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <label htmlFor={htmlFor} className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between gap-2">
+      <label htmlFor={htmlFor} className="text-xs font-medium text-slate-400 flex items-center justify-between gap-2">
         {label}
       </label>
       {children}

@@ -423,7 +423,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
         <Card className="flex flex-col items-center text-center gap-4 py-12">
           <span className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/25"><Lock className="h-8 w-8 text-emerald-400" /></span>
           <div className="space-y-1.5 max-w-sm">
-            <h2 className="text-lg font-black text-white">{t('portfolio.portfolioLocked')}</h2>
+            <h2 className="title-display text-xl text-white">{t('portfolio.portfolioLocked')}</h2>
             <p className="text-sm text-slate-400 leading-relaxed">{t('portfolio.portfolioLockedDesc')}</p>
           </div>
           <button type="button" onClick={onSignInClick} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold flex items-center gap-2 cursor-pointer">
@@ -543,7 +543,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
       {insights.length > 0 && (
         <Card className="py-4 sm:py-5">
           <div className="flex items-center justify-between gap-3 mb-3.5">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-2">
+            <h2 className="text-xs font-medium text-sky-300 flex items-center gap-2">
               <Lightbulb className="h-4 w-4" /> {L('Wawasan portofolio', 'Portfolio insights')}
             </h2>
             <span className="hidden sm:inline text-[11px] font-semibold text-slate-500">{L(`${insights.length} wawasan · dari posisi & harga terkini`, `${insights.length} insights · from positions & latest prices`)}</span>
@@ -571,7 +571,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                     <it.icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1 flex flex-col">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{it.title}</span>
+                    <span className="text-xs font-medium text-slate-400">{it.title}</span>
                     <span className={`text-sm font-black tabular-nums mt-0.5 ${toneCls.value}`}>{it.value}</span>
                     <p className="text-[11px] text-slate-400 leading-snug mt-1">{it.text}</p>
                     {it.action && (
@@ -597,7 +597,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           <div className="flex items-center gap-3">
             <span className="p-2 rounded-xl bg-sky-500/10 border border-sky-500/20"><Wallet className="h-4 w-4 text-sky-400" /></span>
             <div>
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">{L('Kas RDN (opsional)', 'RDN cash (optional)')}</span>
+              <span className="block text-xs font-medium text-slate-400">{L('Kas RDN (opsional)', 'RDN cash (optional)')}</span>
               <span className="block text-sm font-black text-white">{cash !== null ? rp(cash, language) : L('Belum diatur', 'Not set')}</span>
             </div>
           </div>
@@ -648,7 +648,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
           }
           right={rows.length > 1 ? (
             <div className="self-start flex flex-col items-start sm:items-end gap-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+              <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                 <ArrowUpDown className="h-3 w-3" /> {L('Urutkan berdasarkan', 'Sort by')}
               </span>
               <Segmented
@@ -726,11 +726,12 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
             <div className="hidden lg:block overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                     <th className={`py-2.5 px-3 ${sortedCol('ticker')}`} aria-sort={ariaSort('ticker')}>{L('Saham', 'Stock')}{sortMark('ticker')}</th>
                     <th className="py-2.5 px-3 text-right">Lot</th>
                     <th className="py-2.5 px-3 text-right">{L('Avg', 'Avg')}</th>
                     <th className={`py-2.5 px-3 text-right ${sortedCol('today')}`} aria-sort={ariaSort('today')}>{L('Harga', 'Price')}{sortMark('today')}</th>
+                    <th className="py-2.5 px-3 text-right" title={L('Total dana yang ditanam = lembar × harga rata-rata', 'Total invested = shares × average price')}>{L('Modal', 'Invested')}</th>
                     <th className={`py-2.5 px-3 text-right ${sortedCol('value')}`} aria-sort={ariaSort('value')}>{L('Nilai pasar', 'Market value')}{sortMark('value')}</th>
                     <th className={`py-2.5 px-3 text-right ${sortedCol('pl')}`} aria-sort={ariaSort('pl')}>{L('Floating P/L', 'Floating P/L')}{sortMark('pl')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Div. 12 bln', 'Div. 12m')}</th>
@@ -753,19 +754,20 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                         {n0(r.h.lot)}
                         <span className="block text-[11px] text-slate-500">{pct(r.weight, language, 2)}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono">{rp(r.h.avg_price, language)}</td>
-                      <td className="py-3 px-3 text-right font-mono">
+                      <td className="py-3 px-3 text-right tabular-nums whitespace-nowrap">{rp(r.h.avg_price, language)}</td>
+                      <td className="py-3 px-3 text-right tabular-nums whitespace-nowrap">
                         {r.price !== null ? rp(r.price, language) : '—'}
                         <span className={`block text-[11px] ${tone(r.todayPct)}`}>
                           {r.todayPct !== null ? signedPct(r.todayPct) : r.quote?.suspect ? L('data meragukan', 'suspect data') : ''}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono font-bold text-white">{rp(r.value, language)}</td>
-                      <td className={`py-3 px-3 text-right font-mono font-bold ${tone(r.pl)}`}>
+                      <td className="py-3 px-3 text-right tabular-nums whitespace-nowrap text-slate-200">{rp(r.cost, language)}</td>
+                      <td className="py-3 px-3 text-right tabular-nums whitespace-nowrap font-semibold text-white">{rp(r.value, language)}</td>
+                      <td className={`py-3 px-3 text-right tabular-nums whitespace-nowrap font-semibold ${tone(r.pl)}`}>
                         {r.pl !== null ? signed(r.pl) : '—'}
                         <span className="block text-[11px]">{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono">{dividendCell(r)}</td>
+                      <td className="py-3 px-3 text-right tabular-nums">{dividendCell(r)}</td>
                       <td className="py-3 px-3">
                         <div className="flex justify-end gap-1.5">
                           <button type="button" onClick={() => onAnalyzeClick(r.h.ticker)} className={`${actionBtn} bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border-teal-500/20`} title={L('Analisis', 'Analyze')} aria-label={L(`Analisis ${r.h.ticker}`, `Analyze ${r.h.ticker}`)}>
@@ -791,7 +793,7 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
             {/* Mobile & tablet */}
             <ul className="lg:hidden space-y-3">
               {sorted.map((r) => (
-                <li key={r.h.id} className="p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                <li key={r.h.id} className="p-4 rounded-2xl bg-surface-2/60">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <CompanyLogo symbol={r.h.ticker} size={38} />
@@ -805,16 +807,17 @@ export function PortfolioTab({ user, isActive, onSignInClick, onAvgDownClick, on
                       <span className={`block text-[11px] font-bold ${tone(r.pl)}`}>{r.plPct !== null ? signedPct(r.plPct) : L('harga belum ada', 'no price yet')}</span>
                     </div>
                   </div>
-                  <dl className="grid grid-cols-3 gap-2 mt-3 text-[11px]">
-                    <div><dt className="text-[10px] uppercase font-bold text-slate-500">Lot · Avg</dt><dd className="font-bold text-slate-200">{n0(r.h.lot)} · {rp(r.h.avg_price, language)}</dd></div>
+                  <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-xs">
+                    <div><dt className="text-xs font-medium text-slate-400">Lot · Avg</dt><dd className="font-bold text-slate-200">{n0(r.h.lot)} · {rp(r.h.avg_price, language)}</dd></div>
                     <div>
-                      <dt className="text-[10px] uppercase font-bold text-slate-500">{L('Harga', 'Price')}</dt>
+                      <dt className="text-xs font-medium text-slate-400">{L('Harga', 'Price')}</dt>
                       <dd className="font-bold text-slate-200">{r.price !== null ? rp(r.price, language) : '—'} <span className={tone(r.todayPct)}>{r.todayPct !== null ? signedPct(r.todayPct) : ''}</span></dd>
                     </div>
-                    <div><dt className="text-[10px] uppercase font-bold text-slate-500">{L('Nilai', 'Value')}</dt><dd className="font-bold text-white">{rp(r.value, language)}</dd></div>
+                    <div><dt className="text-xs font-medium text-slate-400">{L('Modal', 'Invested')}</dt><dd className="font-bold text-slate-200">{rp(r.cost, language)}</dd></div>
+                    <div><dt className="text-xs font-medium text-slate-400">{L('Nilai', 'Value')}</dt><dd className="font-bold text-white">{rp(r.value, language)}</dd></div>
                   </dl>
                   <div className="flex items-start justify-between gap-3 mt-2.5 pt-2.5 border-t border-white/5 text-[11px]">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 pt-0.5">{L('Dividen 12 bln', 'Dividends 12m')}</span>
+                    <span className="text-xs font-medium text-slate-400 pt-0.5">{L('Dividen 12 bln', 'Dividends 12m')}</span>
                     <span className="text-right font-bold">{dividendCell(r)}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">

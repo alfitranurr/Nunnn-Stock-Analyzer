@@ -249,7 +249,7 @@ export function ListingSimulator({ language, ipoPrice, allottedLots }: ListingSi
         <div className="mt-5 overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+              <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                 <th className="py-2.5 px-3">{L('Skenario', 'Scenario')}</th>
                 <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
                 <th className="py-2.5 px-3 text-right hidden sm:table-cell">{L('Perubahan', 'Change')}</th>

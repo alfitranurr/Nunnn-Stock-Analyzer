@@ -177,7 +177,7 @@ export function PerformanceJournal({
           )}
           right={
             <div className="self-start flex flex-col items-start sm:items-end gap-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+              <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                 <Target className="h-3 w-3" /> {L('Target per bulan', 'Monthly targets')}
               </span>
               <div className="flex gap-1.5">
@@ -271,7 +271,7 @@ export function PerformanceJournal({
             <div className="mt-2 lg:mt-5 overflow-x-auto custom-scrollbar">
               <table className="w-full min-w-[1230px] text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
+                  <tr className="border-b border-white/10 text-slate-400 text-xs font-medium whitespace-nowrap">
                     <th className="py-2.5 px-3 sticky left-0 z-10 bg-card-bg">{L('Bulan', 'Month')}</th>
                     <th className="py-2.5 px-3 text-right" title={L('Nilai pasar portofolio di awal bulan (= total akhir bulan sebelumnya), bukan harga beli', 'Portfolio market value at the start of the month (= previous month end), not purchase cost')}>{L('Modal awal', 'Start')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Total akhir', 'End value')}</th>
@@ -359,7 +359,7 @@ export function PerformanceJournal({
 
             <div className="mt-5 pt-4 border-t border-white/5">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <h3 className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                   <Info className="h-3.5 w-3.5 text-sky-400" /> {L('Cara membaca tabel', 'How to read the table')}
                 </h3>
                 <button
@@ -379,8 +379,8 @@ export function PerformanceJournal({
                   { term: L('Jalur target', 'Target path'), def: L('Target bulan lalu × (1 + target %), mulai dari nilai awal jurnal', 'Last month’s target × (1 + target %), starting from the journal starting value') },
                   { term: L('Sel hijau', 'Green cell'), def: L('Total akhir sudah melewati jalur target itu', 'End value has passed that target path') },
                 ].map((d) => (
-                  <div key={d.term} className="p-2.5 rounded-xl border border-white/10 bg-white/[0.02]">
-                    <dt className="text-[11px] font-black uppercase tracking-wider text-slate-300">{d.term}</dt>
+                  <div key={d.term} className="p-2.5 rounded-xl bg-surface-2/60">
+                    <dt className="text-xs font-medium text-slate-300">{d.term}</dt>
                     <dd className="text-[11px] text-slate-400 leading-snug mt-0.5">{d.def}</dd>
                   </div>
                 ))}

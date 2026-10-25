@@ -162,7 +162,7 @@ export function PriceAlertSettings({ language, targetCount }: { language: Lang; 
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-white/10 bg-white/[0.02]">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface-2/60">
       <div className="flex items-start gap-2.5 min-w-0">
         <span className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center shrink-0">
           <BellRing className="h-4 w-4 text-amber-300" />

@@ -182,7 +182,7 @@ export function DripProjection(props: DripProjectionProps) {
             />
           </div>
 
-          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
+          <div className="mt-5 rounded-2xl bg-surface-2/60 p-3 sm:p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-[11px] font-bold">
               <span className="text-slate-500">{L('Nilai total portofolio', 'Total portfolio value')} · {L('maks', 'max')} {formatIDRCompact(maxV, language, 1)}</span>
               <span className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export function DripProjection(props: DripProjectionProps) {
             <div className="overflow-x-auto custom-scrollbar mt-2">
               <table className="w-full min-w-[720px] text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                     <th className="py-2.5 px-3">{L('Thn', 'Yr')}</th>
                     <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
                     <th className="py-2.5 px-3 text-right">DPS</th>

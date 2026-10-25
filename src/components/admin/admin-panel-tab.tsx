@@ -617,7 +617,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
                 <div className="hidden md:block overflow-x-auto custom-scrollbar">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                      <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                         <th className="py-2.5 px-3">Email</th>
                         <th className="py-2.5 px-3">{L('Terdaftar (WIB)', 'Registered (WIB)')}</th>
                         <th className="py-2.5 px-3">Status</th>
@@ -696,9 +696,9 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
             </div>
             {/* Cakupan emiten vs jumlah resmi BEI */}
             {coverage && (
-              <div className="mt-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+              <div className="mt-4 p-4 rounded-2xl bg-surface-2/60">
                 <div className="flex items-center justify-between gap-3 mb-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                     <BuildingIcon className="h-3.5 w-3.5 text-emerald-400" /> {L('Cakupan emiten BEI', 'IDX listing coverage')}
                   </span>
                   {!officialForm && (
@@ -775,7 +775,7 @@ export function AdminPanelTab({ user, isActive = true }: AdminPanelTabProps) {
             )}
             {universe && universe.newSymbols.length > 0 && (
               <div className="mt-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{L('Emiten baru yang kini ikut dipantau', 'Newly tracked stocks')}</span>
+                <span className="text-xs font-medium text-slate-400">{L('Emiten baru yang kini ikut dipantau', 'Newly tracked stocks')}</span>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {universe.newSymbols.map((sym) => <Badge key={sym} tone="sky">{sym}</Badge>)}
                 </div>

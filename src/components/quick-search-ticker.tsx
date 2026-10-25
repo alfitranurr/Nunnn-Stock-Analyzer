@@ -133,7 +133,7 @@ export function QuickSearchTicker({ language, onSelectTicker }: QuickSearchTicke
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-50 w-full mt-2 rounded-2xl bg-slate-900/95 border border-white/10 shadow-2xl backdrop-blur-xl max-h-72 overflow-y-auto custom-scrollbar"
+            className="absolute z-50 w-full mt-2 rounded-2xl bg-surface-2/95 border border-white/10 shadow-2xl backdrop-blur-xl max-h-72 overflow-y-auto custom-scrollbar"
           >
             {loading && results.length === 0 ? (
               <div className="p-4 text-center text-xs text-slate-500">

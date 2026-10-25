@@ -75,7 +75,7 @@ export function DividendHistory({ language, ticker, profile, marketPrice }: Divi
 
       {years.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-xs font-bold text-slate-300 flex items-center gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <BarChart3 className="h-4 w-4 text-emerald-400" />
             {L('Dividen per lembar per tahun', 'Dividend per share by year')}
           </h3>
@@ -127,13 +127,13 @@ export function DividendHistory({ language, ticker, profile, marketPrice }: Divi
       )}
 
       <div className="mt-6">
-        <h3 className="text-xs font-bold text-slate-300 mb-2">
+        <h3 className="text-sm font-semibold text-white mb-2">
           {L(`Riwayat pembagian (${profile.events.length})`, `Payout history (${profile.events.length})`)}
         </h3>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full min-w-[560px] text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+              <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                 <th className="py-2.5 px-3">{L('Tahun', 'Year')}</th>
                 <th className="py-2.5 px-3">{L('Cum date ≈', 'Cum date ≈')}</th>
                 <th className="py-2.5 px-3">Ex date</th>

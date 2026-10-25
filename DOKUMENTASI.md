@@ -581,6 +581,8 @@ Ditulis ulang di `802aed7`. Semua angka berasal dari data pasar nyata; bagian ya
 
 Dibangun ulang di `3b89457`. Data dibaca/ditulis lewat [lib/portfolio-store.ts](src/lib/portfolio-store.ts) (Supabase untuk akun cloud, localStorage untuk mode lokal), sama dengan ringkasan di Beranda.
 
+**Kolom Modal** (26 Okt 2026): tabel Kepemilikan menampilkan **Modal / Invested** per saham (lembar × harga rata-rata) di antara Harga dan Nilai pasar, juga di kartu HP. Angka tabel memakai Inter `tabular-nums` (bukan monospace) dan `whitespace-nowrap` sehingga "Rp" tidak lagi terpisah ke baris lain.
+
 **Format angka** (sejak `12bfcf5`): semua nominal di halaman Portofolio dan form tambah/ubah saham memakai `rp2` ([calc-ui](src/components/shared/calc-ui.tsx)), yaitu Rupiah dengan tepat 2 desimal (mis. avg Rp 399,65, floating P/L −Rp 9.127.440,00), termasuk kartu ringkasan, kas, nilai pasar, dan dividen (tidak lagi diringkas "jt/M"). Bobot dan persentase memakai 2 desimal (71,91%). Saham tanpa dividen 12 bulan menampilkan "—". Di HP sempit, angka kartu ringkasan memakai font sedikit lebih kecil agar tidak terpotong.
 
 **Wawasan portofolio** (dirapikan di `f6821a9`): ubin seragam berisi ikon, judul pendek, angka utama, dan keterangan. Isinya: Konsentrasi (posisi terbesar; peringatan bila > 40%), Penopang dan Penekan hari ini, Rugi terdalam (≤ −15% dari rata-rata, dengan tombol **Simulasikan Avg Down**), dan Kas RDN (porsi dari aset; peringatan bila Rp 0 atau < 5%). Jumlah kolom mengikuti jumlah wawasan agar tidak ada ubin sendirian di baris terakhir.
@@ -1129,7 +1131,14 @@ Belum ada `.env.example`.
   - **Kontrol:** tab/segmen berbentuk pill; pilihan aktif putih dengan teks gelap (`Segmented`, Compounding, Persentase, Penggerak Pasar, pengalih bahasa). Tombol arah naik/turun di Persentase tetap hijau/merah karena bermakna.
   - **Tipografi:** Inter (teks & angka, `tabular-nums`) dan Inter Tight medium bertracking rapat untuk judul & angka besar (`.title-display`; utilitas `font-display` hanya mengganti keluarga font). Token `--font-weight-black` = 700 dan `--font-weight-extrabold` = 650 sehingga kelas `font-black` lama ikut melunak tanpa mengubah 90+ tempat.
   - **Lebar konten:** batas kolom utama `max-w-[1800px]` (sebelumnya `max-w-7xl` = 1280px) agar layar lebar terisi penuh.
-  - Bagian dalam halaman kalkulator (sub-kartu ber-border, label kapital) belum disesuaikan; tahap berikutnya.
+  - **Konsistensi semua halaman** (26 Okt 2026, lanjutan):
+    - Judul kartu = `title-display text-lg`; sub-judul = `text-sm font-semibold text-white`; angka besar = `font-display` medium.
+    - Label isian/kolom tidak lagi KAPITAL ber-tracking: 83 label `text-[10/11px] font-bold uppercase tracking-wider` diubah menjadi `text-xs font-medium text-slate-400` (badge/chip & input kode saham tetap kapital). Judul kelompok sidebar tetap kapital.
+    - Sub-kartu di dalam kartu (Avg Down langkah 1–4, Dividen, E-IPO, Analisis, dll.) = `rounded-2xl bg-surface-2/60` tanpa border; kotak perbandingan & jalur progress bar memakai `surface-2`/`surface-3` (bukan slate-900/950 kebiruan).
+    - Input `.glass-input` (termasuk −/+ stepper): latar `#121418`, border putih 9%, radius 12px, cincin fokus hijau.
+    - Tombol aksi hijau solid berbentuk pill; tombol "ke atas" bulat netral 44px.
+  - **Beranda:** semua baris dua kolom memakai satu rasio `HOME_SPLIT` (kiri ±58% : kanan ±42%, mulai `xl`) di [home/types.ts](src/components/home/types.ts) sehingga tepi kolom kanan sejajar; kartu global 2 / 4 / 8 kolom (tidak ada yang terpotong); avatar saham di Penggerak Pasar & Watchlist memakai logo Stockbit lewat [`CompanyLogo`](src/components/company-logo.tsx) (cadangan 2 huruf kode); Ringkasan Portofolio = 5 kotak (ekuitas, modal, P&L hari ini, P&L floating, kas). Kotak Breadth "Saham dipantau" diganti "Bertransaksi sesi ini" (= naik + tetap + turun, mis. 835) karena berbeda makna dengan Cakupan emiten (924 = 843 aktif + 81 suspensi).
+  - **Skala desktop 80%** ([globals.css](src/app/globals.css), `@media (min-width: 1024px)`): `html { zoom: 0.8 }` (setara zoom browser 80%, ukuran yang dipilih pengguna). Karena `zoom` ikut mengecilkan satuan viewport, `.h-dvh` dan `min-height` body dibagi `--app-zoom` agar wadah utama tetap setinggi jendela (tanpa ini 20% bawah halaman terpotong). HP/tablet < 1024px tidak di-zoom.
 - **Tailwind v4** dengan token di blok `@theme` / `@theme inline` di [globals.css](src/app/globals.css): font, berat huruf, accent/surface, brand, bullish/bearish, dan background sidebar/card/input.
 - **Kelas kustom:** `.glass-card`, `.hero-surface`, `.title-display`, `.glass-input`, `.mesh-bg`, `.text-profit-glow`, `.text-loss-glow`, plus scrollbar netral.
 - **Font:** Inter + Inter Tight lewat `next/font/google` di [layout.tsx](src/app/layout.tsx) (di-host sendiri; sebelumnya Plus Jakarta Sans lewat `@import` Google Fonts yang diblok CSP, sehingga tampilan jatuh ke `sans-serif`).

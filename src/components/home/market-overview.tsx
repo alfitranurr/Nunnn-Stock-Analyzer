@@ -6,7 +6,7 @@ import { formatNumberLocale, formatIDRCompact } from '@/lib/format';
 import { formatWibTime } from '@/lib/market-hours';
 import { IntradayChart } from './intraday-chart';
 import { AnimatedNumber } from '@/components/shared/motion';
-import type { Lang, MarketSummaryData } from './types';
+import { HOME_SPLIT, type Lang, type MarketSummaryData } from './types';
 
 interface MarketOverviewProps {
   language: Lang;
@@ -78,8 +78,8 @@ export function MarketOverview({ language, data, loading, trading, error }: Mark
 
   if (loading && !data) {
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5">
-        <div className="xl:col-span-2 rounded-[20px] h-[440px] skeleton-shimmer" />
+      <div className={HOME_SPLIT}>
+        <div className="rounded-[20px] h-[440px] skeleton-shimmer" />
         <div className="rounded-[20px] h-[440px] skeleton-shimmer" />
       </div>
     );
@@ -118,9 +118,9 @@ export function MarketOverview({ language, data, loading, trading, error }: Mark
   ];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5">
+    <div className={HOME_SPLIT}>
       {/* IHSG: satu-satunya kartu bergradien (kartu utama) */}
-      <section className="xl:col-span-2 rounded-[20px] hero-surface border border-white/[0.04] p-5 md:p-6 flex flex-col gap-4" aria-label="IHSG">
+      <section className="min-w-0 rounded-[20px] hero-surface border border-white/[0.04] p-5 md:p-6 flex flex-col gap-4" aria-label="IHSG">
         <div>
           <span className="text-sm font-medium text-slate-300">
             {isId ? 'IHSG · Indeks Harga Saham Gabungan' : 'IHSG · Jakarta Composite Index'}
@@ -203,12 +203,18 @@ export function MarketOverview({ language, data, loading, trading, error }: Mark
 
         <div className="grid grid-cols-2 gap-2.5">
           {([
-            [isId ? 'Menyentuh ARA' : 'Hit ARA', <span key="ara" className="text-emerald-400">{num(breadth.ara, 0)}</span>],
-            [isId ? 'Menyentuh ARB' : 'Hit ARB', <span key="arb" className="text-rose-400">{num(breadth.arb, 0)}</span>],
-            [isId ? 'Nilai transaksi ≈' : 'Turnover ≈', formatIDRCompact(breadth.totalValue, language)],
-            [isId ? 'Saham dipantau' : 'Stocks tracked', num(data.totalScanned, 0)],
-          ] as const).map(([label, value]) => (
-            <div key={label} className="rounded-2xl bg-surface-2 px-3.5 py-3 min-w-0">
+            [isId ? 'Menyentuh ARA' : 'Hit ARA', <span key="ara" className="text-emerald-400">{num(breadth.ara, 0)}</span>, undefined],
+            [isId ? 'Menyentuh ARB' : 'Hit ARB', <span key="arb" className="text-rose-400">{num(breadth.arb, 0)}</span>, undefined],
+            [isId ? 'Nilai transaksi ≈' : 'Turnover ≈', formatIDRCompact(breadth.totalValue, language), undefined],
+            [
+              isId ? 'Bertransaksi sesi ini' : 'Traded this session',
+              num(data.totalScanned, 0),
+              isId
+                ? 'Saham yang bertransaksi sesi terakhir dengan data lolos pengecekan (= naik + tetap + turun). Berbeda dengan Cakupan emiten, yang juga menghitung saham suspensi.'
+                : 'Stocks that traded last session with data passing checks (= up + flat + down). Unlike Listing coverage, which also counts suspended stocks.',
+            ],
+          ] as const).map(([label, value, hint]) => (
+            <div key={label} className="rounded-2xl bg-surface-2 px-3.5 py-3 min-w-0" title={hint}>
               <span className="block text-xs text-slate-500">{label}</span>
               <span className="block mt-0.5 font-display text-xl font-medium text-white tabular-nums truncate">{value}</span>
             </div>

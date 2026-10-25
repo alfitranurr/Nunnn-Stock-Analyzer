@@ -198,7 +198,7 @@ const sanitizeCount = (s: string) => s.replace(/[^0-9]/g, '');
 function Field({ label, htmlFor, children, hint }: { label: string; htmlFor?: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5 min-w-0">
-      <label htmlFor={htmlFor} className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</label>
+      <label htmlFor={htmlFor} className="text-xs font-medium text-slate-400">{label}</label>
       {children}
       {hint}
     </div>
@@ -264,7 +264,7 @@ function StatCard({
   const t = STAT_TONES[tone];
   return (
     <div className={`glass-card p-4 md:p-4.5 overflow-hidden ${t.card}`}>
-      <span className={`text-[10px] font-bold uppercase tracking-widest block ${t.label}`}>{label}</span>
+      <span className={`text-xs font-medium block ${t.label}`}>{label}</span>
       <h3 className={`text-lg md:text-xl font-black mt-1 tracking-tight truncate ${t.value}`} title={fullValue ?? value}>
         {amount !== undefined && formatAmount ? <AnimatedNumber value={amount} format={formatAmount} fromZero /> : value}
       </h3>
@@ -1054,7 +1054,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
       {/* Parameter Form */}
       <div id={`${fieldId}-form`} className="glass-card p-4 md:p-6 space-y-5 no-print w-full scroll-mt-20 md:scroll-mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <h2 className="title-display text-lg text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <Calendar className="h-5 w-5 text-emerald-400" />
             {t('compounding.inputHeader')}
             <span className="text-xs font-bold text-emerald-400">
@@ -1082,7 +1082,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
             <button
               type="button"
               onClick={openSaveModal}
-              className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[11px] font-bold transition-all cursor-pointer shadow-md"
+              className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-[11px] font-bold transition-all cursor-pointer shadow-md"
             >
               <Save className="h-3.5 w-3.5" />
               {t('compounding.savePlan')}
@@ -1470,7 +1470,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
       {/* Wawasan dinamis */}
       {insights.length > 0 && (
         <div className="glass-card p-4 md:p-5 border-sky-500/20 bg-sky-500/[0.03]">
-          <h2 className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
+          <h2 className="text-xs font-medium text-sky-300 mb-3 flex items-center gap-2">
             <Lightbulb className="h-4 w-4" /> {L('Wawasan', 'Insights')}
           </h2>
           <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-2.5" key={`${calcMode}:${tradingPeriod}`}>
@@ -1487,7 +1487,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
       {/* Interactive Chart */}
       <div className="glass-card p-4 md:p-6 space-y-4 print-full-width">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 no-print">
-          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <h2 className="title-display text-lg text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <TrendingUp className="h-5 w-5 text-emerald-400" />
             {L('Visualisasi Proyeksi Pertumbuhan Dana', 'Growth Projection Visualization')}
           </h2>
@@ -1615,7 +1615,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
                     className="absolute top-2 md:top-4 p-3 bg-slate-950/95 border border-[#10b981]/30 rounded-xl shadow-xl z-20 space-y-1 text-[11px] text-slate-400 w-[220px] max-w-[70%] backdrop-blur-md pointer-events-none"
                     style={onRight ? { left: `calc(${leftPct}% + 14px)` } : { right: `calc(${100 - leftPct}% + 14px)` }}
                   >
-                    <div className="font-extrabold text-white border-b border-white/5 pb-1 uppercase tracking-wider">
+                    <div className="font-semibold text-white border-b border-white/5 pb-1">
                       {point.label}
                     </div>
                     <div className="flex justify-between items-center gap-3">
@@ -1647,7 +1647,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
       {/* Projection Table */}
       <div className="glass-card p-4 md:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <h2 className="title-display text-lg text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <FileText className="h-5 w-5 text-emerald-400" />
             {L('Tabel Rincian Akumulasi Saldo', 'Balance Accumulation Details')}
             <span className="text-xs font-semibold text-slate-500">({tableRows.length} {L('baris', 'rows')})</span>
@@ -1678,7 +1678,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
         <div className="overflow-x-auto max-h-[440px] overflow-y-auto pr-1">
           <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
             <thead className="sticky top-0 z-10 bg-card-bg">
-              <tr className="border-b border-border-color text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+              <tr className="border-b border-border-color text-slate-400 font-medium text-xs">
                 <th className="py-3 px-2">{L('Periode', 'Period')}</th>
                 <th className="py-3 px-2 text-right">{L('Saldo Awal', 'Start Balance')}</th>
                 {showDepositCol && <th className="py-3 px-2 text-right">{L('Setoran', 'Deposit')}</th>}
@@ -1717,7 +1717,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
       {/* Saved Compounding Plans */}
       <div className="glass-card p-4 md:p-6 no-print">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <h2 className="title-display text-lg text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <Database className="h-5 w-5 text-emerald-400" />
             {L('Rencana Compounding Tersimpan', 'Saved Compounding Plans')}
           </h2>
@@ -1813,7 +1813,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
               aria-modal="true"
               className="fixed inset-x-4 top-[25%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[420px] bg-sidebar-bg border border-border-color rounded-2xl p-6 z-50 shadow-2xl text-white no-print"
             >
-              <h3 className="text-base font-extrabold flex items-center gap-2 mb-2">
+              <h3 className="title-display text-lg flex items-center gap-2 mb-2">
                 <Save className="h-5 w-5 text-emerald-400" />
                 {L('Simpan Rencana Simulasi', 'Save Simulation Plan')}
               </h3>
@@ -1825,7 +1825,7 @@ export function CompoundingTab({ user }: CompoundingTabProps) {
 
               <form onSubmit={handleSavePlan} className="space-y-4">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`${fieldId}-plan-title`} className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <label htmlFor={`${fieldId}-plan-title`} className="text-xs font-medium text-slate-400">
                     {L('Judul Rencana', 'Plan Title')}
                   </label>
                   <input

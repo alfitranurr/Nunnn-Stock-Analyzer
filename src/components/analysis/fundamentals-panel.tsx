@@ -93,7 +93,7 @@ export function FundamentalsPanel({ language, data }: { language: Lang; data: Fu
 
       <div className="mt-5">
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="text-xs font-bold text-slate-300">{L('Pendapatan & laba bersih', 'Revenue & net income')}</h3>
+          <h3 className="text-sm font-semibold text-white">{L('Pendapatan & laba bersih', 'Revenue & net income')}</h3>
           <Segmented
             ariaLabel={L('Periode', 'Period')}
             value={period}

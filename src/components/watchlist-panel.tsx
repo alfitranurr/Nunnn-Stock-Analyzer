@@ -221,7 +221,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
             return (
               <div
                 key={entry.symbol}
-                className="group grid grid-cols-[minmax(0,1fr)_auto_auto_1.75rem] sm:grid-cols-[minmax(0,1fr)_64px_auto_auto_1.75rem] items-center gap-2.5 -mx-2.5 px-2.5 py-2 rounded-2xl hover:bg-surface-2 transition-colors"
+                className="group grid grid-cols-[minmax(0,1fr)_auto_1.75rem] items-center gap-3 -mx-2.5 px-2.5 py-2 rounded-2xl hover:bg-surface-2 transition-colors"
               >
                 <button
                   type="button"
@@ -230,43 +230,39 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
                   title={isId ? `Analisis ${entry.symbol}` : `Analyze ${entry.symbol}`}
                 >
                   <TickerAvatar symbol={entry.symbol} />
-                  <span className="min-w-0">
-                    <span className="block font-semibold text-white">{entry.symbol}</span>
+                  <span className="min-w-0 overflow-hidden">
+                    <span className="block font-semibold text-white truncate">{entry.symbol}</span>
                     {entry.name !== entry.symbol && (
                       <span className="block text-xs text-slate-500 truncate">{entry.name}</span>
                     )}
                   </span>
                 </button>
-                <span className="hidden sm:block">
-                  {q && !q.suspect && <Sparkline values={q.closes} baseline={q.previousClose} width={64} height={22} />}
-                </span>
-                {q ? (
-                  <>
-                    <span className="font-semibold text-white text-right tabular-nums">
-                      {formatNumberLocale(q.price, language)}
-                    </span>
-                    {q.suspect ? (
-                      <span
-                        className="text-[11px] font-bold text-right w-14 text-amber-400 cursor-help"
-                        title={isId ? 'Data perubahan harga dari sumber meragukan' : 'Price change data from the source looks unreliable'}
-                      >
-                        ?
-                      </span>
-                    ) : (
-                      <span className="text-right">
+                <span className="flex items-center gap-3">
+                  {q && !q.suspect && (
+                    <Sparkline values={q.closes} baseline={q.previousClose} width={56} height={24} className="hidden min-[1700px]:block sm:max-lg:block" />
+                  )}
+                  {q ? (
+                    <span className="flex flex-col items-end gap-0.5 min-w-[4.5rem]">
+                      <span className="font-semibold text-white tabular-nums">{formatNumberLocale(q.price, language)}</span>
+                      {q.suspect ? (
+                        <span
+                          className="text-xs font-semibold text-amber-400 cursor-help"
+                          title={isId ? 'Data perubahan harga dari sumber meragukan' : 'Price change data from the source looks unreliable'}
+                        >
+                          {isId ? 'meragukan' : 'unreliable'}
+                        </span>
+                      ) : (
                         <ChangePill value={q.changePercent} language={language} />
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span className="col-span-2 text-[11px] text-slate-600 text-right">
-                    {quoteError ? '—' : isId ? 'Memuat...' : 'Loading...'}
-                  </span>
-                )}
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-500">{quoteError ? '—' : isId ? 'Memuat...' : 'Loading...'}</span>
+                  )}
+                </span>
                 <button
                   type="button"
                   onClick={() => remove(entry.symbol)}
-                  className="h-6 w-6 flex items-center justify-center text-slate-500 hover:text-rose-400 rounded-md transition-all cursor-pointer [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  className="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-surface-3 rounded-full transition-all cursor-pointer [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   aria-label={isId ? `Hapus ${entry.symbol} dari watchlist` : `Remove ${entry.symbol} from watchlist`}
                 >
                   <X className="h-3.5 w-3.5" />
@@ -281,7 +277,7 @@ export function WatchlistPanel({ language, isActive, trading, onSelectTicker, on
         <button
           type="button"
           onClick={onOpenFull}
-          className="mt-auto self-start text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+          className="mt-auto self-start px-3 py-1.5 rounded-full bg-surface-2 hover:bg-surface-3 text-xs font-semibold text-white flex items-center gap-1.5 cursor-pointer transition-colors"
         >
           {hiddenCount > 0
             ? (isId ? `Lihat semua (${entries.length})` : `View all (${entries.length})`)

@@ -56,7 +56,7 @@ export function NewsPanel({
         right={<span className="self-start"><Badge tone={tone}>{analysis.sentiment === 'Netral' ? L('Netral', 'Neutral') : analysis.sentiment}</Badge></span>}
       />
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-2 lg:self-start p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+        <div className="lg:col-span-2 lg:self-start p-4 rounded-2xl bg-surface-2/60">
           <p className="text-xs text-slate-200 leading-relaxed">{analysis.summary}</p>
           {analysis.keyPoints.length > 0 && (
             <ul className="mt-3 space-y-1 list-disc pl-4 text-[11px] text-slate-400">

@@ -39,7 +39,7 @@ export function IpoRules({ language, activeGolongan }: { language: Lang; activeG
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full min-w-[620px] text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                   <th className="py-2 px-2">{L('Golongan', 'Class')}</th>
                   <th className="py-2 px-2">{L('Nilai penawaran', 'Offering value')}</th>
                   <th className="py-2 px-2">{L('Alokasi minimal terpusat', 'Minimum pooling')}</th>
@@ -82,7 +82,7 @@ export function IpoRules({ language, activeGolongan }: { language: Lang; activeG
           </ul>
 
           <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-            <p className="text-[11px] font-black uppercase tracking-wider text-emerald-400 mb-2">{L('Urutan penjatahan di tiap porsi', 'Allocation order within each portion')}</p>
+            <p className="text-xs font-medium text-emerald-400 mb-2">{L('Urutan penjatahan di tiap porsi', 'Allocation order within each portion')}</p>
             <ol className="space-y-1.5 list-decimal pl-4 leading-relaxed">
               <li>{L('Setiap pemodal dijatah dulu maksimal 10 lot (atau sesuai pesanan bila kurang dari 10 lot).', 'Each investor first receives up to 10 lots (or their order if smaller).')}</li>
               <li>{L('Bila lot tersedia lebih sedikit dari jumlah pemodal: 1 lot per pemodal sesuai urutan waktu pesan. Contoh SEOJK: 100.000 lot untuk 125.000 pemodal → 100.000 pemesan pertama mendapat 1 lot, sisanya tidak dapat.', 'If lots are fewer than investors: 1 lot each by order time. SEOJK example: 100,000 lots for 125,000 investors → the first 100,000 get 1 lot, the rest get none.')}</li>

@@ -58,15 +58,15 @@ export function GlobalMarkets({ language, isActive }: GlobalMarketsProps) {
         <Globe2 className="h-4 w-4 text-accent" aria-hidden />
         {isId ? 'Global & makro' : 'Global & macro'}
       </h2>
-      {/* Kartu dibagi rata selebar layar; bila tidak muat (layar sempit), geser ke samping. */}
-      <div className="grid grid-flow-col auto-cols-[minmax(150px,1fr)] gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
+      {/* 8 kartu sebaris di layar sangat lebar, 4×2 di laptop/tablet, 2 kolom di HP: tidak ada kartu terpotong. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 2xl:grid-cols-8 gap-3">
         {GLOBAL_INSTRUMENTS.map((inst) => {
           const q = quotes[inst.symbol];
           const isUp = (q?.change ?? 0) >= 0;
           return (
             <div
               key={inst.symbol}
-              className="snap-start min-w-0 rounded-2xl bg-card-bg border border-white/[0.04] px-4 py-3.5 flex flex-col gap-1.5"
+              className="min-w-0 rounded-2xl bg-card-bg border border-white/[0.04] px-4 py-3.5 flex flex-col gap-1.5"
             >
               <span className="text-xs text-slate-500 truncate" title={inst.unit ? `${inst[language]} (${inst.unit})` : inst[language]}>
                 {inst[language]}

@@ -521,7 +521,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
         {a.keyPoints && a.keyPoints.length > 0 && (
           <div className="space-y-1.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">{L('Poin Penting', 'Key Points')}</span>
+            <span className="text-xs font-medium text-slate-400">{L('Poin Penting', 'Key Points')}</span>
             <ul className="space-y-1.5">
               {a.keyPoints.map((point, i) => (
                 <li key={i} className="flex gap-2 text-xs text-slate-300 leading-relaxed">
@@ -535,7 +535,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
         {((a.affectedTickers?.length ?? 0) > 0 || (a.relatedThemes?.length ?? 0) > 0) && (
           <div className="space-y-2.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">{L('Saham Terdampak', 'Affected Stocks')}</span>
+            <span className="text-xs font-medium text-slate-400">{L('Saham Terdampak', 'Affected Stocks')}</span>
 
             {a.affectedTickers && a.affectedTickers.length > 0 && (
               <div className="space-y-1">
@@ -581,7 +581,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
 
         {a.watchPoints && a.watchPoints.length > 0 && (
           <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+            <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
               <Eye className="h-3 w-3 text-emerald-400" />
               {L('Yang Perlu Dipantau', 'What to Watch')}
             </span>
@@ -704,11 +704,11 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="rounded-2xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2.5"
+          className="rounded-2xl bg-surface-2/60 p-3.5 space-y-2.5"
         >
           {highlights.top.length > 0 && (
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[11px] font-extrabold uppercase tracking-widest text-amber-400 flex items-center gap-1 shrink-0">
+              <span className="text-xs font-medium text-amber-400 flex items-center gap-1 shrink-0">
                 <Flame className="h-3.5 w-3.5" /> {L('Paling diberitakan', 'Most covered')}
               </span>
               <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-0.5 min-w-0">
@@ -776,7 +776,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
           <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
             {L('Tambahkan saham ke watchlist, dan tab ini akan menampilkan berita khusus saham-saham tersebut.', 'Add stocks to your watchlist and this tab will show news about those stocks.')}
           </p>
-          <button type="button" onClick={onOpenWatchlist} className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold cursor-pointer">
+          <button type="button" onClick={onOpenWatchlist} className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold cursor-pointer">
             {L('Buka Watchlist', 'Open Watchlist')}
           </button>
         </div>
@@ -810,7 +810,7 @@ export function NewsTab({ user, onSignInClick, onSelectTicker, onOpenWatchlist, 
         <div className="space-y-5">
           {groups.map((group) => (
             <section key={group.label} className="space-y-2.5">
-              <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500">{group.label}</h2>
+              <h2 className="text-xs font-medium text-slate-400">{group.label}</h2>
               {group.items.map((item) => {
                 const state = analyses[item.id];
                 const isOpen = !!expanded[item.id];

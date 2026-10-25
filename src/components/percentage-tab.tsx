@@ -446,7 +446,7 @@ function NumberField({ spec, label, value, language, onChange }: NumberFieldProp
   const n = toNumber(value);
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+      <label htmlFor={id} className="text-xs font-medium text-slate-400">
         {label}
       </label>
       <StepperInput
@@ -605,7 +605,7 @@ export function PercentageTab() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         {/* Input Card */}
         <div className="glass-card p-5 md:p-6 space-y-5 lg:col-span-2">
-          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <h2 className="title-display text-lg text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <Percent className="h-5 w-5 text-emerald-400" />
             {t('percentage.inputHeader')}
           </h2>
@@ -639,7 +639,7 @@ export function PercentageTab() {
 
           {directionMode && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-xs font-medium text-slate-400">
                 {t('percentage.direction')}
               </span>
               <div className="flex bg-input-bg border border-border-color p-1 rounded-xl text-[11px] font-extrabold select-none">
@@ -678,7 +678,7 @@ export function PercentageTab() {
 
           {directionMode && (
             <div className="flex flex-wrap items-center gap-1.5 -mt-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">
+              <span className="text-xs font-medium text-slate-400 mr-1">
                 {t('percentage.presets')}
               </span>
               {PERCENT_PRESETS.map((p) => (
@@ -702,7 +702,7 @@ export function PercentageTab() {
         {/* Result Card */}
         <div className="glass-card p-5 md:p-6 space-y-5 lg:col-span-3" aria-live="polite">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <h2 className="title-display text-lg text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <Sigma className="h-5 w-5 text-emerald-400" />
               {t('percentage.resultHeader')}
             </h2>
@@ -728,7 +728,7 @@ export function PercentageTab() {
           {outcome.kind === 'ok' && (
             <>
               <div className="space-y-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{outcome.label}</span>
+                <span className="text-xs font-medium text-slate-400">{outcome.label}</span>
                 <div className={`text-4xl md:text-5xl font-black tracking-tight break-all ${TONE_TEXT[outcome.tone]}`}>
                   <Flash value={outcome.headline} />
                 </div>
@@ -738,7 +738,7 @@ export function PercentageTab() {
               <div className={`grid grid-cols-1 ${statCols} gap-3`}>
                 {outcome.stats.map((s) => (
                   <div key={s.label} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1 min-w-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{s.label}</span>
+                    <span className="text-xs font-medium text-slate-400 block">{s.label}</span>
                     <span className={`text-base font-extrabold block break-all ${TONE_TEXT[s.tone]}`}><Flash value={s.value} /></span>
                   </div>
                 ))}
@@ -753,7 +753,7 @@ export function PercentageTab() {
 
               {context && (
                 <div className="p-3.5 rounded-2xl bg-sky-500/5 border border-sky-500/20 text-[11px] text-sky-100/90 leading-relaxed animate-fadeIn">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1.5 mb-1">
+                  <span className="text-xs font-medium text-sky-300 flex items-center gap-1.5 mb-1">
                     <Info className="h-3.5 w-3.5" /> {language === 'id' ? 'Bila ini harga saham BEI' : 'If these are IDX stock prices'}
                   </span>
                   <ul className="space-y-0.5 list-disc pl-4">
@@ -762,8 +762,8 @@ export function PercentageTab() {
                 </div>
               )}
 
-              <div className="p-3.5 rounded-2xl bg-black/25 border border-white/5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t('percentage.formula')}</span>
+              <div className="p-3.5 rounded-2xl bg-surface-2">
+                <span className="text-xs font-medium text-slate-400">{t('percentage.formula')}</span>
                 <code className="block mt-1 text-xs font-mono text-slate-300 break-all">{outcome.formula}</code>
               </div>
 
@@ -779,7 +779,7 @@ export function PercentageTab() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-xs font-bold text-slate-950 flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                  className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-xs font-bold text-slate-950 flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
                 >
                   {flash === 'save' ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                   {t(flash === 'save' ? 'percentage.saved' : 'percentage.save')}
@@ -793,7 +793,7 @@ export function PercentageTab() {
       {/* History */}
       <div className="glass-card p-5 md:p-6 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-black text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <h2 className="title-display text-lg text-white flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <History className="h-5 w-5 text-emerald-400" />
             {t('percentage.history')}
           </h2>
@@ -828,7 +828,7 @@ export function PercentageTab() {
                       className="w-full p-3 rounded-2xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 flex items-center justify-between gap-3 text-left transition-all cursor-pointer"
                     >
                       <div className="min-w-0">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                        <span className="text-xs font-medium text-slate-400 block">
                           {t(MODE_BY_ID[entry.mode].labelKey)}
                         </span>
                         <span className="text-xs text-slate-300 block truncate">{o.summary}</span>

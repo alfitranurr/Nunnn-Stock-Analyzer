@@ -73,7 +73,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
   if (!result || result.sharesAwal === 0) {
     return (
       <div className="glass-card p-8 flex flex-col items-center justify-center text-center h-full min-h-[350px] border-dashed border-2 border-slate-300/40 dark:border-white/10">
-        <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-900/50 flex items-center justify-center border border-slate-200 dark:border-white/5 mb-4 animate-pulse">
+        <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center border border-slate-200 dark:border-white/5 mb-4 animate-pulse">
           <TrendingDown className="h-8 w-8 text-slate-400 dark:text-slate-500" />
         </div>
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
@@ -159,7 +159,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
           <ResultsEmitenLogo key={ticker} symbol={ticker} />
           <div className="flex flex-col justify-center min-w-0">
-            <h2 className="text-2xl md:text-3xl font-black text-white tracking-wider leading-none">
+            <h2 className="title-display text-3xl md:text-4xl text-white leading-none">
               {ticker}
             </h2>
             <span className="text-xs font-semibold text-emerald-400 mt-1 truncate" title={cleanName}>
@@ -171,10 +171,10 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         {/* Card 2: Modal Baru yang Dibutuhkan */}
         <div className="glass-card p-4 md:p-5 bg-emerald-500/5 border-emerald-500/40 relative overflow-hidden flex flex-col justify-center min-h-[96px]">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block">
+          <span className="text-xs font-medium text-emerald-400 block">
             {isId ? 'Modal Baru yang Dibutuhkan' : 'Required New Capital'}
           </span>
-          <h3 className="text-xl md:text-2xl font-black tracking-tight text-emerald-400 mt-1">
+          <h3 className="font-display text-2xl md:text-[28px] font-medium tracking-tight text-emerald-400 mt-1">
             <AnimatedNumber value={result.capitalRequired} format={formatIDR} fromZero />
           </h3>
           <p className="text-[11px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
@@ -185,11 +185,11 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         </div>
 
         {/* Card 3: Total Lot Akhir */}
-        <div className="glass-card p-4 md:p-5 bg-white/5 dark:bg-black/25 border-white/10 flex flex-col justify-center min-h-[96px]">
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+        <div className="glass-card p-4 md:p-5 flex flex-col justify-center min-h-[96px]">
+          <span className="text-xs font-medium text-slate-400 dark:text-slate-400 block">
             {isId ? 'Total Lot Akhir' : 'Total Final Lots'}
           </span>
-          <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white mt-1">
+          <h3 className="font-display text-2xl md:text-[28px] font-medium tracking-tight text-white mt-1">
             {result.lotTotal.toLocaleString(isId ? 'id-ID' : 'en-US')} Lot
           </h3>
           <p className="text-[11px] md:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
@@ -200,7 +200,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
 
       {/* Wawasan otomatis dari hasil hitungan (fraksi BEI, hari ARA, uji turun 10%) */}
       <div className="glass-card p-4 md:p-5 border-sky-500/20 bg-sky-500/[0.03]">
-        <h4 className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-sky-300 mb-3 flex items-center gap-2">
+        <h4 className="text-xs font-medium text-sky-300 mb-3 flex items-center gap-2">
           <Lightbulb className="h-4 w-4" /> {isId ? 'Wawasan' : 'Insights'}
         </h4>
         <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-2.5" key={`${result.breakEvenPriceBaru}:${result.capitalRequired}`}>
@@ -224,8 +224,8 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         >
           <div>
             <div className="flex justify-between items-center mb-4 md:mb-5.5">
-              <span className="text-[11px] md:text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                {isId ? 'SEBELUM AVG DOWN' : 'BEFORE AVG DOWN'}
+              <span className="title-display text-lg text-white">
+                {isId ? 'Sebelum avg down' : 'Before avg down'}
               </span>
               <span className="text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20">
                 {isId ? 'Holding Sekarang' : 'Current Holding'}
@@ -251,7 +251,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           </div>
 
           <div className="mt-6 md:mt-8 pt-3.5 md:pt-4.5 border-t border-slate-200 dark:border-white/10">
-            <span className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase block mb-1">Floating P&L</span>
+            <span className="text-xs font-medium text-slate-400 block mb-1">Floating P&L</span>
             <div className="flex justify-between items-center">
               <span className={`text-lg md:text-xl font-extrabold tracking-tight ${isProfitAwal ? 'text-bullish-green dark:text-bullish-neon' : 'text-bearish-red dark:text-bearish-crimson'}`}>
                 {formatIDR(result.floatingPLAwal)}
@@ -279,8 +279,8 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           )}
           <div>
             <div className="flex justify-between items-center mb-4 md:mb-5.5">
-              <span className="text-[11px] md:text-xs font-extrabold uppercase tracking-widest text-emerald-400">
-                {isId ? 'SESUDAH AVG DOWN' : 'AFTER AVG DOWN'}
+              <span className="title-display text-lg text-emerald-400">
+                {isId ? 'Sesudah avg down' : 'After avg down'}
               </span>
               {result.turnedIntoProfit ? (
                 <motion.span
@@ -319,7 +319,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           </div>
 
           <div className="mt-6 md:mt-8 pt-3.5 md:pt-4.5 border-t border-slate-200 dark:border-white/10">
-            <span className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase block mb-1">
+            <span className="text-xs font-medium text-slate-400 block mb-1">
               {isId ? 'Estimasi Floating P&L Baru' : 'Estimated New Floating P&L'}
             </span>
             <div className="flex justify-between items-center">
@@ -347,9 +347,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
         transition={{ duration: 0.4, delay: 0.2 }}
         className="glass-card p-4 md:p-6 border-white/10 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
-        <h4 className="text-base font-black text-white mb-5 flex items-center gap-2">
+        <h4 className="title-display text-lg text-white mb-5 flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-emerald-400" />
           {isId ? `Rangkuman Perbaikan Posisi (${ticker})` : `Position Improvement Summary (${ticker})`}
         </h4>
@@ -359,18 +357,18 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           {/* Perubahan Harga Rata-Rata */}
           <div className="space-y-3.5">
             <div className="flex justify-between items-center gap-2 flex-wrap sm:flex-nowrap">
-              <span className="text-[11px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-400">
                 {isAvgUp
                   ? (isId ? 'Harga Rata-Rata Naik' : 'Average Price Increased')
                   : (isId ? 'Harga Rata-Rata Turun' : 'Average Price Reduced')}
               </span>
-              <span className={`text-sm md:text-base font-bold shrink-0 text-right ${isAvgUp ? 'text-amber-400' : 'text-emerald-400'}`}>
+              <span className={`font-display text-lg md:text-xl font-medium tabular-nums shrink-0 text-right ${isAvgUp ? 'text-amber-400' : 'text-emerald-400'}`}>
                 {pct(-result.avgPriceReductionPct, true)}
               </span>
             </div>
 
             {/* Custom Progress Bar */}
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-900/60 rounded-full overflow-hidden border border-slate-200/20 dark:border-white/5">
+            <div className="w-full h-1.5 bg-surface-3 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, Math.abs(result.avgPriceReductionPct))}%` }}
@@ -380,16 +378,16 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
             </div>
 
             {/* Perbandingan Harga */}
-            <div className="flex items-center gap-2.5 justify-between bg-white/85 dark:bg-slate-950/50 p-3 md:p-3.5 rounded-xl border border-slate-300/60 dark:border-white/10 shadow-md">
+            <div className="flex items-center gap-2.5 justify-between bg-surface-2 p-3.5 md:p-4 rounded-2xl">
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] md:text-[11px] text-slate-400 dark:text-slate-500 uppercase font-semibold tracking-wider mb-0.5 block truncate">
+                <span className="text-xs md:text-[11px] text-slate-400 dark:text-slate-500 font-semibold mb-0.5 block truncate">
                   {isId ? 'Avg Awal' : 'Initial Avg'}
                 </span>
                 <span className="font-semibold text-slate-600 dark:text-slate-300 text-xs md:text-sm block truncate">{formatIDR(result.avgPriceAwal)}</span>
               </div>
               <ArrowRight className="h-4 w-4 text-emerald-400 shrink-0" />
               <div className="flex flex-col text-right min-w-0">
-                <span className="text-[10px] md:text-[11px] text-emerald-400 uppercase font-semibold tracking-wider mb-0.5 block truncate">
+                <span className="text-xs md:text-[11px] text-emerald-400 font-semibold mb-0.5 block truncate">
                   {isId ? 'Avg Baru' : 'New Avg'}
                 </span>
                 <span className="font-bold text-slate-800 dark:text-white text-xs md:text-sm block truncate">{formatIDR(result.avgPriceBaru)}</span>
@@ -410,12 +408,12 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
             {!isProfitAwal && result.lossShrunkPct !== null ? (
               <>
                 <div className="flex justify-between items-center gap-2 flex-wrap sm:flex-nowrap">
-                  <span className="text-[11px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-400">
                     {lossGrew
                       ? (isId ? 'Floating Loss Membesar' : 'Floating Loss Increased')
                       : (isId ? 'Floating Loss Menyusut' : 'Floating Loss Reduced')}
                   </span>
-                  <span className={`text-sm md:text-base font-bold shrink-0 text-right ${lossGrew ? 'text-bearish-red' : 'text-bullish-green dark:text-bullish-neon'}`}>
+                  <span className={`font-display text-lg md:text-xl font-medium tabular-nums shrink-0 text-right ${lossGrew ? 'text-bearish-red' : 'text-bullish-green dark:text-bullish-neon'}`}>
                     {result.lossShrunkPct >= 100
                       ? (isId ? '100% (Sembuh!)' : '100% (Recovered!)')
                       : pct(Math.abs(result.lossShrunkPct))}
@@ -423,7 +421,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 </div>
 
                 {/* Custom Progress Bar */}
-                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-900/60 rounded-full overflow-hidden border border-slate-200/20 dark:border-white/5">
+                <div className="w-full h-1.5 bg-surface-3 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, Math.abs(result.lossShrunkPct))}%` }}
@@ -433,16 +431,16 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
                 </div>
 
                 {/* Perbandingan Loss */}
-                <div className="flex items-center gap-2.5 justify-between bg-white/85 dark:bg-slate-950/50 p-3 md:p-3.5 rounded-xl border border-slate-300/60 dark:border-white/10 shadow-md">
+                <div className="flex items-center gap-2.5 justify-between bg-surface-2 p-3.5 md:p-4 rounded-2xl">
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] md:text-[11px] text-slate-400 dark:text-slate-500 uppercase font-semibold tracking-wider mb-0.5 block truncate">
+                    <span className="text-xs md:text-[11px] text-slate-400 dark:text-slate-500 font-semibold mb-0.5 block truncate">
                       {isId ? 'Loss Awal' : 'Initial Loss'}
                     </span>
                     <span className="font-semibold text-bearish-red text-xs md:text-sm block truncate">{pct(result.floatingPLAwalPct, true)}</span>
                   </div>
                   <ArrowRight className="h-4 w-4 text-bullish-green dark:text-bullish-neon shrink-0" />
                   <div className="flex flex-col text-right min-w-0">
-                    <span className="text-[10px] md:text-[11px] text-slate-400 dark:text-slate-500 uppercase font-semibold tracking-wider mb-0.5 block truncate">
+                    <span className="text-xs md:text-[11px] text-slate-400 dark:text-slate-500 font-semibold mb-0.5 block truncate">
                       {isProfitTotal ? (isId ? 'Profit Baru' : 'New Profit') : (isId ? 'Loss Baru' : 'New Loss')}
                     </span>
                     <span className={`font-bold text-xs md:text-sm block truncate ${isProfitTotal ? 'text-bullish-green' : 'text-bearish-red'}`}>

@@ -111,12 +111,12 @@ export function SrLevels({ language, data }: SrLevelsProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs">
         <div className="p-3 rounded-2xl border border-rose-500/25 bg-rose-500/[0.05]">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-rose-300">{L('Resistance terdekat', 'Nearest resistance')}</span>
+          <span className="text-xs font-medium text-rose-300">{L('Resistance terdekat', 'Nearest resistance')}</span>
           <div className="text-base font-black text-white tabular-nums mt-0.5">{nearestAbove ? `${nearestAbove.key} · ${rp(nearestAbove.price, language)}` : L('Di atas R4', 'Above R4')}</div>
           {nearestAbove && <span className="text-[11px] text-rose-300">+{pct(((nearestAbove.price - price) / price) * 100, language)}</span>}
         </div>
-        <div className="p-3 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{L('Posisi harga', 'Price position')}</span>
+        <div className="p-3 rounded-2xl bg-surface-2/60">
+          <span className="text-xs font-medium text-slate-400">{L('Posisi harga', 'Price position')}</span>
           <div className="text-base font-black text-white tabular-nums mt-0.5">{rp(price, language)}</div>
           <span className={`text-[11px] ${price > pp.price ? 'text-emerald-400' : price < pp.price ? 'text-rose-400' : 'text-slate-300'}`}>
             {price > pp.price
@@ -127,7 +127,7 @@ export function SrLevels({ language, data }: SrLevelsProps) {
           </span>
         </div>
         <div className="p-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.05]">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">{L('Support terdekat', 'Nearest support')}</span>
+          <span className="text-xs font-medium text-emerald-300">{L('Support terdekat', 'Nearest support')}</span>
           <div className="text-base font-black text-white tabular-nums mt-0.5">{nearestBelow ? `${nearestBelow.key} · ${rp(nearestBelow.price, language)}` : L('Di bawah S4', 'Below S4')}</div>
           {nearestBelow && <span className="text-[11px] text-emerald-300">{pct(((nearestBelow.price - price) / price) * 100, language)}</span>}
         </div>

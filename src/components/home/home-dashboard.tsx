@@ -32,7 +32,7 @@ import { ListingCoverage } from './listing-coverage';
 import { MarketOverview } from './market-overview';
 import { MarketMovers } from './market-movers';
 import { GlobalMarkets } from './global-markets';
-import type { MarketSummaryData } from './types';
+import { HOME_SPLIT, type MarketSummaryData } from './types';
 
 /** Status sesi BEI yang diperbarui tiap 30 detik selama `enabled`. */
 export function useIdxSessionState(enabled: boolean, lastIndexTradeSec?: number | null) {
@@ -159,8 +159,8 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
 
       <GlobalMarkets language={language} isActive={isActive} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5 items-stretch">
-        <div className="lg:col-span-2">
+      <div className={`${HOME_SPLIT} items-stretch`}>
+        <div className="min-w-0">
           <MarketMovers
             language={language}
             data={data}
@@ -189,8 +189,8 @@ export function HomeDashboard({ user, isActive, portfolioRefreshKey, onNavigate,
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
-        <div className="lg:col-span-2">
+      <div className={HOME_SPLIT}>
+        <div className="min-w-0">
           <TrendingNewsStrip language={language} />
         </div>
         <EducationalTipCard language={language} market={data} />

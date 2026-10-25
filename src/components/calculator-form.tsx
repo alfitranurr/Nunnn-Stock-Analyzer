@@ -90,11 +90,11 @@ const BROKER_PRESETS = [
 ];
 
 const SUB_CARD_CLASS =
-  'p-4 md:p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4 flex flex-col min-w-0 w-full';
+  'p-4 md:p-5 rounded-2xl bg-surface-2/60 space-y-4 flex flex-col min-w-0 w-full';
 /** Label isian: di atas input, sama dengan <Field> di shared/calc-ui.tsx. */
-const FIELD_LABEL = 'text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5';
+const FIELD_LABEL = 'text-xs font-medium text-slate-400 block mb-1.5';
 /** Judul sub-kartu langkah 1–4. */
-const STEP_TITLE = 'text-sm font-bold text-white block';
+const STEP_TITLE = 'title-display text-base text-white block';
 
 function FormEmitenLogo({ symbol }: { symbol: string }) {
   const [hasError, setHasError] = React.useState(false);
@@ -462,7 +462,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     <div className="glass-card p-4 md:p-6 w-full flex flex-col gap-4">
       {/* Title block */}
       <div className="flex justify-between items-center gap-3">
-        <h2 className="text-base font-black text-white flex items-center gap-2">
+        <h2 className="title-display text-lg text-white flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-emerald-400" />
           {t('calculator.title')}
         </h2>
@@ -640,7 +640,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 {t('calculator.step3')}
               </span>
 
-              <div className="hidden sm:flex items-center gap-2 px-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400" aria-hidden="true">
+              <div className="hidden sm:flex items-center gap-2 px-1 text-xs font-medium text-slate-400" aria-hidden="true">
                 <span className="w-6 shrink-0 text-center">#</span>
                 <span className="flex-1 min-w-0 text-center">{t('calculator.trancheLot')}</span>
                 <span className="flex-[1.4] min-w-0 text-center">{t('calculator.tranchePrice')}</span>
@@ -698,7 +698,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                           <span className="hidden sm:flex">{indexBadge}</span>
 
                           <div className="min-w-0 sm:flex-1">
-                            <span className="sm:hidden block mb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{t('calculator.trancheLot')}</span>
+                            <span className="sm:hidden block mb-1 text-xs font-medium text-slate-400">{t('calculator.trancheLot')}</span>
                             <StepperInput
                               type="text"
                               inputMode="numeric"
@@ -718,7 +718,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                           </div>
 
                           <div className="min-w-0 sm:flex-[1.4]">
-                            <span className="sm:hidden block mb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{t('calculator.tranchePrice')}</span>
+                            <span className="sm:hidden block mb-1 text-xs font-medium text-slate-400">{t('calculator.tranchePrice')}</span>
                             <StepperInput
                               type="text"
                               inputMode="decimal"
@@ -783,7 +783,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
 
             {/* Total Dana Dibutuhkan untuk seluruh tranche */}
             <div className="flex items-center justify-between gap-2 px-1 pt-2 mt-1 border-t border-white/10">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-medium text-slate-400">
                 {t('calculator.totalPurchase')}
               </span>
               <span className="text-xs md:text-sm font-black text-emerald-400">
@@ -829,8 +829,8 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                     [t('calculator.feeBeli'), feeBeli],
                     [t('calculator.feeJual'), feeJual],
                   ].map(([label, value]) => (
-                    <div key={String(label)} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
-                      <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</dt>
+                    <div key={String(label)} className="rounded-xl bg-surface-2/60 px-3 py-2">
+                      <dt className="text-xs font-medium text-slate-400">{label}</dt>
                       <dd className="text-sm font-black text-white mt-0.5">{formatPercent(Number(value), { language })}</dd>
                     </div>
                   ))}
@@ -893,22 +893,22 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200/50 dark:border-white/5 w-full">
           {hasLiveResult && result ? (
             <div className="grid grid-cols-3 gap-2 sm:gap-3 text-left w-full sm:w-auto sm:min-w-[28rem]" aria-live="polite">
-              <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{t('calculator.liveNewAvg')}</span>
+              <div className="min-w-0 rounded-2xl bg-surface-2/60 p-3">
+                <span className="text-xs font-medium text-slate-400 block">{t('calculator.liveNewAvg')}</span>
                 <AnimatedNumber value={result.avgPriceBaru} format={(v) => formatIDR(v, language)} className="text-sm md:text-base font-black text-white block truncate mt-0.5" />
                 <span className={`text-[11px] font-bold ${result.avgPriceReductionPct >= 0 ? 'text-bullish-green' : 'text-amber-400'}`}>
                   {formatPercent(-result.avgPriceReductionPct, { language, signed: true })}
                 </span>
               </div>
-              <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{t('calculator.liveBep')}</span>
+              <div className="min-w-0 rounded-2xl bg-surface-2/60 p-3">
+                <span className="text-xs font-medium text-slate-400 block">{t('calculator.liveBep')}</span>
                 <AnimatedNumber value={result.breakEvenPriceBaru} format={(v) => formatIDR(v, language)} className="text-sm md:text-base font-black text-white block truncate mt-0.5" />
                 <span className={`text-[11px] font-bold ${result.gainToBreakEvenBaruPct > 0 ? 'text-slate-400' : 'text-bullish-green'}`}>
                   {formatPercent(result.gainToBreakEvenBaruPct, { language, signed: true })}
                 </span>
               </div>
-              <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{t('calculator.liveCapital')}</span>
+              <div className="min-w-0 rounded-2xl bg-surface-2/60 p-3">
+                <span className="text-xs font-medium text-slate-400 block">{t('calculator.liveCapital')}</span>
                 <AnimatedNumber value={result.capitalRequired} format={(v) => formatIDR(v, language)} className="text-sm md:text-base font-black text-emerald-400 block truncate mt-0.5" />
               </div>
             </div>
@@ -920,7 +920,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             <button
               type="submit"
               disabled={isSaving || !canSave}
-              className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full sm:w-auto py-2.5 px-6 rounded-full bg-emerald-500 hover:bg-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
             >
               {isSaving ? (
                 <span className="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />

@@ -320,7 +320,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
           </div>
           {entries.length > 1 && (
             <div className="flex flex-col items-start lg:items-end gap-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+              <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                 <ArrowUpDown className="h-3 w-3" /> {L('Urutkan berdasarkan', 'Sort by')}
               </span>
               <Segmented
@@ -372,7 +372,7 @@ export function WatchlistPage({ language, isActive, onSelectTicker }: WatchlistP
             <div className="hidden lg:block overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                     <th className={`py-2.5 px-3 ${sort === 'az' ? 'text-emerald-400' : ''}`} aria-sort={ariaSort('az')}>{L('Saham', 'Stock')}{sort === 'az' ? ` ${sortArrow('az')}` : ''}</th>
                     <th className="py-2.5 px-3 text-right">{L('Harga', 'Price')}</th>
                     <th className={`py-2.5 px-3 text-right ${sort === 'change' ? 'text-emerald-400' : ''}`} aria-sort={ariaSort('change')}>
@@ -503,7 +503,7 @@ function TargetEditor({
   return (
     <div className="p-3.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] flex flex-col md:flex-row md:items-end gap-3">
       <div className="space-y-1.5">
-        <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">{L(`Harga incaran ${entry.symbol}`, `${entry.symbol} target`)}</span>
+        <span className="block text-xs font-medium text-slate-400">{L(`Harga incaran ${entry.symbol}`, `${entry.symbol} target`)}</span>
         <Segmented
           ariaLabel={L('Jenis target', 'Target type')}
           value={kind}
@@ -516,7 +516,7 @@ function TargetEditor({
         />
       </div>
       <div className="md:w-48 space-y-1.5">
-        <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        <span className="block text-xs font-medium text-slate-400">
           {L('Harga', 'Price')}
           {distance !== null && <span className="normal-case tracking-normal font-semibold text-slate-400"> · {distance > 0 ? '+' : ''}{pct(distance, language)} {L('dari harga', 'from price')}</span>}
         </span>

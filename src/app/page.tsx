@@ -792,7 +792,7 @@ export default function Dashboard() {
                   <div className="absolute inset-0 flex items-center" aria-hidden="true">
                     <div className="w-full border-t border-dashed border-slate-300/60 dark:border-white/10" />
                   </div>
-                  <div className="relative flex items-center gap-2 bg-background px-4 py-1.5 rounded-full border border-slate-200/60 dark:border-white/10 text-xs font-black tracking-widest uppercase text-slate-600 dark:text-slate-300 shadow-sm select-none">
+                  <div className="relative flex items-center gap-2 bg-background px-4 py-1.5 rounded-full border border-white/10 text-sm font-semibold text-slate-200 select-none">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
                     <span>{t('calculator.conclusion')}</span>
                   </div>
@@ -993,17 +993,17 @@ export default function Dashboard() {
             initial={{ opacity: 0, scale: 0.6, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.6, y: 30 }}
-            whileHover={{ scale: 1.12, y: -4 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.92 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
             onClick={scrollToTop}
-            className={`fixed right-6 md:right-8 z-40 p-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-xl shadow-emerald-500/25 cursor-pointer transition-all duration-300 border border-emerald-400/30 flex items-center justify-center backdrop-blur-md group ${
+            className={`fixed right-5 md:right-6 z-40 h-11 w-11 rounded-full bg-surface-3/90 hover:bg-white hover:text-slate-950 text-white shadow-lg shadow-black/40 cursor-pointer transition-colors border border-white/10 flex items-center justify-center backdrop-blur-md group ${
               toast ? 'bottom-40 md:bottom-26' : 'bottom-20 md:bottom-8'
             }`}
             title={language === 'id' ? 'Kembali ke atas' : 'Scroll to top'}
             aria-label="Scroll to top"
           >
-            <ChevronUp className="h-5.5 w-5.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
+            <ChevronUp className="h-5 w-5" />
           </motion.button>
         )}
       </AnimatePresence>

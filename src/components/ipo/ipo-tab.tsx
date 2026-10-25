@@ -603,7 +603,7 @@ export function IpoTab({ user }: IpoTabProps) {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 p-5 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-card-bg to-[#121619]">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="text-xs font-medium text-emerald-400">
                 {L(`Perkiraan jatah Anda · porsi ${catLabel(me.category).toLowerCase()}`, `Your estimated allotment · ${catLabel(me.category).toLowerCase()} portion`)}
               </span>
               <div className="flex items-baseline flex-wrap gap-x-3 gap-y-1 mt-1">
@@ -667,7 +667,7 @@ export function IpoTab({ user }: IpoTabProps) {
           {/* Strategi pesanan */}
           {strategy.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-xs font-bold text-slate-300 mb-1">{L('Strategi pesanan: berapa lot yang efisien?', 'Order strategy: what size is efficient?')}</h3>
+              <h3 className="text-sm font-semibold text-white mb-1">{L('Strategi pesanan: berapa lot yang efisien?', 'Order strategy: what size is efficient?')}</h3>
               {efficientRetail && (
                 <p className="text-[11px] text-slate-400 mb-3">
                   {efficientRetail.allotted > 0
@@ -684,7 +684,7 @@ export function IpoTab({ user }: IpoTabProps) {
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full sm:min-w-[560px] text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                    <tr className="border-b border-white/10 text-slate-400 text-xs font-medium">
                       <th className="py-2.5 px-3">{L('Pesan', 'Order')}</th>
                       <th className="py-2.5 px-3 hidden sm:table-cell">{L('Porsi', 'Portion')}</th>
                       <th className="py-2.5 px-3 text-right">{L('Dana disetor', 'Funds')}</th>
@@ -741,7 +741,7 @@ export function IpoTab({ user }: IpoTabProps) {
         ) : (
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {savedPlans.map((plan) => (
-              <li key={plan.id} className="p-3.5 rounded-2xl border border-white/10 bg-white/[0.02] flex items-center gap-3">
+              <li key={plan.id} className="p-3.5 rounded-2xl bg-surface-2/60 flex items-center gap-3">
                 {plan.ticker !== 'IPO' ? (
                   <CompanyLogo symbol={plan.ticker} size={36} />
                 ) : (

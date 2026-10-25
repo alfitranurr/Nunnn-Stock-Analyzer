@@ -128,21 +128,22 @@ body {
   letter-spacing: -0.025em;
 }
 
+/* Input: lebih gelap dari kartu agar terbaca sebagai "lubang" isian; border tipis, radius 12px. */
 .glass-input {
-  background: var(--input-bg);
-  border: 1.5px solid #3a4248;
-  transition: all 0.2s ease;
-  border-radius: 0.5rem;
+  background: #121418;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-radius: 12px;
 }
 
 .glass-input:focus {
   outline: none;
   border-color: var(--color-brand-primary);
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
 }
 
 .glass-input:hover:not(:focus) {
-  border-color: #4a5258;
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Custom Scrollbar */
@@ -269,4 +270,20 @@ body {
 }
 @keyframes splashAutoHide {
   to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+/* Skala tampilan desktop 80% (setara zoom browser 80%, ukuran yang dipilih pengguna).
+   `zoom` ikut mengecilkan satuan viewport, jadi wadah setinggi layar (h-dvh di page.tsx)
+   dikompensasi dengan membagi zoom agar tetap memenuhi tinggi jendela. */
+@media (min-width: 1024px) {
+  html {
+    --app-zoom: 0.8;
+    zoom: var(--app-zoom);
+  }
+  .h-dvh {
+    height: calc(100dvh / var(--app-zoom));
+  }
+  body {
+    min-height: calc(100vh / var(--app-zoom));
+  }
 }

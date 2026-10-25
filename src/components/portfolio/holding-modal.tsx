@@ -134,7 +134,7 @@ function HoldingForm({ language, mode, holdings, onClose, onSubmit }: Omit<Holdi
         className="relative w-full max-w-md rounded-3xl border border-white/10 bg-card-bg shadow-2xl p-5 sm:p-6 space-y-4"
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 id={`${fieldId}-title`} className="text-base font-black text-white">{title}</h2>
+          <h2 id={`${fieldId}-title`} className="title-display text-lg text-white">{title}</h2>
           <button type="button" onClick={onClose} aria-label={L('Tutup', 'Close')} className="p-1.5 -m-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer">
             <X className="h-5 w-5" />
           </button>

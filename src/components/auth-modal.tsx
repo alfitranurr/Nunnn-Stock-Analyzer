@@ -228,7 +228,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Alamat Email</label>
+            <label className="text-xs font-medium text-slate-400">Alamat Email</label>
             <div className="relative mt-1.5">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
@@ -243,7 +243,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           </div>
 
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Password</label>
+            <label className="text-xs font-medium text-slate-400">Password</label>
             <div className="relative mt-1.5">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
@@ -260,7 +260,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-bold text-sm transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
           >
             {loading ? (
               <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />

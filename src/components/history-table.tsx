@@ -127,7 +127,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-base font-black text-white flex items-center gap-2">
+          <h2 className="title-display text-lg text-white flex items-center gap-2">
             <History className="h-5 w-5 text-emerald-400" />
             {isId ? 'Rencana Tersimpan' : 'Saved Plans'}
           </h2>
@@ -160,12 +160,12 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
               <table className="min-w-full divide-y divide-slate-200/50 dark:divide-white/5">
                 <thead className="bg-slate-100/50 dark:bg-black/45">
                   <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Saham' : 'Stock'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Posisi Awal' : 'Initial Position'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Rencana Baru' : 'New Plan'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</th>
-                    <th scope="col" className="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Tanggal' : 'Date'}</th>
-                    <th scope="col" className="px-4 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">{isId ? 'Aksi' : 'Actions'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-400">{isId ? 'Saham' : 'Stock'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-400">{isId ? 'Posisi Awal' : 'Initial Position'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-400">{isId ? 'Rencana Baru' : 'New Plan'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-400">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-400">{isId ? 'Tanggal' : 'Date'}</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-400">{isId ? 'Aksi' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/30 dark:divide-white/5 bg-transparent">
@@ -290,7 +290,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
                   {/* Estimate & Actions */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-200/30 dark:border-white/5 bg-slate-100/10 dark:bg-black/10 -mx-4 -mb-4 p-3 rounded-b-xl">
                     <div>
-                      <span className="text-[10px] text-slate-500 uppercase block font-bold leading-none mb-1">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</span>
+                      <span className="text-xs text-slate-400 block font-medium leading-none mb-1">{isId ? 'Estimasi Avg Baru' : 'Est. New Avg'}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-black text-slate-800 dark:text-white text-xs">{formatIDR(estimate.avgPriceBaru, language)}</span>
                         <span className={`text-[10px] font-extrabold px-1 rounded ${badge.className}`}>{badge.text}</span>
@@ -323,7 +323,7 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, onSignInClick, u
       )}
 
       {!user && plans.length > 0 && (
-        <div className="p-3 rounded-xl bg-slate-100/50 dark:bg-black/25 border border-slate-200/50 dark:border-white/5 text-[11px] text-slate-500 flex items-start gap-2">
+        <div className="p-3 rounded-2xl bg-surface-2 text-[11px] text-slate-500 flex items-start gap-2">
           <Info className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
           <span>
             {isId ? (
